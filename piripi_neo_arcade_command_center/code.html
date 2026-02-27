@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Piripi Neo-Arcade Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0df2f2",
+              "alert": "#39ff14",
+              "background-light": "#f5f8f8",
+              "background-dark": "#102222",
+            },
+            fontFamily: {
+              "display": ["Space Grotesk"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass {
+            background: rgba(16, 34, 34, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(13, 242, 242, 0.1);
+        }
+        .matrix-grid {
+            background-image: radial-gradient(rgba(13, 242, 242, 0.1) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+        .neo-border {
+            border-left: 3px solid #0df2f2;
+        }
+        .neo-border-alert {
+            border-left: 3px solid #39ff14;
+        }
+        .scanline {
+            background: linear-gradient(to bottom, transparent 50%, rgba(13, 242, 242, 0.02) 50%);
+            background-size: 100% 4px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen selection:bg-primary/30 selection:text-primary overflow-hidden">
+<div class="flex h-screen w-full relative overflow-hidden matrix-grid">
+<div class="absolute inset-0 scanline pointer-events-none opacity-50"></div>
+<aside class="w-20 lg:w-64 glass border-r border-primary/10 flex flex-col z-20">
+<div class="p-6 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center shadow-[0_0_15px_rgba(13,242,242,0.5)]">
+<span class="material-icons text-background-dark text-lg">precision_manufacturing</span>
+</div>
+<span class="text-xl font-bold tracking-tighter hidden lg:block">PIRIPI <span class="text-primary italic">NEO</span></span>
+</div>
+<nav class="flex-1 px-4 py-8 space-y-4">
+<div class="group flex items-center gap-4 p-3 bg-primary/10 text-primary rounded-lg cursor-pointer">
+<span class="material-icons">grid_view</span>
+<span class="font-medium hidden lg:block tracking-wide">COMMAND</span>
+</div>
+<div class="group flex items-center gap-4 p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all cursor-pointer">
+<span class="material-icons">architecture</span>
+<span class="font-medium hidden lg:block tracking-wide">DIAGNOSTICS</span>
+</div>
+<div class="group flex items-center gap-4 p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all cursor-pointer">
+<span class="material-icons">query_stats</span>
+<span class="font-medium hidden lg:block tracking-wide">ANALYTICS</span>
+</div>
+<div class="group flex items-center gap-4 p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all cursor-pointer">
+<span class="material-icons">inventory_2</span>
+<span class="font-medium hidden lg:block tracking-wide">WORKSHOP</span>
+</div>
+<div class="group flex items-center gap-4 p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all cursor-pointer">
+<span class="material-icons">settings_input_component</span>
+<span class="font-medium hidden lg:block tracking-wide">SYSTEMS</span>
+</div>
+</nav>
+<div class="p-6 border-t border-primary/10">
+<div class="flex items-center gap-3 lg:gap-4 p-2">
+<img alt="Operator" class="w-10 h-10 rounded-full border border-primary/50" data-alt="Cyberpunk style operator portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM3AKGfwvUC8Weocuas5Rvh4aNApJchXLBFHnk5HIu5EhdRHn4ba_cVVjrFd16VgoAyru3nWhyIYTRAtnFX7jPmzb4AieQCH55LKv7R17qsMTjd4t2M3uUaOi_kK31M_gMQCQfp8io31QpmjbPuVaQxMMWJENLgg_pQiOWB3LQBHFjhd8cLPOYHmbNIunaAsC139n5rwVS0asOD5E4k-rhdgg0NG_Aj5h40M2-nI4sF-fAqWg9exxdbNxAZLusx2FK0vquchWbghAk"/>
+<div class="hidden lg:block overflow-hidden">
+<p class="text-xs text-primary font-bold tracking-widest uppercase">Operator_01</p>
+<p class="text-[10px] text-slate-400 truncate">V.72.4 ACTIVE</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col relative z-10 overflow-auto">
+<header class="h-20 glass border-b border-primary/10 flex items-center justify-between px-8">
+<div class="flex items-center gap-6">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-widest text-primary font-bold">Terminal ID</span>
+<span class="text-lg font-mono">X-GARAGE_99</span>
+</div>
+<div class="h-8 w-px bg-primary/20"></div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-alert animate-pulse shadow-[0_0_8px_#39ff14]"></span>
+<span class="text-xs text-alert font-mono uppercase tracking-tighter">Live Telemetry Linked</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-icons text-slate-400 hover:text-primary cursor-pointer">notifications_active</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+</div>
+<button class="bg-primary/10 border border-primary/30 text-primary px-4 py-2 rounded-lg text-sm font-bold tracking-widest hover:bg-primary hover:text-background-dark transition-all">
+                        DEPLOY PATCH
+                    </button>
+</div>
+</header>
+<div class="p-8 grid grid-cols-12 gap-6 h-[calc(100vh-80px)]">
+<div class="col-span-12 lg:col-span-8 flex flex-col gap-6">
+<div class="flex-1 glass rounded-xl relative overflow-hidden group border border-primary/20">
+<div class="absolute top-4 left-4 z-10">
+<h2 class="text-xl font-bold tracking-tighter">3D_CHASSIS_RENDER</h2>
+<p class="text-[10px] text-primary font-mono tracking-widest uppercase">Real-time suspension analysis</p>
+</div>
+<div class="absolute top-4 right-4 z-10 flex gap-2">
+<button class="w-8 h-8 glass border border-primary/30 rounded flex items-center justify-center text-primary">
+<span class="material-icons text-sm">3d_rotation</span>
+</button>
+<button class="w-8 h-8 glass border border-primary/30 rounded flex items-center justify-center text-primary">
+<span class="material-icons text-sm">zoom_in</span>
+</button>
+</div>
+<div class="absolute inset-0 flex items-center justify-center p-12">
+<img alt="Supercar wireframe" class="w-full h-full object-contain opacity-40 mix-blend-screen brightness-150 contrast-125" data-alt="Neon blue 3D wireframe car chassis model" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXsSpExgawLOSk34HNYMCUqi6qTIwcgWIZnbMhsAvQwur4wvGVOc9pchrFK5L6RqZvN-bpzl0nz6Y_GofM57iOyclRc8GYU10T7HlhtomeRP7hDaqDFOXGJTzbMw6OBNrdh7aWYrzxMpyTasuCwD7MdyENDibJAhLwa5Wro7RY9W7z0B1mI533-KF6zE-Z8-z6xXn54qQP5OOL8u2mToJGbEiJ_u8TOsZEhrRO0fE3M5l0CNrSR518HYC1FUCjAUb_GYNd8S9YRPLh"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
+</div>
+<div class="absolute bottom-6 left-6 right-6 grid grid-cols-4 gap-4">
+<div class="glass p-3 rounded-lg neo-border-alert border-alert/20">
+<span class="text-[10px] text-slate-400 uppercase tracking-widest">Rear PSI</span>
+<div class="text-xl font-mono text-alert">34.2</div>
+</div>
+<div class="glass p-3 rounded-lg neo-border border-primary/20">
+<span class="text-[10px] text-slate-400 uppercase tracking-widest">Front PSI</span>
+<div class="text-xl font-mono text-primary">31.8</div>
+</div>
+<div class="glass p-3 rounded-lg neo-border border-primary/20">
+<span class="text-[10px] text-slate-400 uppercase tracking-widest">Camber</span>
+<div class="text-xl font-mono text-primary">-1.5°</div>
+</div>
+<div class="glass p-3 rounded-lg neo-border-alert border-alert/20">
+<span class="text-[10px] text-slate-400 uppercase tracking-widest">Damping</span>
+<div class="text-xl font-mono text-alert">STIFF</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-6">
+<div class="glass p-6 rounded-xl border border-primary/10">
+<div class="flex items-center justify-between mb-4">
+<span class="material-icons text-primary">speed</span>
+<span class="text-[10px] text-primary font-mono tracking-widest uppercase">Perf Index</span>
+</div>
+<div class="text-3xl font-bold font-mono">98.4<span class="text-sm text-slate-500 ml-1">%</span></div>
+<div class="mt-4 w-full h-1 bg-primary/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_#0df2f2]" style="width: 98%"></div>
+</div>
+</div>
+<div class="glass p-6 rounded-xl border border-primary/10">
+<div class="flex items-center justify-between mb-4">
+<span class="material-icons text-alert">thermostat</span>
+<span class="text-[10px] text-alert font-mono tracking-widest uppercase">Temp Core</span>
+</div>
+<div class="text-3xl font-bold font-mono">102<span class="text-sm text-slate-500 ml-1">°C</span></div>
+<div class="mt-4 w-full h-1 bg-alert/10 rounded-full overflow-hidden">
+<div class="h-full bg-alert shadow-[0_0_8px_#39ff14]" style="width: 65%"></div>
+</div>
+</div>
+<div class="glass p-6 rounded-xl border border-primary/10">
+<div class="flex items-center justify-between mb-4">
+<span class="material-icons text-primary">bolt</span>
+<span class="text-[10px] text-primary font-mono tracking-widest uppercase">Voltage</span>
+</div>
+<div class="text-3xl font-bold font-mono">14.2<span class="text-sm text-slate-500 ml-1">V</span></div>
+<div class="mt-4 w-full h-1 bg-primary/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_#0df2f2]" style="width: 85%"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+<div class="glass p-6 rounded-xl border border-primary/20 flex flex-col">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2">
+<span class="material-icons text-primary text-base">checklist_rtl</span>
+                                Active_Jobs
+                            </h3>
+<span class="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded font-mono">3 PENDING</span>
+</div>
+<div class="space-y-4 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+<div class="p-4 rounded-lg bg-primary/5 border border-primary/10 neo-border transition-all hover:bg-primary/10 cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-bold text-sm tracking-wide">PORSCHE_GT3_SENSORS</h4>
+<span class="text-[10px] font-mono text-primary">82%</span>
+</div>
+<p class="text-xs text-slate-400 line-clamp-1 mb-3">Recalibrate suspension lasers &amp; pressure pads</p>
+<div class="h-1 w-full bg-primary/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 82%"></div>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-background-dark/50 border border-alert/20 neo-border-alert transition-all hover:bg-alert/5 cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-bold text-sm tracking-wide text-alert">CRITICAL_BRAKE_SYNC</h4>
+<span class="text-[10px] font-mono text-alert">ERR_404</span>
+</div>
+<p class="text-xs text-slate-400 line-clamp-1 mb-3">Manual override required on ceramic cooling loop</p>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-full bg-alert/20 text-alert text-[9px] font-bold">URGENT</span>
+<span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[9px] font-bold tracking-widest">HW_REV_2</span>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-background-dark/50 border border-primary/10 neo-border transition-all hover:bg-primary/5 cursor-pointer opacity-80">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-bold text-sm tracking-wide">CHASSIS_POLISHING_V3</h4>
+<span class="text-[10px] font-mono text-slate-500">QUEUED</span>
+</div>
+<p class="text-xs text-slate-400 line-clamp-1">Atmospheric balancing for paint curing station</p>
+</div>
+<div class="p-4 rounded-lg bg-background-dark/50 border border-primary/10 neo-border transition-all hover:bg-primary/5 cursor-pointer opacity-80">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-bold text-sm tracking-wide">BATTERY_CELL_OPTIM</h4>
+<span class="text-[10px] font-mono text-slate-500">QUEUED</span>
+</div>
+<p class="text-xs text-slate-400 line-clamp-1">Cell balancing across 400V architecture</p>
+</div>
+</div>
+</div>
+<div class="glass flex-1 p-6 rounded-xl border border-primary/10 flex flex-col gap-4">
+<h3 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2">
+<span class="material-icons text-primary text-base">satellite_alt</span>
+                            Satellite_Map
+                        </h3>
+<div class="flex-1 rounded-lg overflow-hidden border border-primary/20 relative group">
+<div class="absolute inset-0 bg-primary/10 mix-blend-color z-10 pointer-events-none"></div>
+<div class="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+<div class="w-24 h-24 border border-primary/30 rounded-full animate-ping opacity-20"></div>
+<div class="absolute w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_#0df2f2]"></div>
+</div>
+<img alt="Workshop map" class="w-full h-full object-cover grayscale brightness-50 contrast-125" data-alt="Futuristic night satellite map of Tokyo with cyan grid overlay" data-location="Tokyo Metropolis" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4S2JVDU59rebFQBWTJeiwkBoJpQu3cePIS1ANUrpTO_47w3NE6APJqBxydV2WG_wyr4GaUAA1OVQHvS8gkJcm10mH6C96iyCAJwcVsdL2MgcohzV7_m77rM2UIvFrNzlEGTETwE2uJMRgHuysAV6Ulhd5I6-cOZnk5BYQJVdXSM1milWbhGpPaUVCLTidTEOXI9CDu3_9A4K9TY5hOVCS-dhSQNXZPMFP5eoZFDLiQA22OuLOXnocViq4uTGGpr70NOfzB9U0BEnJ"/>
+</div>
+<div class="flex items-center justify-between text-[10px] font-mono text-primary/70">
+<span>LAT: 35.6762° N</span>
+<span>LNG: 139.6503° E</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
