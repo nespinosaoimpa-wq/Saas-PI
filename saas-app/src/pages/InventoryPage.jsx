@@ -1,5 +1,6 @@
 ﻿import React, { useState, Fragment } from 'react';
-import { MOCK, formatCurrency, formatML } from '../data/data';
+import { formatCurrency, formatML } from '../data/data';
+import { useApp } from '../context/AppContext';
 import {
     SearchBar,
     Tabs,
@@ -14,9 +15,23 @@ import {
 } from '../components/ui';
 
 export const InventoryPage = () => {
+    const { data: MOCK, updateInventoryStock } = useApp();
     const [search, setSearch] = useState('');
     const [tab, setTab] = useState('all');
     const [showEntry, setShowEntry] = useState(false);
+    const [selectedItem, setSelectedItem] = useState('');
+    const [quantity, setQuantity] = useState('');
+
+    const handleAddStock = () => {
+        if (!selectedItem || !quantity) return;
+        const item = MOCK.inventory.find(i => i.id === selectedItem);
+        if (!item) return;
+
+        updateInventoryStock(item.id, parseFloat(quantity), item.stock_type === 'VOLUME');
+        setShowEntry(false);
+        setSelectedItem('');
+        setQuantity('');
+    };
 
     const categories = [...new Set(MOCK.inventory.map(i => i.category))];
     const brands = [...new Set(MOCK.inventory.map(i => i.brand))];
@@ -74,8 +89,8 @@ export const InventoryPage = () => {
                 />
 
                 {showEntry && (
-                    <Modal title="Ingreso de MercaderÃ­a" onClose={() => setShowEntry(false)} width="700px"
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEntry(false)}>Cancelar</button><button className="btn btn-primary">Guardar Ingreso</button></Fragment>}>
+                    <Modal title="Ingreso de Mercadería" onClose={() => setShowEntry(false)} width="700px"
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEntry(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleAddStock}>Guardar Ingreso</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Modificar precio o cantidad masivamente. Filtrar por marca o proveedor.</p>
                             <FormRow>
@@ -88,10 +103,17 @@ export const InventoryPage = () => {
                             </FormRow>
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
                             <FormRow>
-                                <FormField label="Producto"><select className="form-select"><option value="">Seleccionar producto...</option>{MOCK.inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}</select></FormField>
+                                <FormField label="Producto">
+                                    <select className="form-select" value={selectedItem} onChange={e => setSelectedItem(e.target.value)}>
+                                        <option value="">Seleccionar producto...</option>
+                                        {MOCK.inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                    </select>
+                                </FormField>
                             </FormRow>
                             <FormRow>
-                                <FormField label="Cantidad a ingresar"><input className="form-input" type="number" placeholder="0" /></FormField>
+                                <FormField label="Cantidad a ingresar">
+                                    <input className="form-input" type="number" placeholder="Ej: 10 o 5000 (ml)" value={quantity} onChange={e => setQuantity(e.target.value)} />
+                                </FormField>
                                 <FormField label="Nuevo precio costo"><input className="form-input" type="number" placeholder="$0.00" /></FormField>
                                 <FormField label="Nuevo precio venta"><input className="form-input" type="number" placeholder="$0.00" /></FormField>
                             </FormRow>

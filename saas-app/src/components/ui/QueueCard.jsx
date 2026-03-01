@@ -1,9 +1,11 @@
 ﻿import React from 'react';
-import { MOCK, getClient, getVehicle, formatCurrency } from '../../data/data';
+import { formatCurrency } from '../../data/data';
+import { useApp } from '../../context/AppContext';
 import { StatusBadge } from './StatusBadge';
 import { Icon } from './Icon';
 
 export const QueueCard = ({ wo, onClick }) => {
+    const { data: MOCK, getClient, getVehicle } = useApp();
     const client = getClient(wo.client_id);
     const vehicle = getVehicle(wo.vehicle_id);
     const box = MOCK.boxes.find(b => b.id === wo.box_id);
