@@ -14,6 +14,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { PromotionsPage } from './pages/PromotionsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
+import { SalesPage } from './pages/SalesPage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -22,6 +23,7 @@ const PAGE_TITLES = {
     clients: { title: 'Clientes & Vehículos', sub: 'Fichas de Clientes y Patentes' },
     inventory: { title: 'Inventario & Stock', sub: 'Control de Mercadería y Niveles' },
     suppliers: { title: 'Proveedores', sub: 'Gestión de Proveedores de Insumos' },
+    sales: { title: 'Punto de Venta', sub: 'Ventas Rápidas con Escáner y Carrito' },
     cash: { title: 'Caja del Día', sub: 'Balance Efectivo, Transferencia y Tarjeta' },
     calendar: { title: 'Calendario de Turnos', sub: 'Agenda y Citas Programadas' },
     promotions: { title: 'Promociones', sub: 'Gestión de Ofertas y Descuentos' },
@@ -36,6 +38,7 @@ const PAGES = {
     clients: ClientsPage,
     inventory: InventoryPage,
     suppliers: SuppliersPage,
+    sales: SalesPage,
     cash: CashRegisterPage,
     calendar: CalendarPage,
     promotions: PromotionsPage,
@@ -97,6 +100,7 @@ function App() {
         { key: 'suppliers', label: 'Proveedores', icon: 'business' },
 
         { section: 'Finanzas' },
+        { key: 'sales', label: 'Punto de Venta', icon: 'storefront' },
         { key: 'cash', label: 'Caja del Día', icon: 'point_of_sale' },
 
         { section: 'Planificación' },

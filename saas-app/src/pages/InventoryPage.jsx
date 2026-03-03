@@ -148,11 +148,11 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                                     </FormField>
                                 </FormRow>
                                 <FormRow>
-                                    <FormField label="Proveedor (Asociar)">
-                                        <select className="form-select" value={newProduct.supplier} onChange={e => setNewProduct({ ...newProduct, supplier: e.target.value })}>
-                                            <option value="">Sin proveedor asignado...</option>
-                                            {MOCK.suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                                        </select>
+                                    <FormField label="Proveedor (Escribir o elegir)">
+                                        <input className="form-input" list="supplier-list" value={newProduct.supplier} onChange={e => setNewProduct({ ...newProduct, supplier: e.target.value })} placeholder="Escribir proveedor nuevo o elegir existente..." />
+                                        <datalist id="supplier-list">
+                                            {MOCK.suppliers.map(s => <option key={s.id} value={s.name} />)}
+                                        </datalist>
                                     </FormField>
                                     <FormField label="Tipo de Stock">
                                         <select className="form-select" value={newProduct.stock_type} onChange={e => setNewProduct({ ...newProduct, stock_type: e.target.value })}>

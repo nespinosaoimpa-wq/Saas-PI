@@ -207,6 +207,42 @@ export const AppProvider = ({ children }) => {
         return newClosing;
     };
 
+    // Venta POS
+    const processSale = (cartItems, paymentMethod) => {
+        const total = cartItems.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
+
+        // Descontar stock
+        cartItems.forEach(ci => {
+            updateInventoryStock(ci.id, -ci.qty, ci.stock_type === 'VOLUME');
+        });
+
+        // Registrar pago
+        const newPayment = {
+            id: 'p' + Date.now(),
+            amount: total,
+            method: paymentMethod,
+            date: new Date().toISOString().split('T')[0],
+            description: `Venta POS (${cartItems.length} productos)`,
+            reference: 'VENTA'
+        };
+
+        const logEntry = {
+            id: 'log' + Date.now(),
+            type: 'SALE',
+            label: `Venta ${cartItems.length} productos`,
+            price: total,
+            timestamp: new Date().toISOString()
+        };
+
+        setData(prev => ({
+            ...prev,
+            payments: [...prev.payments, newPayment],
+            activityLog: [logEntry, ...(prev.activityLog || [])].slice(0, 10)
+        }));
+
+        return total;
+    };
+
     // Agregaré más acciones CRUD a medida que se necesiten en cada página...
 
     return (
@@ -230,6 +266,7 @@ export const AppProvider = ({ children }) => {
             getCommissions,
             addWithdrawal,
             addInventoryItem,
+            processSale,
             performCashClose
         }}>
             {children}

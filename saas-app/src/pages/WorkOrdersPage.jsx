@@ -1,4 +1,5 @@
 ﻿import React, { useState, Fragment } from 'react';
+import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import {
     Tabs,
@@ -20,22 +21,53 @@ export const WorkOrdersPage = () => {
     const [printWO, setPrintWO] = useState(null);
     const [checklist, setChecklist] = useState({});
 
-    const [newOrder, setNewOrder] = useState({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '' });
+    const [newOrder, setNewOrder] = useState({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', total_price: '' });
+
+    // Multi-mecánico: lista de técnicos disponibles (de los boxes)
+    const availableTechs = [...new Set(
+        MOCK.boxes.map(b => b.mechanic).filter(Boolean)
+            .concat(MOCK.workOrders.map(wo => wo.mechanic).filter(Boolean))
+    )];
+
+    // Estado de mecánicos asignados: { name: string, commission_percent: number, selected: boolean }
+    const [assignedMechanics, setAssignedMechanics] = useState(
+        availableTechs.map(name => ({ name, selected: false, commission_percent: 15 }))
+    );
+
+    const toggleMechanic = (name) => {
+        setAssignedMechanics(prev => prev.map(m => m.name === name ? { ...m, selected: !m.selected } : m));
+    };
+
+    const setMechanicPercent = (name, percent) => {
+        setAssignedMechanics(prev => prev.map(m => m.name === name ? { ...m, commission_percent: parseFloat(percent) || 0 } : m));
+    };
+
+    const totalPrice = parseFloat(newOrder.total_price) || 0;
+    const selectedMechanics = assignedMechanics.filter(m => m.selected);
 
     const handleCreateWorkOrder = () => {
         if (!newOrder.client_id || !newOrder.vehicle_id || !newOrder.description) {
             alert('Por favor completá Cliente, Vehículo y Descripción.');
             return;
         }
+
+        const mechanics = selectedMechanics.map(m => ({
+            name: m.name,
+            commission_percent: m.commission_percent,
+            commission_amount: totalPrice * (m.commission_percent / 100)
+        }));
+
         addWorkOrder({
             ...newOrder,
+            total_price: totalPrice,
             status: newOrder.box_id ? 'En Box' : 'Pendiente',
-            mechanic: newOrder.box_id ? 'Taller' : null,
-            total_price: 0
+            mechanic: mechanics.length > 0 ? mechanics.map(m => m.name).join(', ') : null,
+            mechanics // array detallado
         });
         setShowNew(false);
-        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '' });
+        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', total_price: '' });
         setChecklist({});
+        setAssignedMechanics(availableTechs.map(name => ({ name, selected: false, commission_percent: 15 })));
     };
 
     const filtered = MOCK.workOrders.filter(wo => {
@@ -107,6 +139,52 @@ export const WorkOrdersPage = () => {
                                 </div>
                             </FormField>
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                            {/* Presupuesto manual */}
+                            <SectionHeader icon="attach_money" title="Presupuesto" />
+                            <FormRow>
+                                <FormField label="Precio Total del Trabajo ($)">
+                                    <input className="form-input" type="number" placeholder="Ej: 45000" value={newOrder.total_price} onChange={e => setNewOrder({ ...newOrder, total_price: e.target.value })} style={{ fontSize: 18, fontWeight: 700 }} />
+                                </FormField>
+                            </FormRow>
+                            <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Incluye mano de obra + repuestos. Podrás ajustarlo después.</p>
+
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                            {/* Mecánicos multi-asignación */}
+                            <SectionHeader icon="engineering" title="Mecánicos Asignados y Comisiones" />
+                            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Selectá los mecánicos que participan. Podés poner un porcentaje distinto a cada uno.</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {assignedMechanics.map(m => (
+                                    <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: m.selected ? 'var(--bg-hover)' : 'transparent', borderRadius: 'var(--radius-sm)', border: m.selected ? '1px solid var(--primary)' : '1px solid var(--border)', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={m.selected} onChange={() => toggleMechanic(m.name)} style={{ width: 18, height: 18 }} />
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 600, fontSize: 13 }}>{m.name}</div>
+                                        </div>
+                                        {m.selected && (
+                                            <>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <input className="form-input" type="number" value={m.commission_percent} onChange={e => setMechanicPercent(m.name, e.target.value)} style={{ width: 60, textAlign: 'center', padding: '4px 6px', fontSize: 13 }} />
+                                                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>%</span>
+                                                </div>
+                                                <div style={{ minWidth: 80, textAlign: 'right', fontWeight: 700, color: 'var(--primary)', fontSize: 14 }}>
+                                                    {formatCurrency(totalPrice * (m.commission_percent / 100))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            {selectedMechanics.length > 0 && totalPrice > 0 && (
+                                <div style={{ marginTop: 8, padding: 8, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Total comisiones ({selectedMechanics.length} mecánico{selectedMechanics.length > 1 ? 's' : ''}):</span>
+                                    <strong style={{ color: 'var(--primary)' }}>
+                                        {formatCurrency(selectedMechanics.reduce((s, m) => s + totalPrice * (m.commission_percent / 100), 0))}
+                                    </strong>
+                                </div>
+                            )}
+
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
                             <SectionHeader icon="checklist" title="Checklist de Seguridad" />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                 {MOCK.checklist_template.map(item => (
@@ -114,8 +192,6 @@ export const WorkOrdersPage = () => {
                                 ))}
                             </div>
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
-                            <SectionHeader icon="calculate" title="Precio Dinámico" />
-                            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Fórmula: (Insumo × Cantidad) + (Mano de Obra × Factor Dificultad del vehículo)</p>
                         </div>
                     </Modal>
                 )}

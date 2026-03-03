@@ -178,25 +178,84 @@ export const CashRegisterPage = () => {
                     </Modal>
                 )}
 
-                {/* Sección de Comisiones */}
+                {/* Sección de Comisiones Detallada */}
                 <div style={{ marginTop: 24 }}>
-                    <SectionHeader icon="engineering" title="Comisiones de Técnicos (Hoy)" />
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 16 }}>
-                        {technicians.map(tech => {
-                            const comm = getCommissions(tech);
-                            return (
-                                <div key={tech} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{tech}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>15% sobre OT finalizadas</div>
-                                    </div>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--primary)' }}>
-                                        {formatCurrency(comm)}
-                                    </div>
+                    <SectionHeader icon="engineering" title="Comisiones de Técnicos — Historial Detallado" />
+                    {technicians.map(tech => {
+                        // Buscar OTs con mechanics array detallado
+                        const detailedWOs = MOCK.workOrders.filter(wo =>
+                            wo.mechanics && wo.mechanics.some(m => m.name === tech)
+                        );
+                        // Fallback: OTs con el campo mechanic simple
+                        const simpleWOs = MOCK.workOrders.filter(wo =>
+                            !wo.mechanics && wo.mechanic === tech && (wo.status === 'Finalizado' || wo.status === 'Cobrado')
+                        );
+
+                        const allEntries = [
+                            ...detailedWOs.map(wo => {
+                                const m = wo.mechanics.find(mm => mm.name === tech);
+                                const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
+                                return {
+                                    wo_number: wo.order_number,
+                                    date: wo.created_at?.split('T')[0] || '—',
+                                    vehicle: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : '—',
+                                    work_total: wo.total_price,
+                                    percent: m.commission_percent,
+                                    amount: m.commission_amount
+                                };
+                            }),
+                            ...simpleWOs.map(wo => {
+                                const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
+                                return {
+                                    wo_number: wo.order_number,
+                                    date: wo.created_at?.split('T')[0] || '—',
+                                    vehicle: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : '—',
+                                    work_total: wo.total_price,
+                                    percent: 15,
+                                    amount: wo.total_price * 0.15
+                                };
+                            })
+                        ];
+
+                        const totalComm = allEntries.reduce((s, e) => s + e.amount, 0);
+
+                        return (
+                            <div key={tech} style={{ marginBottom: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+                                <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)', borderBottom: '1px solid var(--border)' }}>
+                                    <div style={{ fontWeight: 700, fontSize: 14 }}>{tech}</div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--primary)' }}>Total a pagar: {formatCurrency(totalComm)}</div>
                                 </div>
-                            );
-                        })}
-                    </div>
+                                {allEntries.length > 0 ? (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Fecha</th>
+                                                <th style={{ padding: '8px 12px', textAlign: 'left' }}>OT #</th>
+                                                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Vehículo</th>
+                                                <th style={{ padding: '8px 12px', textAlign: 'right' }}>Monto Trabajo</th>
+                                                <th style={{ padding: '8px 12px', textAlign: 'center' }}>% Comisión</th>
+                                                <th style={{ padding: '8px 12px', textAlign: 'right' }}>$ Comisión</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {allEntries.map((e, i) => (
+                                                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                                                    <td style={{ padding: '8px 12px' }}>{e.date}</td>
+                                                    <td style={{ padding: '8px 12px' }}>#{e.wo_number}</td>
+                                                    <td style={{ padding: '8px 12px' }}>{e.vehicle}</td>
+                                                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{formatCurrency(e.work_total)}</td>
+                                                    <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600 }}>{e.percent}%</td>
+                                                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(e.amount)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>Sin trabajos registrados</div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
             </div>
