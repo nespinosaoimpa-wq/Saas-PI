@@ -1,6 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
-import { Icon, Modal, FormField } from './components/ui';
+import { Icon, Modal, FormField, CameraScanner } from './components/ui';
 import { useBarcodeScanner } from './hooks/useBarcodeScanner';
 import { formatCurrency } from './data/data';
 import { DashboardPage } from './pages/DashboardPage';
@@ -49,10 +49,10 @@ function App() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [scannedItem, setScannedItem] = useState(null);
     const [scannedQuantity, setScannedQuantity] = useState(1);
+    const [showCameraScanner, setShowCameraScanner] = useState(false);
 
-    // Escucha global de código de barras
-    useBarcodeScanner((code) => {
-        // En un caso real buscaríamos por SKU. Aquí simulamos con nombre o ID
+    // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
+    const handleBarcodeScan = (code) => {
         const item = MOCK.inventory.find(i =>
             i.id.toLowerCase() === code.toLowerCase() ||
             i.name.toLowerCase().includes(code.toLowerCase()) ||
@@ -62,11 +62,16 @@ function App() {
         if (item) {
             setScannedItem(item);
             setScannedQuantity(1);
+            setShowCameraScanner(false); // Cerramos cámara si estaba abierta
         } else {
             console.warn('Código no encontrado:', code);
-            // Podríamos mostrar un toast de error aquí
+            alert(`Código ${code} no encontrado en el inventario.`);
+            setShowCameraScanner(false);
         }
-    });
+    };
+
+    // Escucha global de código de barras físico (lector USB/Bluetooth)
+    useBarcodeScanner(handleBarcodeScan);
 
     const pageInfo = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
     const PageComponent = PAGES[page] || DashboardPage;
@@ -186,9 +191,13 @@ function App() {
                             <Icon name="notifications" size={20} />
                             <span className="notif-dot" />
                         </button>
-                        <button className="header-btn" onClick={() => handleNavigate('work_orders')}>
+                        <button className="header-btn" onClick={() => setShowCameraScanner(true)}>
+                            <Icon name="photo_camera" size={16} />
+                            Cámara (Móvil)
+                        </button>
+                        <button className="header-btn" onClick={() => alert('Esperando código del lector láser USB/Bluetooth...')}>
                             <Icon name="qr_code_scanner" size={16} />
-                            Escanear
+                            Lector Láser
                         </button>
                         <button className="header-btn primary" onClick={() => handleNavigate('work_orders')}>
                             <Icon name="add_circle" size={16} />
@@ -246,6 +255,14 @@ function App() {
                         </FormField>
                     </div>
                 </Modal>
+            )}
+
+            {/* Modal Lector de Cámara del Celular/PC */}
+            {showCameraScanner && (
+                <CameraScanner
+                    onScan={handleBarcodeScan}
+                    onClose={() => setShowCameraScanner(false)}
+                />
             )}
         </div>
     );
