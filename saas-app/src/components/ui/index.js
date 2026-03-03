@@ -14,3 +14,4 @@ export { SectionHeader } from './SectionHeader';
 export { HealthRing } from './HealthRing';
 export { DataTable } from './DataTable';
 export { FormRow, FormField } from './FormHelpers';
+export { PrintableTicket } from './PrintableTicket';

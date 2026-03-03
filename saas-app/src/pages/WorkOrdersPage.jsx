@@ -9,13 +9,15 @@ import {
     FormField,
     SectionHeader,
     CheckItem,
-    Icon
+    Icon,
+    PrintableTicket
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
     const { data: MOCK, addWorkOrder, getClientVehicles } = useApp();
     const [tab, setTab] = useState('active');
     const [showNew, setShowNew] = useState(false);
+    const [printWO, setPrintWO] = useState(null);
     const [checklist, setChecklist] = useState({});
 
     const [newOrder, setNewOrder] = useState({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '' });
@@ -52,7 +54,17 @@ export const WorkOrdersPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {filtered.map(wo => <QueueCard key={wo.id} wo={wo} />)}
+                    {filtered.map(wo => (
+                        <QueueCard
+                            key={wo.id}
+                            wo={wo}
+                            onClick={() => {
+                                if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
+                                    setPrintWO(wo);
+                                }
+                            }}
+                        />
+                    ))}
                     {filtered.length === 0 && <EmptyState icon="assignment" title="Sin órdenes" sub="No hay órdenes para este filtro" />}
                 </div>
 
@@ -106,6 +118,10 @@ export const WorkOrdersPage = () => {
                             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Fórmula: (Insumo × Cantidad) + (Mano de Obra × Factor Dificultad del vehículo)</p>
                         </div>
                     </Modal>
+                )}
+
+                {printWO && (
+                    <PrintableTicket workOrder={printWO} onClose={() => setPrintWO(null)} />
                 )}
             </div>
         </div>

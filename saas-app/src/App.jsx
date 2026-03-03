@@ -1,6 +1,8 @@
 ﻿import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
-import { Icon } from './components/ui';
+import { Icon, Modal, FormField } from './components/ui';
+import { useBarcodeScanner } from './hooks/useBarcodeScanner';
+import { formatCurrency } from './data/data';
 import { DashboardPage } from './pages/DashboardPage';
 import { WorkOrdersPage } from './pages/WorkOrdersPage';
 import { DailyWorkPage } from './pages/DailyWorkPage';
@@ -11,6 +13,7 @@ import { CashRegisterPage } from './pages/CashRegisterPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { PromotionsPage } from './pages/PromotionsPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { UsersPage } from './pages/UsersPage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -23,6 +26,7 @@ const PAGE_TITLES = {
     calendar: { title: 'Calendario de Turnos', sub: 'Agenda y Citas Programadas' },
     promotions: { title: 'Promociones', sub: 'Gestión de Ofertas y Descuentos' },
     reports: { title: 'Reportes & Estadísticas', sub: 'Análisis de Rentabilidad y Rendimiento' },
+    users: { title: 'Gestión de Personal', sub: 'Control de Usuarios, Roles y Permisos' },
 };
 
 const PAGES = {
@@ -36,12 +40,34 @@ const PAGES = {
     calendar: CalendarPage,
     promotions: PromotionsPage,
     reports: ReportsPage,
+    users: UsersPage,
 };
 
 function App() {
     const { data: MOCK, getLowStockItems } = useApp();
     const [page, setPage] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [scannedItem, setScannedItem] = useState(null);
+    const [scannedQuantity, setScannedQuantity] = useState(1);
+
+    // Escucha global de código de barras
+    useBarcodeScanner((code) => {
+        // En un caso real buscaríamos por SKU. Aquí simulamos con nombre o ID
+        const item = MOCK.inventory.find(i =>
+            i.id.toLowerCase() === code.toLowerCase() ||
+            i.name.toLowerCase().includes(code.toLowerCase()) ||
+            code === '123456' // Código de prueba universal
+        );
+
+        if (item) {
+            setScannedItem(item);
+            setScannedQuantity(1);
+        } else {
+            console.warn('Código no encontrado:', code);
+            // Podríamos mostrar un toast de error aquí
+        }
+    });
+
     const pageInfo = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
     const PageComponent = PAGES[page] || DashboardPage;
 
@@ -66,6 +92,9 @@ function App() {
         { key: 'calendar', label: 'Calendario Turnos', icon: 'calendar_month' },
         { key: 'promotions', label: 'Promociones', icon: 'loyalty' },
         { key: 'reports', label: 'Reportes y Estadísticas', icon: 'analytics' },
+
+        { section: 'Configuración' },
+        { key: 'users', label: 'Personal y Accesos', icon: 'admin_panel_settings' },
     ];
 
     const handleNavigate = (key) => {
@@ -171,6 +200,53 @@ function App() {
                 {/* Page Content */}
                 <PageComponent onNavigate={handleNavigate} />
             </div>
+
+            {/* Modal Lector de Código de Barras */}
+            {scannedItem && (
+                <Modal
+                    title="Producto Escaneado"
+                    onClose={() => setScannedItem(null)}
+                    footer={
+                        <React.Fragment>
+                            <button className="btn btn-ghost" onClick={() => setScannedItem(null)}>Cancelar</button>
+                            <button className="btn btn-primary" onClick={() => {
+                                alert(`Registrando ${scannedQuantity}x ${scannedItem.name}`);
+                                setScannedItem(null);
+                            }}>
+                                <Icon name="shopping_cart_checkout" size={18} /> Vender / Usar
+                            </button>
+                        </React.Fragment>
+                    }
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'center' }}>
+                        <Icon name="check_circle" size={48} style={{ color: 'var(--success)', margin: '0 auto' }} />
+                        <div>
+                            <h3 style={{ fontSize: 20, margin: 0 }}>{scannedItem.name}</h3>
+                            <p style={{ color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Categoría: {scannedItem.category}</p>
+                        </div>
+
+                        <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Precio Sugerido</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency(scannedItem.price)}</div>
+                            <div style={{ fontSize: 12, marginTop: 4, color: scannedItem.stock > 5 ? 'var(--success)' : 'var(--danger)' }}>
+                                {scannedItem.stock} unidades disponibles en stock
+                            </div>
+                        </div>
+
+                        <FormField label="Cantidad a descontar">
+                            <input
+                                type="number"
+                                className="form-input"
+                                value={scannedQuantity}
+                                onChange={(e) => setScannedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                min="1"
+                                max={scannedItem.stock}
+                                style={{ textAlign: 'center', fontSize: 18 }}
+                            />
+                        </FormField>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 }
