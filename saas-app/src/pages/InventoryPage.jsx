@@ -14,23 +14,52 @@ import {
     LiquidGauge
 } from '../components/ui';
 
-export const InventoryPage = () => {
-    const { data: MOCK, updateInventoryStock } = useApp();
+export const InventoryPage = ({ initialScannedCode = '' }) => {
+    const { data: MOCK, updateInventoryStock, addInventoryItem } = useApp();
     const [search, setSearch] = useState('');
     const [tab, setTab] = useState('all');
     const [showEntry, setShowEntry] = useState(false);
     const [selectedItem, setSelectedItem] = useState('');
     const [quantity, setQuantity] = useState('');
+    const [isNewProduct, setIsNewProduct] = useState(!!initialScannedCode);
+
+    // Estado para producto nuevo
+    const [newProduct, setNewProduct] = useState({
+        name: '', category: '', brand: '', supplier: '', barcode: initialScannedCode,
+        cost_price: '', sell_price: '', stock_quantity: '', stock_type: 'UNIT', stock_min: 5
+    });
+
+    // Si viene un código inicial pero el componente ya estaba montado, lo tomamos
+    React.useEffect(() => {
+        if (initialScannedCode) {
+            setIsNewProduct(true);
+            setShowEntry(true);
+            setNewProduct(prev => ({ ...prev, barcode: initialScannedCode }));
+        }
+    }, [initialScannedCode]);
 
     const handleAddStock = () => {
-        if (!selectedItem || !quantity) return;
-        const item = MOCK.inventory.find(i => i.id === selectedItem);
-        if (!item) return;
+        if (isNewProduct) {
+            if (!newProduct.name || !newProduct.sell_price) return alert('Nombre y precio de venta son obligatorios');
+            addInventoryItem({
+                ...newProduct,
+                cost_price: parseFloat(newProduct.cost_price) || 0,
+                sell_price: parseFloat(newProduct.sell_price) || 0,
+                stock_quantity: parseFloat(newProduct.stock_quantity) || 0,
+                stock_min: parseFloat(newProduct.stock_min) || 5
+            });
+        } else {
+            if (!selectedItem || !quantity) return;
+            const item = MOCK.inventory.find(i => i.id === selectedItem);
+            if (!item) return;
 
-        updateInventoryStock(item.id, parseFloat(quantity), item.stock_type === 'VOLUME');
+            updateInventoryStock(item.id, parseFloat(quantity), item.stock_type === 'VOLUME');
+        }
+
         setShowEntry(false);
         setSelectedItem('');
         setQuantity('');
+        setIsNewProduct(false);
     };
 
     const categories = [...new Set(MOCK.inventory.map(i => i.category))];
@@ -89,41 +118,91 @@ export const InventoryPage = () => {
                 />
 
                 {showEntry && (
-                    <Modal title="Ingreso de Mercadería" onClose={() => setShowEntry(false)} width="700px"
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEntry(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleAddStock}>Guardar Ingreso</button></Fragment>}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Modificar precio o cantidad masivamente. Filtrar por marca o proveedor.</p>
-                            <FormRow>
-                                <FormField label="Filtrar por Marca">
-                                    <select className="form-select"><option value="">Todas las marcas</option>{brands.map(b => <option key={b} value={b}>{b}</option>)}</select>
-                                </FormField>
-                                <FormField label="Filtrar por Proveedor">
-                                    <select className="form-select"><option value="">Todos los proveedores</option>{MOCK.suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select>
-                                </FormField>
-                            </FormRow>
-                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
-                            <FormRow>
-                                <FormField label="Producto">
-                                    <select className="form-select" value={selectedItem} onChange={e => setSelectedItem(e.target.value)}>
-                                        <option value="">Seleccionar producto...</option>
-                                        {MOCK.inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                                    </select>
-                                </FormField>
-                            </FormRow>
-                            <FormRow>
-                                <FormField label="Cantidad a ingresar">
-                                    <input className="form-input" type="number" placeholder="Ej: 10 o 5000 (ml)" value={quantity} onChange={e => setQuantity(e.target.value)} />
-                                </FormField>
-                                <FormField label="Nuevo precio costo"><input className="form-input" type="number" placeholder="$0.00" /></FormField>
-                                <FormField label="Nuevo precio venta"><input className="form-input" type="number" placeholder="$0.00" /></FormField>
-                            </FormRow>
-                            <FormField label="Escanear cÃ³digo de barras">
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <input className="form-input" placeholder="Escanear o ingresar cÃ³digo EAN..." style={{ flex: 1 }} />
-                                    <button className="btn btn-ghost"><Icon name="qr_code_scanner" size={18} /></button>
-                                </div>
-                            </FormField>
-                        </div>
+                    <Modal title={isNewProduct ? "Crear Nuevo Producto" : "Ingreso de Mercadería"} onClose={() => { setShowEntry(false); setIsNewProduct(false); }} width="700px"
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => { setShowEntry(false); setIsNewProduct(false); }}>Cancelar</button><button className="btn btn-primary" onClick={handleAddStock}>{isNewProduct ? 'Crear Producto' : 'Guardar Ingreso'}</button></Fragment>}>
+
+                        {isNewProduct ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                <FormRow>
+                                    <FormField label="Nombre del Producto *">
+                                        <input className="form-input" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="Ej: Filtro de Aceite WEGA 123" />
+                                    </FormField>
+                                    <FormField label="Código de Barras">
+                                        <input className="form-input" value={newProduct.barcode} onChange={e => setNewProduct({ ...newProduct, barcode: e.target.value })} placeholder="Pistolear aquí..." />
+                                    </FormField>
+                                </FormRow>
+                                <FormRow>
+                                    <FormField label="Categoría">
+                                        <select className="form-select" value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })}>
+                                            <option value="">Seleccionar...</option>
+                                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                            <option value="Otra">Otra...</option>
+                                        </select>
+                                    </FormField>
+                                    <FormField label="Marca">
+                                        <select className="form-select" value={newProduct.brand} onChange={e => setNewProduct({ ...newProduct, brand: e.target.value })}>
+                                            <option value="">Seleccionar...</option>
+                                            {brands.map(b => <option key={b} value={b}>{b}</option>)}
+                                            <option value="Otra">Otra...</option>
+                                        </select>
+                                    </FormField>
+                                </FormRow>
+                                <FormRow>
+                                    <FormField label="Proveedor (Asociar)">
+                                        <select className="form-select" value={newProduct.supplier} onChange={e => setNewProduct({ ...newProduct, supplier: e.target.value })}>
+                                            <option value="">Sin proveedor asignado...</option>
+                                            {MOCK.suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                        </select>
+                                    </FormField>
+                                    <FormField label="Tipo de Stock">
+                                        <select className="form-select" value={newProduct.stock_type} onChange={e => setNewProduct({ ...newProduct, stock_type: e.target.value })}>
+                                            <option value="UNIT">Por Unidad (Cajas, Filtros)</option>
+                                            <option value="VOLUME">Por Volumen (Aceite Suelto en Litros/ml)</option>
+                                        </select>
+                                    </FormField>
+                                </FormRow>
+                                <FormRow>
+                                    <FormField label="Costo (Compra)">
+                                        <input className="form-input" type="number" placeholder="$0.00" value={newProduct.cost_price} onChange={e => setNewProduct({ ...newProduct, cost_price: e.target.value })} />
+                                    </FormField>
+                                    <FormField label="Precio (Venta) *">
+                                        <input className="form-input" type="number" placeholder="$0.00" value={newProduct.sell_price} onChange={e => setNewProduct({ ...newProduct, sell_price: e.target.value })} />
+                                    </FormField>
+                                    <FormField label="Stock Inicial">
+                                        <input className="form-input" type="number" placeholder="Ej: 10" value={newProduct.stock_quantity} onChange={e => setNewProduct({ ...newProduct, stock_quantity: e.target.value })} />
+                                    </FormField>
+                                </FormRow>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Modificar precio o cantidad masivamente. Filtrar por marca o proveedor.</p>
+                                <FormRow>
+                                    <FormField label="Filtrar por Marca">
+                                        <select className="form-select"><option value="">Todas las marcas</option>{brands.map(b => <option key={b} value={b}>{b}</option>)}</select>
+                                    </FormField>
+                                    <FormField label="Filtrar por Proveedor">
+                                        <select className="form-select"><option value="">Todos los proveedores</option>{MOCK.suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select>
+                                    </FormField>
+                                </FormRow>
+                                <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+                                <FormRow>
+                                    <FormField label="Producto">
+                                        <select className="form-select" value={selectedItem} onChange={e => setSelectedItem(e.target.value)}>
+                                            <option value="">Seleccionar producto...</option>
+                                            {filtered.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                        </select>
+                                    </FormField>
+                                </FormRow>
+                                <FormRow>
+                                    <FormField label="Cantidad a ingresar">
+                                        <input className="form-input" type="number" placeholder="Ej: 10 o 5000 (ml)" value={quantity} onChange={e => setQuantity(e.target.value)} />
+                                    </FormField>
+                                    <FormField label="Nuevo precio costo"><input className="form-input" type="number" placeholder="$0.00" /></FormField>
+                                    <FormField label="Nuevo precio venta"><input className="form-input" type="number" placeholder="$0.00" /></FormField>
+                                </FormRow>
+                            </div>
+                        )}
+
                     </Modal>
                 )}
             </div>

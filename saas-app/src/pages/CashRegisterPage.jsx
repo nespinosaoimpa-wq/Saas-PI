@@ -7,17 +7,23 @@ import {
     DataTable,
     Modal,
     FormField,
+    FormRow,
     StatusBadge,
+    SectionHeader,
     Icon
 } from '../components/ui';
 
 export const CashRegisterPage = () => {
-    const { data: MOCK, addPayment, performCashClose } = useApp();
+    const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions } = useApp();
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
+    const [showWithdrawal, setShowWithdrawal] = useState(false);
     const [showClose, setShowClose] = useState(false);
     const [closingCash, setClosingCash] = useState('');
     const [newPayment, setNewPayment] = useState({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
+    const [newWithdrawal, setNewWithdrawal] = useState({ amount: '', description: '' });
+
+    const technicians = [...new Set(MOCK.workOrders.map(wo => wo.mechanic).filter(Boolean))];
 
     const handleRegisterPayment = () => {
         if (!newPayment.amount || isNaN(newPayment.amount)) {
@@ -30,6 +36,19 @@ export const CashRegisterPage = () => {
         });
         setShowNew(false);
         setNewPayment({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
+    };
+
+    const handleRegisterWithdrawal = () => {
+        if (!newWithdrawal.amount || isNaN(newWithdrawal.amount)) {
+            alert('Ingresá un monto válido para el egreso');
+            return;
+        }
+        addWithdrawal({
+            amount: parseFloat(newWithdrawal.amount),
+            description: newWithdrawal.description || 'Retiro de caja'
+        });
+        setShowWithdrawal(false);
+        setNewWithdrawal({ amount: '', description: '' });
     };
 
     const handlePerformClose = () => {
@@ -49,6 +68,8 @@ export const CashRegisterPage = () => {
     };
 
     const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0] || p.date === '2026-02-27');
+
+    // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
     const cash = todayPayments.filter(p => p.method === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
     const transfer = todayPayments.filter(p => p.method === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
     const card = todayPayments.filter(p => p.method === 'TARJETA').reduce((s, p) => s + p.amount, 0);
@@ -66,7 +87,8 @@ export const CashRegisterPage = () => {
                     <Tabs tabs={[{ key: 'daily', label: 'Diario' }, { key: 'weekly', label: 'Semanal' }, { key: 'monthly', label: 'Mensual' }]} active={period} onChange={setPeriod} />
                     <div style={{ flex: 1 }} />
                     <button className="btn btn-ghost" onClick={() => setShowClose(true)}><Icon name="lock" size={18} /> Cierre de Caja</button>
-                    <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add" size={18} /> Registrar Cobro</button>
+                    <button className="btn btn-ghost" onClick={() => setShowWithdrawal(true)}><Icon name="money_off" size={18} /> Retiro / Egreso</button>
+                    <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add" size={18} /> Registrar Ingreso</button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
@@ -79,7 +101,7 @@ export const CashRegisterPage = () => {
                 <DataTable
                     columns={[
                         { key: 'date', label: 'Fecha' },
-                        { key: 'amount', label: 'Monto', render: r => <strong style={{ color: 'var(--primary)' }}>{formatCurrency(r.amount)}</strong> },
+                        { key: 'amount', label: 'Monto', render: r => <strong style={{ color: r.amount < 0 ? 'var(--danger)' : 'var(--primary)' }}>{formatCurrency(r.amount)}</strong> },
                         { key: 'method', label: 'Método', render: r => <StatusBadge status={r.method === 'EFECTIVO' ? 'Pendiente' : r.method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} /> },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'wo', label: 'OT', render: r => r.work_order_id ? <span className="nav-badge">OT</span> : '—' },
@@ -116,7 +138,6 @@ export const CashRegisterPage = () => {
                         </div>
                     </Modal>
                 )}
-
                 {showClose && (
                     <Modal title="Cierre de Caja Diario" onClose={() => setShowClose(false)}
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowClose(false)}>Cancelar</button><button className="btn btn-primary" onClick={handlePerformClose}>Confirmar Cierre</button></Fragment>}>
@@ -142,6 +163,42 @@ export const CashRegisterPage = () => {
                         </div>
                     </Modal>
                 )}
+
+                {showWithdrawal && (
+                    <Modal title="Retiro / Egreso de Caja" onClose={() => setShowWithdrawal(false)}
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowWithdrawal(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleRegisterWithdrawal}>Confirmar Retiro</button></Fragment>}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <FormField label="Monto a retirar *">
+                                <input className="form-input" type="number" placeholder="$0.00" value={newWithdrawal.amount} onChange={e => setNewWithdrawal({ ...newWithdrawal, amount: e.target.value })} />
+                            </FormField>
+                            <FormField label="Motivo o Descripción *">
+                                <input className="form-input" placeholder="Ej: Pago repuestos, adelanto empleado..." value={newWithdrawal.description} onChange={e => setNewWithdrawal({ ...newWithdrawal, description: e.target.value })} />
+                            </FormField>
+                        </div>
+                    </Modal>
+                )}
+
+                {/* Sección de Comisiones */}
+                <div style={{ marginTop: 24 }}>
+                    <SectionHeader icon="engineering" title="Comisiones de Técnicos (Hoy)" />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 16 }}>
+                        {technicians.map(tech => {
+                            const comm = getCommissions(tech);
+                            return (
+                                <div key={tech} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{tech}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>15% sobre OT finalizadas</div>
+                                    </div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--primary)' }}>
+                                        {formatCurrency(comm)}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
             </div>
         </div>
     );

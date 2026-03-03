@@ -50,6 +50,7 @@ function App() {
     const [scannedItem, setScannedItem] = useState(null);
     const [scannedQuantity, setScannedQuantity] = useState(1);
     const [showCameraScanner, setShowCameraScanner] = useState(false);
+    const [scannedUnknownCode, setScannedUnknownCode] = useState(null);
 
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
@@ -63,9 +64,14 @@ function App() {
             setScannedItem(item);
             setScannedQuantity(1);
             setShowCameraScanner(false); // Cerramos cámara si estaba abierta
+            setScannedUnknownCode(null);
         } else {
             console.warn('Código no encontrado:', code);
-            alert(`Código ${code} no encontrado en el inventario.`);
+            if (window.confirm(`Código ${code} no encontrado en el inventario. ¿Deseas agregarlo como nuevo producto?`)) {
+                setScannedUnknownCode(code);
+                setPage('inventory');
+                setSidebarOpen(false);
+            }
             setShowCameraScanner(false);
         }
     };
@@ -207,7 +213,10 @@ function App() {
                 </header>
 
                 {/* Page Content */}
-                <PageComponent onNavigate={handleNavigate} />
+                <PageComponent
+                    onNavigate={handleNavigate}
+                    initialScannedCode={page === 'inventory' ? scannedUnknownCode : null}
+                />
             </div>
 
             {/* Modal Lector de Código de Barras */}

@@ -116,6 +116,12 @@ export const AppProvider = ({ children }) => {
         }));
     };
 
+    const addInventoryItem = (itemData) => {
+        const newItem = { ...itemData, id: itemData.id || 'inv' + Date.now() };
+        setData(prev => ({ ...prev, inventory: [...prev.inventory, newItem] }));
+        return newItem;
+    };
+
     // Proveedores
     const addSupplier = (supplierData) => {
         const newSupplier = { ...supplierData, id: 's' + Date.now() };
@@ -159,8 +165,34 @@ export const AppProvider = ({ children }) => {
     // Comisiones (Calculado)
     const getCommissions = (technicianName) => {
         // Implementación básica: 15% de las OTs finalizadas por él
-        const finished = data.workOrders.filter(wo => wo.mechanic === technicianName && wo.status === 'Finalizado');
+        const finished = data.workOrders.filter(wo => wo.mechanic === technicianName && wo.status === 'Finalizado' || wo.status === 'Cobrado');
         return finished.reduce((sum, wo) => sum + (wo.total_price * 0.15), 0);
+    };
+
+    // Egresos / Retiros
+    const addWithdrawal = (withdrawalData) => {
+        const newPayment = {
+            id: 'p' + Date.now(),
+            amount: -Math.abs(withdrawalData.amount),
+            method: 'EFECTIVO',
+            date: new Date().toISOString().split('T')[0],
+            description: `Retiro: ${withdrawalData.description}`,
+            reference: 'EGRESO'
+        };
+
+        const logEntry = {
+            id: 'log' + Date.now(),
+            type: 'WITHDRAWAL',
+            label: withdrawalData.description,
+            price: -Math.abs(withdrawalData.amount),
+            timestamp: new Date().toISOString()
+        };
+
+        setData(prev => ({
+            ...prev,
+            payments: [...prev.payments, newPayment],
+            activityLog: [logEntry, ...(prev.activityLog || [])].slice(0, 10)
+        }));
     };
 
     // Cierre de Caja
@@ -196,6 +228,8 @@ export const AppProvider = ({ children }) => {
             updateSupplier,
             addQuickService,
             getCommissions,
+            addWithdrawal,
+            addInventoryItem,
             performCashClose
         }}>
             {children}
