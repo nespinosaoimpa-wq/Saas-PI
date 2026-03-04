@@ -8,7 +8,8 @@ export const AppProvider = ({ children }) => {
     const [data, setData] = useState({
         clients: [], vehicles: [], workOrders: [],
         inventory: [], suppliers: [], boxes: [],
-        payments: [], closings: [], activityLog: []
+        payments: [], closings: [], activityLog: [],
+        revenue: MOCK.revenue // Base mock revenue
     });
     const [loading, setLoading] = useState(true);
 
@@ -28,7 +29,8 @@ export const AppProvider = ({ children }) => {
                 supabase.from('boxes').select('*')
             ]);
 
-            setData({
+            setData(prev => ({
+                ...prev,
                 clients: clients || [],
                 vehicles: vehicles || [],
                 workOrders: workOrders || [],
@@ -38,7 +40,7 @@ export const AppProvider = ({ children }) => {
                 payments: [],
                 closings: [],
                 activityLog: []
-            });
+            }));
         } catch (e) {
             console.error(e);
         }
