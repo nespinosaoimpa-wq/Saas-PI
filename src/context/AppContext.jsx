@@ -9,7 +9,12 @@ export const AppProvider = ({ children }) => {
         clients: [], vehicles: [], workOrders: [],
         inventory: [], suppliers: [], boxes: [],
         payments: [], closings: [], activityLog: [],
-        revenue: MOCK.revenue // Base mock revenue
+        // Mock fallbacks for features not yet in Supabase
+        revenue: MOCK.revenue,
+        appointments: MOCK.appointments || [],
+        promotions: MOCK.promotions || [],
+        currentUser: MOCK.currentUser,
+        checklist_template: MOCK.checklist_template || [],
     });
     const [loading, setLoading] = useState(true);
 
@@ -37,9 +42,6 @@ export const AppProvider = ({ children }) => {
                 inventory: inventory || [],
                 suppliers: suppliers || [],
                 boxes: boxes || [],
-                payments: [],
-                closings: [],
-                activityLog: []
             }));
         } catch (e) {
             console.error(e);
@@ -91,10 +93,29 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    // Funciones locales provisionales sin cambiar mucho la API
+    // Commissions
     const getCommissions = (technicianId) => {
         const finished = data.workOrders.filter(wo => wo.mechanic_id === technicianId && (wo.status === 'Finalizado' || wo.status === 'Cobrado'));
-        return finished.reduce((sum, wo) => sum + (wo.labor_cost * (wo.applied_commission_rate / 100)), 0);
+        return finished.reduce((sum, wo) => sum + ((wo.labor_cost || 0) * ((wo.applied_commission_rate || 0) / 100)), 0);
+    };
+
+    // Quick Service (Gomería)
+    const addQuickService = (action) => {
+        const entry = {
+            id: `qs-${Date.now()}`,
+            label: action.label,
+            price: action.price,
+            timestamp: new Date().toISOString()
+        };
+        setData(prev => ({
+            ...prev,
+            activityLog: [entry, ...(prev.activityLog || [])]
+        }));
+        if (action.price > 0) {
+            alert(`✅ ${action.label} registrado — ${action.price > 0 ? '$' + action.price.toLocaleString('es-AR') : 'GRATIS'}`);
+        } else {
+            alert(`✅ ${action.label} registrado — GRATIS`);
+        }
     };
 
     return (
@@ -108,7 +129,8 @@ export const AppProvider = ({ children }) => {
             getLowStockItems,
             addWorkOrder,
             updateWorkOrder,
-            getCommissions
+            getCommissions,
+            addQuickService,
         }}>
             {children}
         </AppContext.Provider>
@@ -116,4 +138,3 @@ export const AppProvider = ({ children }) => {
 };
 
 export const useApp = () => useContext(AppContext);
-
