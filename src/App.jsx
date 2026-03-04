@@ -58,11 +58,6 @@ function App() {
     const [showCameraScanner, setShowCameraScanner] = useState(false);
     const [scannedUnknownCode, setScannedUnknownCode] = useState(null);
 
-    // Si no hay usuario autenticado, mostrar pantalla de PIN
-    if (!user) {
-        return <LoginPage />;
-    }
-
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
         const item = MOCK.inventory.find(i =>
@@ -89,6 +84,11 @@ function App() {
 
     // Escucha global de código de barras físico (lector USB/Bluetooth)
     useBarcodeScanner(handleBarcodeScan);
+
+    // Si no hay usuario autenticado, mostrar pantalla de PIN
+    if (!user) {
+        return <LoginPage />;
+    }
 
     const pageInfo = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
     const PageComponent = PAGES[page] || DashboardPage;
