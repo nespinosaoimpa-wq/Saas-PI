@@ -67,15 +67,15 @@ export const CashRegisterPage = () => {
         setClosingCash('');
     };
 
-    const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0] || p.date === '2026-02-27');
+    const todayPayments = MOCK.payments.filter(p => p.payment_date === new Date().toISOString().split('T')[0] || p.payment_date === '2026-02-27');
 
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
-    const cash = todayPayments.filter(p => p.method === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
-    const transfer = todayPayments.filter(p => p.method === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
-    const card = todayPayments.filter(p => p.method === 'TARJETA').reduce((s, p) => s + p.amount, 0);
+    const cash = todayPayments.filter(p => p.payment_method === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
+    const transfer = todayPayments.filter(p => p.payment_method === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
+    const card = todayPayments.filter(p => p.payment_method === 'TARJETA').reduce((s, p) => s + p.amount, 0);
 
-    const allPayments = period === 'daily' ? MOCK.payments.filter(p => p.date === '2026-02-27')
-        : period === 'weekly' ? MOCK.payments.filter(p => p.date >= '2026-02-21')
+    const allPayments = period === 'daily' ? todayPayments
+        : period === 'weekly' ? MOCK.payments.filter(p => p.payment_date >= '2026-02-21')
             : MOCK.payments;
 
     const totalPeriod = allPayments.reduce((s, p) => s + p.amount, 0);
@@ -100,9 +100,9 @@ export const CashRegisterPage = () => {
 
                 <DataTable
                     columns={[
-                        { key: 'date', label: 'Fecha' },
+                        { key: 'date', label: 'Fecha', render: r => r.payment_date || r.date },
                         { key: 'amount', label: 'Monto', render: r => <strong style={{ color: r.amount < 0 ? 'var(--danger)' : 'var(--primary)' }}>{formatCurrency(r.amount)}</strong> },
-                        { key: 'method', label: 'Método', render: r => <StatusBadge status={r.method === 'EFECTIVO' ? 'Pendiente' : r.method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} /> },
+                        { key: 'method', label: 'Método', render: r => <StatusBadge status={r.payment_method === 'EFECTIVO' ? 'Pendiente' : r.payment_method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} /> },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'wo', label: 'OT', render: r => r.work_order_id ? <span className="nav-badge">OT</span> : '—' },
                     ]}

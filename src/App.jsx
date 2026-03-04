@@ -17,6 +17,7 @@ import { PromotionsPage } from './pages/PromotionsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SalesPage } from './pages/SalesPage';
+import { PublicVehiclePage } from './pages/PublicVehiclePage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -84,6 +85,14 @@ function App() {
 
     // Escucha global de código de barras físico (lector USB/Bluetooth)
     useBarcodeScanner(handleBarcodeScan);
+
+    // Detección de URL pública (Historial Clínico)
+    const urlParams = new URLSearchParams(window.location.search);
+    const publicVehicleId = urlParams.get('vehicle_id');
+
+    if (publicVehicleId) {
+        return <PublicVehiclePage vehicleId={publicVehicleId} />;
+    }
 
     // Si no hay usuario autenticado, mostrar pantalla de PIN
     if (!user) {

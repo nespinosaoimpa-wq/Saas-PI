@@ -39,6 +39,33 @@ export const formatCurrency = (n) => '$' + (n || 0).toLocaleString('es-AR');
 export const formatML = (ml) => ml >= 1000 ? (ml / 1000).toFixed(1) + 'L' : ml + 'ml';
 export const getHealthColor = (score) => score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
 export const getStatusBadge = (status) => {
-  const map = { 'Pendiente': 'badge-pending', 'En Box': 'badge-active', 'Finalizado': 'badge-done', 'Cancelado': 'badge-canceled', 'Programado': 'badge-pending', 'Confirmado': 'badge-active', 'En Curso': 'badge-active', 'Completado': 'badge-done' };
+  const map = {
+    'Pendiente': 'badge-pending',
+    'Recepción': 'badge-pending',
+    'Diagnóstico': 'badge-active',
+    'Presupuestado': 'badge-active',
+    'Esperando Aprobación': 'badge-warning',
+    'En Box': 'badge-active',
+    'Finalizado': 'badge-done',
+    'Cobrado': 'badge-done',
+    'Cancelado': 'badge-canceled',
+    'Programado': 'badge-pending',
+    'Confirmado': 'badge-active',
+    'En Curso': 'badge-active',
+    'Completado': 'badge-done'
+  };
   return map[status] || 'badge-pending';
+};
+
+// WhatsApp Helper
+export const getWhatsAppUrl = (phone, message = '') => {
+  if (!phone) return '#';
+  // Remove all non-numeric characters
+  let cleanPhone = phone.replace(/\D/g, '');
+  // If it's an argentinian number without the +54 or 9, add the country code. 
+  // Very basic cleanup. Assuming mainly ARG (+549) if it starts with 11 or similar
+  if (cleanPhone.length === 10) cleanPhone = '549' + cleanPhone;
+  if (cleanPhone.length === 11 && cleanPhone.startsWith('15')) cleanPhone = '54911' + cleanPhone.substring(2);
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 };

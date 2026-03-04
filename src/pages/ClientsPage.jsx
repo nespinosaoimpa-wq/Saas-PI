@@ -1,5 +1,5 @@
 ﻿import React, { useState, Fragment } from 'react';
-import { formatCurrency } from '../data/data';
+import { formatCurrency, getWhatsAppUrl } from '../data/data';
 import { useApp } from '../context/AppContext';
 import {
     SearchBar,
@@ -77,7 +77,14 @@ export const ClientsPage = () => {
                                 <div style={{ background: 'var(--bg-base)', padding: 18, borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 20 }}>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.5px' }}>Datos Personales</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}><strong style={{ color: 'var(--text-primary)' }}>Tel:</strong> {selectedClient.phone}</div>
+                                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <strong style={{ color: 'var(--text-primary)' }}>Tel:</strong> {selectedClient.phone}
+                                            {selectedClient.phone && (
+                                                <a href={getWhatsAppUrl(selectedClient.phone, `Hola ${selectedClient.first_name}, nos comunicamos de PIRIPI PRO...`)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: '#25D366' }}>
+                                                    <Icon name="whatshot" size={16} /> WhatsApp
+                                                </a>
+                                            )}
+                                        </div>
                                         <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}><strong style={{ color: 'var(--text-primary)' }}>Email:</strong> {selectedClient.email}</div>
                                         <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}><strong style={{ color: 'var(--text-primary)' }}>DNI:</strong> {selectedClient.dni}</div>
                                         <div style={{ marginTop: 8 }}>
@@ -119,8 +126,21 @@ export const ClientsPage = () => {
                                 {selectedVehicle ? (
                                     <Fragment>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                            <h3 style={{ fontSize: 16, fontWeight: 700 }}>Historial: {selectedVehicle.license_plate}</h3>
-                                            <button className="btn btn-primary btn-sm"><Icon name="add_notes" size={16} /> Nueva Nota</button>
+                                            <div>
+                                                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px 0' }}>Historial: {selectedVehicle.license_plate}</h3>
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ID: {selectedVehicle.id}</div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                                {/* QR Code generator pointing to public history */}
+                                                <div style={{ background: 'white', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+                                                    <img
+                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(window.location.origin + '?vehicle_id=' + selectedVehicle.id)}`}
+                                                        alt="QR Historial"
+                                                        width={60} height={60}
+                                                    />
+                                                </div>
+                                                <button className="btn btn-primary btn-sm" style={{ alignSelf: 'stretch' }}><Icon name="add_notes" size={16} /> Nueva Nota</button>
+                                            </div>
                                         </div>
 
                                         <div className="timeline">

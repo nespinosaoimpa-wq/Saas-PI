@@ -1,4 +1,4 @@
-﻿import React, { useState, Fragment } from 'react';
+﻿import React, { useState, Fragment, useEffect } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -16,18 +16,36 @@ import {
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
-    const { data: MOCK, getClientVehicles, addWorkOrder } = useApp();
+    const { data: MOCK, getClientVehicles, addWorkOrder, updateWorkOrder } = useApp();
     const { employees } = useAuth();
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
     const [tab, setTab] = useState('active');
     const [showNew, setShowNew] = useState(false);
     const [printWO, setPrintWO] = useState(null);
+    const [editingOrder, setEditingOrder] = useState(null);
 
     const [newOrder, setNewOrder] = useState({
         client_id: '', vehicle_id: '', box_id: '', km_at_entry: '',
-        description: '', labor_cost: '', parts_cost: '', mechanic_id: ''
+        description: '', labor_cost: '', parts_cost: '', mechanic_id: '', status: ''
     });
+
+    useEffect(() => {
+        if (editingOrder) {
+            setNewOrder({
+                client_id: editingOrder.client_id || '',
+                vehicle_id: editingOrder.vehicle_id || '',
+                box_id: editingOrder.box_id || '',
+                km_at_entry: editingOrder.km_at_entry || '',
+                description: editingOrder.description || '',
+                labor_cost: editingOrder.labor_cost || '',
+                parts_cost: editingOrder.parts_cost || '',
+                mechanic_id: editingOrder.mechanic_id || '',
+                status: editingOrder.status || ''
+            });
+            setShowNew(true);
+        }
+    }, [editingOrder]);
 
     const laborCost = parseFloat(newOrder.labor_cost) || 0;
     const partsCost = parseFloat(newOrder.parts_cost) || 0;
@@ -35,7 +53,7 @@ export const WorkOrdersPage = () => {
 
     const selectedMechanic = mechanics.find(m => m.id === newOrder.mechanic_id);
 
-    const handleCreateWorkOrder = async () => {
+    const handleCreateOrUpdate = async () => {
         if (!newOrder.client_id || !newOrder.vehicle_id || !newOrder.description) {
             alert('Por favor completá Cliente, Vehículo y Descripción.');
             return;
@@ -43,21 +61,32 @@ export const WorkOrdersPage = () => {
 
         const appliedCommission = selectedMechanic ? selectedMechanic.commission_rate : 0;
 
-        await addWorkOrder({
+        const payload = {
             ...newOrder,
             labor_cost: laborCost,
             parts_cost: partsCost,
             total_price: totalPrice,
             applied_commission_rate: appliedCommission
-        });
+        };
 
+        if (editingOrder) {
+            await updateWorkOrder(editingOrder.id, payload);
+        } else {
+            await addWorkOrder(payload);
+        }
+
+        closeModal();
+    };
+
+    const closeModal = () => {
         setShowNew(false);
-        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '' });
+        setEditingOrder(null);
+        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '', status: '' });
     };
 
     const filtered = MOCK.workOrders.filter(wo => {
-        if (tab === 'active') return wo.status === 'Pendiente' || wo.status === 'En Box';
-        if (tab === 'done') return wo.status === 'Finalizado';
+        if (tab === 'active') return !['Finalizado', 'Cobrado', 'Cancelado'].includes(wo.status);
+        if (tab === 'done') return ['Finalizado', 'Cobrado'].includes(wo.status);
         return true;
     });
 
@@ -72,7 +101,6 @@ export const WorkOrdersPage = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {filtered.map(wo => {
-                        // Adaptar el UI de QueueCard a los datos relacionales de Supabase
                         const clientName = wo.clients ? `${wo.clients.first_name} ${wo.clients.last_name}` : 'Cliente Sin Nombre';
                         const vehicleName = wo.vehicles ? `${wo.vehicles.license_plate} - ${wo.vehicles.brand} ${wo.vehicles.model}` : 'Vehículo';
                         const mechanicName = employees.find(e => e.id === wo.mechanic_id)?.name || 'Sin Asignar';
@@ -88,11 +116,7 @@ export const WorkOrdersPage = () => {
                                     mechanic: mechanicName,
                                     box: boxName
                                 }}
-                                onClick={() => {
-                                    if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
-                                        setPrintWO(wo);
-                                    }
-                                }}
+                                onClick={() => setEditingOrder(wo)}
                             />
                         );
                     })}
@@ -100,8 +124,16 @@ export const WorkOrdersPage = () => {
                 </div>
 
                 {showNew && (
-                    <Modal title="Nueva Orden de Trabajo" onClose={() => setShowNew(false)} width="800px"
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleCreateWorkOrder}><Icon name="print" size={16} /> Crear OT</button></Fragment>}>
+                    <Modal title={editingOrder ? `OT #${editingOrder.order_number} - Editar` : "Nueva Orden de Trabajo"} onClose={closeModal} width="800px"
+                        footer={<Fragment>
+                            {editingOrder && (['Finalizado', 'Cobrado'].includes(editingOrder.status)) && (
+                                <button className="btn btn-ghost" style={{ marginRight: 'auto', color: 'var(--primary)' }} onClick={() => setPrintWO(editingOrder)}>
+                                    <Icon name="print" size={16} /> Imprimir Ticket
+                                </button>
+                            )}
+                            <button className="btn btn-ghost" onClick={closeModal}>Cancelar</button>
+                            <button className="btn btn-primary" onClick={handleCreateOrUpdate}><Icon name="save" size={16} /> Guardar OT</button>
+                        </Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <FormRow>
                                 <FormField label="Cliente">
@@ -118,24 +150,40 @@ export const WorkOrdersPage = () => {
                                 </FormField>
                             </FormRow>
                             <FormRow>
+                                <FormField label="Estado de la OT">
+                                    <select className="form-select" value={newOrder.status} onChange={e => setNewOrder({ ...newOrder, status: e.target.value })}>
+                                        <option value="">(Automático)</option>
+                                        <option value="Recepción">Recepción (Ingresado)</option>
+                                        <option value="Diagnóstico">Diagnóstico</option>
+                                        <option value="Presupuestado">Presupuestado</option>
+                                        <option value="Esperando Aprobación">Esperando Aprobación</option>
+                                        <option value="En Box">En Box (Ejecutando)</option>
+                                        <option value="Finalizado">Finalizado (Listo para entregar)</option>
+                                        <option value="Cobrado">Cobrado / Entregado</option>
+                                        <option value="Cancelado">Cancelado</option>
+                                    </select>
+                                </FormField>
                                 <FormField label="Box asignado">
                                     <select className="form-select" value={newOrder.box_id} onChange={e => setNewOrder({ ...newOrder, box_id: e.target.value })}>
                                         <option value="">Sin asignar</option>
                                         {MOCK.boxes.map(b => <option key={b.id} value={b.id}>{b.name} ({b.type})</option>)}
                                     </select>
                                 </FormField>
+                            </FormRow>
+                            <FormRow>
                                 <FormField label="Km al ingresar">
                                     <input className="form-input" type="number" placeholder="Ej: 85000" value={newOrder.km_at_entry} onChange={e => setNewOrder({ ...newOrder, km_at_entry: e.target.value })} />
                                 </FormField>
+                                <div style={{ flex: 1 }} />
                             </FormRow>
-                            <FormField label="Descripción del trabajo">
-                                <textarea className="form-textarea" placeholder="Describir el trabajo a realizar..." value={newOrder.description} onChange={e => setNewOrder({ ...newOrder, description: e.target.value })} />
+                            <FormField label="Descripción del trabajo / Informe Técnico">
+                                <textarea className="form-textarea" placeholder="Describir el síntoma, diagnóstico o trabajo a realizar..." value={newOrder.description} onChange={e => setNewOrder({ ...newOrder, description: e.target.value })} />
                             </FormField>
 
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
 
                             {/* Presupuesto manual separado */}
-                            <SectionHeader icon="attach_money" title="Presupuesto" />
+                            <SectionHeader icon="attach_money" title={newOrder.status === 'Presupuestado' || newOrder.status === 'Esperando Aprobación' ? "Presupuesto Estimado" : "Costos (Ejecución)"} />
                             <FormRow>
                                 <FormField label="Mano de Obra ($)">
                                     <input className="form-input" type="number" value={newOrder.labor_cost} onChange={e => setNewOrder({ ...newOrder, labor_cost: e.target.value })} style={{ fontSize: 18, fontWeight: 700, color: 'var(--success)' }} />
@@ -150,7 +198,7 @@ export const WorkOrdersPage = () => {
 
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
 
-                            <SectionHeader icon="engineering" title="Mecánico o Gomero" />
+                            <SectionHeader icon="engineering" title="Mecánico o Gomero Asignado" />
                             <FormField label="Asignar Profesional">
                                 <select className="form-select" value={newOrder.mechanic_id} onChange={e => setNewOrder({ ...newOrder, mechanic_id: e.target.value })}>
                                     <option value="">Sin asignar</option>
@@ -176,3 +224,4 @@ export const WorkOrdersPage = () => {
         </div>
     );
 };
+
