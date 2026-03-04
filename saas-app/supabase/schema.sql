@@ -1,4 +1,4 @@
-Error: No se pudo ej-- ==============================================================================
+-- ==============================================================================
 -- SCHEMA SUPABASE PARA SISTEMA PIRIPI PRO (V2 - Lógica de Negocio Refinada)
 -- Incluye separación de caja (mano obra vs repuestos) y boxes específicos
 -- ==============================================================================
