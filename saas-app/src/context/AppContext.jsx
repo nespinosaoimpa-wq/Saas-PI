@@ -1,32 +1,55 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { MOCK } from '../data/data';
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-    // Inicializar estado desde localStorage o MOCK
-    const [data, setData] = useState(() => {
-        const defaultData = { ...MOCK, activityLog: [], closings: [] };
-        try {
-            const localData = localStorage.getItem('piripi-saas-data');
-            if (localData) {
-                const parsed = JSON.parse(localData);
-                return { ...defaultData, ...parsed };
-            }
-        } catch (error) {
-            console.error('Error loading data from localStorage', error);
-        }
-        return defaultData;
+    const [data, setData] = useState({
+        clients: [], vehicles: [], workOrders: [],
+        inventory: [], suppliers: [], boxes: [],
+        payments: [], closings: [], activityLog: []
     });
+    const [loading, setLoading] = useState(true);
 
-    // Guardar en localStorage cada vez que cambie 'data'
+    const loadData = async () => {
+        if (!supabase) return;
+        setLoading(true);
+        try {
+            const [
+                { data: clients }, { data: vehicles }, { data: workOrders },
+                { data: inventory }, { data: suppliers }, { data: boxes }
+            ] = await Promise.all([
+                supabase.from('clients').select('*'),
+                supabase.from('vehicles').select('*'),
+                supabase.from('work_orders').select('*').order('created_at', { ascending: false }),
+                supabase.from('inventory').select('*'),
+                supabase.from('suppliers').select('*'),
+                supabase.from('boxes').select('*')
+            ]);
+
+            setData({
+                clients: clients || [],
+                vehicles: vehicles || [],
+                workOrders: workOrders || [],
+                inventory: inventory || [],
+                suppliers: suppliers || [],
+                boxes: boxes || [],
+                payments: [],
+                closings: [],
+                activityLog: []
+            });
+        } catch (e) {
+            console.error(e);
+        }
+        setLoading(false);
+    };
+
     useEffect(() => {
-        localStorage.setItem('piripi-saas-data', JSON.stringify(data));
-    }, [data]);
+        loadData();
+    }, []);
 
-    // ==========================================
-    // Helpers (antes en data.js, ahora reactivos)
-    // ==========================================
+    // Helpers
     const getClient = (id) => data.clients.find(c => c.id === id);
     const getVehicle = (id) => data.vehicles.find(v => v.id === id);
     const getClientVehicles = (clientId) => data.vehicles.filter(v => v.client_id === clientId);
@@ -35,239 +58,55 @@ export const AppProvider = ({ children }) => {
         (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    // ==========================================
-    // Acciones CRUD
-    // ==========================================
-
-    // Clientes
-    const addClient = (clientData) => {
-        const newClient = { ...clientData, id: 'c' + Date.now(), vehicles: [] };
-        setData(prev => ({ ...prev, clients: [...prev.clients, newClient] }));
-        return newClient;
+    // Órdenes de Trabajo (Sincronizado)
+    const addWorkOrder = async (woData) => {
+        const { data: newWo, error } = await supabase.from('work_orders').insert([{
+            client_id: woData.client_id,
+            vehicle_id: woData.vehicle_id,
+            box_id: woData.box_id || null,
+            mechanic_id: woData.mechanic_id || null,
+            description: woData.description,
+            km_at_entry: woData.km_at_entry || 0,
+            labor_cost: woData.labor_cost,
+            parts_cost: woData.parts_cost,
+            total_price: woData.total_price,
+            applied_commission_rate: woData.applied_commission_rate,
+            status: woData.box_id ? 'En Box' : 'Pendiente'
+        }]).select().single();
+        if (!error && newWo) {
+            setData(prev => ({ ...prev, workOrders: [newWo, ...prev.workOrders] }));
+            return newWo;
+        }
     };
 
-    const updateClient = (id, updates) => {
-        setData(prev => ({
-            ...prev,
-            clients: prev.clients.map(c => c.id === id ? { ...c, ...updates } : c)
-        }));
-    };
-
-    // Vehículos
-    const addVehicle = (vehicleData) => {
-        const newVehicle = { ...vehicleData, id: 'v' + Date.now(), history: [], health_score: 100 };
-        setData(prev => {
-            const updatedClients = prev.clients.map(c =>
-                c.id === vehicleData.client_id ? { ...c, vehicles: [...c.vehicles, newVehicle.id] } : c
-            );
-            return {
+    const updateWorkOrder = async (id, updates) => {
+        const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
+        if (!error) {
+            setData(prev => ({
                 ...prev,
-                vehicles: [...prev.vehicles, newVehicle],
-                clients: updatedClients
-            };
-        });
-        return newVehicle;
+                workOrders: prev.workOrders.map(wo => wo.id === id ? { ...wo, ...updates } : wo)
+            }));
+        }
     };
 
-    // Órdenes de Trabajo
-    const addWorkOrder = (woData) => {
-        const newWo = {
-            ...woData,
-            id: 'wo' + Date.now(),
-            order_number: Math.floor(1000 + Math.random() * 9000),
-            created_at: new Date().toISOString()
-        };
-        setData(prev => ({ ...prev, workOrders: [...prev.workOrders, newWo] }));
-        return newWo;
+    // Funciones locales provisionales sin cambiar mucho la API
+    const getCommissions = (technicianId) => {
+        const finished = data.workOrders.filter(wo => wo.mechanic_id === technicianId && (wo.status === 'Finalizado' || wo.status === 'Cobrado'));
+        return finished.reduce((sum, wo) => sum + (wo.labor_cost * (wo.applied_commission_rate / 100)), 0);
     };
-
-    const updateWorkOrder = (id, updates) => {
-        setData(prev => ({
-            ...prev,
-            workOrders: prev.workOrders.map(wo => wo.id === id ? { ...wo, ...updates } : wo)
-        }));
-    };
-
-    // Pagos / Caja
-    const addPayment = (paymentData) => {
-        const newPayment = {
-            ...paymentData,
-            id: 'p' + Date.now(),
-            date: new Date().toISOString().split('T')[0]
-        };
-        setData(prev => ({ ...prev, payments: [...prev.payments, newPayment] }));
-        return newPayment;
-    };
-
-    // Inventario
-    const updateInventoryStock = (id, quantity, isVolume = false) => {
-        setData(prev => ({
-            ...prev,
-            inventory: prev.inventory.map(item => {
-                if (item.id === id) {
-                    if (isVolume) {
-                        return { ...item, stock_ml: item.stock_ml + quantity };
-                    } else {
-                        return { ...item, stock_quantity: item.stock_quantity + quantity };
-                    }
-                }
-                return item;
-            })
-        }));
-    };
-
-    const addInventoryItem = (itemData) => {
-        const newItem = { ...itemData, id: itemData.id || 'inv' + Date.now() };
-        setData(prev => ({ ...prev, inventory: [...prev.inventory, newItem] }));
-        return newItem;
-    };
-
-    // Proveedores
-    const addSupplier = (supplierData) => {
-        const newSupplier = { ...supplierData, id: 's' + Date.now() };
-        setData(prev => ({ ...prev, suppliers: [...prev.suppliers, newSupplier] }));
-        return newSupplier;
-    };
-
-    const updateSupplier = (id, updates) => {
-        setData(prev => ({
-            ...prev,
-            suppliers: prev.suppliers.map(s => s.id === id ? { ...s, ...updates } : s)
-        }));
-    };
-
-    // Gomería / Servicios Rápidos
-    const addQuickService = (service) => {
-        const newPayment = {
-            id: 'p' + Date.now(),
-            amount: service.price,
-            method: 'EFECTIVO',
-            date: new Date().toISOString().split('T')[0],
-            description: `Servicio Rápido: ${service.label}`,
-            reference: 'GOMERIA'
-        };
-
-        const logEntry = {
-            id: 'log' + Date.now(),
-            type: 'QUICK_SERVICE',
-            label: service.label,
-            price: service.price,
-            timestamp: new Date().toISOString()
-        };
-
-        setData(prev => ({
-            ...prev,
-            payments: [...prev.payments, newPayment],
-            activityLog: [logEntry, ...(prev.activityLog || [])].slice(0, 10)
-        }));
-    };
-
-    // Comisiones (Calculado)
-    const getCommissions = (technicianName) => {
-        // Implementación básica: 15% de las OTs finalizadas por él
-        const finished = data.workOrders.filter(wo => wo.mechanic === technicianName && wo.status === 'Finalizado' || wo.status === 'Cobrado');
-        return finished.reduce((sum, wo) => sum + (wo.total_price * 0.15), 0);
-    };
-
-    // Egresos / Retiros
-    const addWithdrawal = (withdrawalData) => {
-        const newPayment = {
-            id: 'p' + Date.now(),
-            amount: -Math.abs(withdrawalData.amount),
-            method: 'EFECTIVO',
-            date: new Date().toISOString().split('T')[0],
-            description: `Retiro: ${withdrawalData.description}`,
-            reference: 'EGRESO'
-        };
-
-        const logEntry = {
-            id: 'log' + Date.now(),
-            type: 'WITHDRAWAL',
-            label: withdrawalData.description,
-            price: -Math.abs(withdrawalData.amount),
-            timestamp: new Date().toISOString()
-        };
-
-        setData(prev => ({
-            ...prev,
-            payments: [...prev.payments, newPayment],
-            activityLog: [logEntry, ...(prev.activityLog || [])].slice(0, 10)
-        }));
-    };
-
-    // Cierre de Caja
-    const performCashClose = (closingData) => {
-        const newClosing = {
-            ...closingData,
-            id: 'close' + Date.now(),
-            date: new Date().toISOString().split('T')[0],
-            timestamp: new Date().toISOString()
-        };
-        setData(prev => ({ ...prev, closings: [...(prev.closings || []), newClosing] }));
-        return newClosing;
-    };
-
-    // Venta POS
-    const processSale = (cartItems, paymentMethod) => {
-        const total = cartItems.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
-
-        // Descontar stock
-        cartItems.forEach(ci => {
-            updateInventoryStock(ci.id, -ci.qty, ci.stock_type === 'VOLUME');
-        });
-
-        // Registrar pago
-        const newPayment = {
-            id: 'p' + Date.now(),
-            amount: total,
-            method: paymentMethod,
-            date: new Date().toISOString().split('T')[0],
-            description: `Venta POS (${cartItems.length} productos)`,
-            reference: 'VENTA'
-        };
-
-        const logEntry = {
-            id: 'log' + Date.now(),
-            type: 'SALE',
-            label: `Venta ${cartItems.length} productos`,
-            price: total,
-            timestamp: new Date().toISOString()
-        };
-
-        setData(prev => ({
-            ...prev,
-            payments: [...prev.payments, newPayment],
-            activityLog: [logEntry, ...(prev.activityLog || [])].slice(0, 10)
-        }));
-
-        return total;
-    };
-
-    // Agregaré más acciones CRUD a medida que se necesiten en cada página...
 
     return (
         <AppContext.Provider value={{
             data,
-            setData,
+            loading,
+            refreshData: loadData,
             getClient,
             getVehicle,
             getClientVehicles,
             getLowStockItems,
-            addClient,
-            updateClient,
-            addVehicle,
             addWorkOrder,
             updateWorkOrder,
-            addPayment,
-            updateInventoryStock,
-            addSupplier,
-            updateSupplier,
-            addQuickService,
-            getCommissions,
-            addWithdrawal,
-            addInventoryItem,
-            processSale,
-            performCashClose
+            getCommissions
         }}>
             {children}
         </AppContext.Provider>
@@ -275,3 +114,4 @@ export const AppProvider = ({ children }) => {
 };
 
 export const useApp = () => useContext(AppContext);
+

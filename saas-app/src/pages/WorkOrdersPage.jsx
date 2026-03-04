@@ -1,6 +1,7 @@
 ﻿import React, { useState, Fragment } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import {
     Tabs,
     QueueCard,
@@ -15,59 +16,43 @@ import {
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
-    const { data: MOCK, addWorkOrder, getClientVehicles } = useApp();
+    const { data: MOCK, getClientVehicles, addWorkOrder } = useApp();
+    const { employees } = useAuth();
+    const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
+
     const [tab, setTab] = useState('active');
     const [showNew, setShowNew] = useState(false);
     const [printWO, setPrintWO] = useState(null);
-    const [checklist, setChecklist] = useState({});
 
-    const [newOrder, setNewOrder] = useState({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', total_price: '' });
+    const [newOrder, setNewOrder] = useState({
+        client_id: '', vehicle_id: '', box_id: '', km_at_entry: '',
+        description: '', labor_cost: '', parts_cost: '', mechanic_id: ''
+    });
 
-    // Multi-mecánico: lista de técnicos disponibles (de los boxes)
-    const availableTechs = [...new Set(
-        MOCK.boxes.map(b => b.mechanic).filter(Boolean)
-            .concat(MOCK.workOrders.map(wo => wo.mechanic).filter(Boolean))
-    )];
+    const laborCost = parseFloat(newOrder.labor_cost) || 0;
+    const partsCost = parseFloat(newOrder.parts_cost) || 0;
+    const totalPrice = laborCost + partsCost;
 
-    // Estado de mecánicos asignados: { name: string, commission_percent: number, selected: boolean }
-    const [assignedMechanics, setAssignedMechanics] = useState(
-        availableTechs.map(name => ({ name, selected: false, commission_percent: 15 }))
-    );
+    const selectedMechanic = mechanics.find(m => m.id === newOrder.mechanic_id);
 
-    const toggleMechanic = (name) => {
-        setAssignedMechanics(prev => prev.map(m => m.name === name ? { ...m, selected: !m.selected } : m));
-    };
-
-    const setMechanicPercent = (name, percent) => {
-        setAssignedMechanics(prev => prev.map(m => m.name === name ? { ...m, commission_percent: parseFloat(percent) || 0 } : m));
-    };
-
-    const totalPrice = parseFloat(newOrder.total_price) || 0;
-    const selectedMechanics = assignedMechanics.filter(m => m.selected);
-
-    const handleCreateWorkOrder = () => {
+    const handleCreateWorkOrder = async () => {
         if (!newOrder.client_id || !newOrder.vehicle_id || !newOrder.description) {
             alert('Por favor completá Cliente, Vehículo y Descripción.');
             return;
         }
 
-        const mechanics = selectedMechanics.map(m => ({
-            name: m.name,
-            commission_percent: m.commission_percent,
-            commission_amount: totalPrice * (m.commission_percent / 100)
-        }));
+        const appliedCommission = selectedMechanic ? selectedMechanic.commission_rate : 0;
 
-        addWorkOrder({
+        await addWorkOrder({
             ...newOrder,
+            labor_cost: laborCost,
+            parts_cost: partsCost,
             total_price: totalPrice,
-            status: newOrder.box_id ? 'En Box' : 'Pendiente',
-            mechanic: mechanics.length > 0 ? mechanics.map(m => m.name).join(', ') : null,
-            mechanics // array detallado
+            applied_commission_rate: appliedCommission
         });
+
         setShowNew(false);
-        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', total_price: '' });
-        setChecklist({});
-        setAssignedMechanics(availableTechs.map(name => ({ name, selected: false, commission_percent: 15 })));
+        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '' });
     };
 
     const filtered = MOCK.workOrders.filter(wo => {
@@ -86,23 +71,37 @@ export const WorkOrdersPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {filtered.map(wo => (
-                        <QueueCard
-                            key={wo.id}
-                            wo={wo}
-                            onClick={() => {
-                                if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
-                                    setPrintWO(wo);
-                                }
-                            }}
-                        />
-                    ))}
+                    {filtered.map(wo => {
+                        // Adaptar el UI de QueueCard a los datos relacionales de Supabase
+                        const clientName = wo.clients ? `${wo.clients.first_name} ${wo.clients.last_name}` : 'Cliente Sin Nombre';
+                        const vehicleName = wo.vehicles ? `${wo.vehicles.license_plate} - ${wo.vehicles.brand} ${wo.vehicles.model}` : 'Vehículo';
+                        const mechanicName = employees.find(e => e.id === wo.mechanic_id)?.name || 'Sin Asignar';
+                        const boxName = MOCK.boxes.find(b => b.id === wo.box_id)?.name || 'Sin Box';
+
+                        return (
+                            <QueueCard
+                                key={wo.id}
+                                wo={{
+                                    ...wo,
+                                    client: clientName,
+                                    vehicle: vehicleName,
+                                    mechanic: mechanicName,
+                                    box: boxName
+                                }}
+                                onClick={() => {
+                                    if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
+                                        setPrintWO(wo);
+                                    }
+                                }}
+                            />
+                        );
+                    })}
                     {filtered.length === 0 && <EmptyState icon="assignment" title="Sin órdenes" sub="No hay órdenes para este filtro" />}
                 </div>
 
                 {showNew && (
                     <Modal title="Nueva Orden de Trabajo" onClose={() => setShowNew(false)} width="800px"
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleCreateWorkOrder}><Icon name="print" size={16} /> Crear y Generar Ticket</button></Fragment>}>
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleCreateWorkOrder}><Icon name="print" size={16} /> Crear OT</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <FormRow>
                                 <FormField label="Cliente">
@@ -122,76 +121,50 @@ export const WorkOrdersPage = () => {
                                 <FormField label="Box asignado">
                                     <select className="form-select" value={newOrder.box_id} onChange={e => setNewOrder({ ...newOrder, box_id: e.target.value })}>
                                         <option value="">Sin asignar</option>
-                                        {MOCK.boxes.filter(b => b.status === 'Libre').map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                        {MOCK.boxes.map(b => <option key={b.id} value={b.id}>{b.name} ({b.type})</option>)}
                                     </select>
                                 </FormField>
                                 <FormField label="Km al ingresar">
-                                    <input className="form-input" type="number" placeholder="Km actual" value={newOrder.km_at_entry} onChange={e => setNewOrder({ ...newOrder, km_at_entry: e.target.value })} />
+                                    <input className="form-input" type="number" placeholder="Ej: 85000" value={newOrder.km_at_entry} onChange={e => setNewOrder({ ...newOrder, km_at_entry: e.target.value })} />
                                 </FormField>
                             </FormRow>
                             <FormField label="Descripción del trabajo">
                                 <textarea className="form-textarea" placeholder="Describir el trabajo a realizar..." value={newOrder.description} onChange={e => setNewOrder({ ...newOrder, description: e.target.value })} />
                             </FormField>
-                            <FormField label="Fotos del vehículo">
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button className="btn btn-ghost" style={{ flex: 1 }}><Icon name="photo_camera" size={18} /> Tomar Fotos</button>
-                                    <button className="btn btn-ghost" style={{ flex: 1 }}><Icon name="upload_file" size={18} /> Subir Archivos</button>
-                                </div>
-                            </FormField>
+
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
 
-                            {/* Presupuesto manual */}
+                            {/* Presupuesto manual separado */}
                             <SectionHeader icon="attach_money" title="Presupuesto" />
                             <FormRow>
-                                <FormField label="Precio Total del Trabajo ($)">
-                                    <input className="form-input" type="number" placeholder="Ej: 45000" value={newOrder.total_price} onChange={e => setNewOrder({ ...newOrder, total_price: e.target.value })} style={{ fontSize: 18, fontWeight: 700 }} />
+                                <FormField label="Mano de Obra ($)">
+                                    <input className="form-input" type="number" value={newOrder.labor_cost} onChange={e => setNewOrder({ ...newOrder, labor_cost: e.target.value })} style={{ fontSize: 18, fontWeight: 700, color: 'var(--success)' }} />
+                                </FormField>
+                                <FormField label="Repuestos/Materiales ($)">
+                                    <input className="form-input" type="number" value={newOrder.parts_cost} onChange={e => setNewOrder({ ...newOrder, parts_cost: e.target.value })} style={{ fontSize: 18, fontWeight: 700 }} />
                                 </FormField>
                             </FormRow>
-                            <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Incluye mano de obra + repuestos. Podrás ajustarlo después.</p>
+                            <div style={{ textAlign: 'right', fontSize: 20, fontWeight: 800, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                                Total OT: {formatCurrency(totalPrice)}
+                            </div>
 
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
 
-                            {/* Mecánicos multi-asignación */}
-                            <SectionHeader icon="engineering" title="Mecánicos Asignados y Comisiones" />
-                            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Selectá los mecánicos que participan. Podés poner un porcentaje distinto a cada uno.</p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {assignedMechanics.map(m => (
-                                    <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: m.selected ? 'var(--bg-hover)' : 'transparent', borderRadius: 'var(--radius-sm)', border: m.selected ? '1px solid var(--primary)' : '1px solid var(--border)', cursor: 'pointer' }}>
-                                        <input type="checkbox" checked={m.selected} onChange={() => toggleMechanic(m.name)} style={{ width: 18, height: 18 }} />
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 600, fontSize: 13 }}>{m.name}</div>
-                                        </div>
-                                        {m.selected && (
-                                            <>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                    <input className="form-input" type="number" value={m.commission_percent} onChange={e => setMechanicPercent(m.name, e.target.value)} style={{ width: 60, textAlign: 'center', padding: '4px 6px', fontSize: 13 }} />
-                                                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>%</span>
-                                                </div>
-                                                <div style={{ minWidth: 80, textAlign: 'right', fontWeight: 700, color: 'var(--primary)', fontSize: 14 }}>
-                                                    {formatCurrency(totalPrice * (m.commission_percent / 100))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                            {selectedMechanics.length > 0 && totalPrice > 0 && (
-                                <div style={{ marginTop: 8, padding: 8, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Total comisiones ({selectedMechanics.length} mecánico{selectedMechanics.length > 1 ? 's' : ''}):</span>
+                            <SectionHeader icon="engineering" title="Mecánico o Gomero" />
+                            <FormField label="Asignar Profesional">
+                                <select className="form-select" value={newOrder.mechanic_id} onChange={e => setNewOrder({ ...newOrder, mechanic_id: e.target.value })}>
+                                    <option value="">Sin asignar</option>
+                                    {mechanics.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role.toUpperCase()}) - {parseFloat(m.commission_rate)}% comisión base</option>)}
+                                </select>
+                            </FormField>
+                            {selectedMechanic && laborCost > 0 && (
+                                <div style={{ marginTop: 8, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Mano de obra: {formatCurrency(laborCost)}. Comisión estimada <strong>({selectedMechanic.commission_rate}% de la mano de obra)</strong>:</span>
                                     <strong style={{ color: 'var(--primary)' }}>
-                                        {formatCurrency(selectedMechanics.reduce((s, m) => s + totalPrice * (m.commission_percent / 100), 0))}
+                                        {formatCurrency(laborCost * (selectedMechanic.commission_rate / 100))}
                                     </strong>
                                 </div>
                             )}
-
-                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
-                            <SectionHeader icon="checklist" title="Checklist de Seguridad" />
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                {MOCK.checklist_template.map(item => (
-                                    <CheckItem key={item.key} label={item.label} sub={item.group} checked={checklist[item.key]} onChange={() => setChecklist(prev => ({ ...prev, [item.key]: !prev[item.key] }))} />
-                                ))}
-                            </div>
-                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
                         </div>
                     </Modal>
                 )}

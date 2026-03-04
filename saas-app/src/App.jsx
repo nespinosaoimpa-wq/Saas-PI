@@ -1,5 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
+import { useAuth } from './context/AuthContext';
+import { LoginPage } from './pages/LoginPage';
 import { Icon, Modal, FormField, CameraScanner } from './components/ui';
 import { useBarcodeScanner } from './hooks/useBarcodeScanner';
 import { formatCurrency } from './data/data';
@@ -48,12 +50,18 @@ const PAGES = {
 
 function App() {
     const { data: MOCK, getLowStockItems } = useApp();
+    const { user, logout } = useAuth();
     const [page, setPage] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [scannedItem, setScannedItem] = useState(null);
     const [scannedQuantity, setScannedQuantity] = useState(1);
     const [showCameraScanner, setShowCameraScanner] = useState(false);
     const [scannedUnknownCode, setScannedUnknownCode] = useState(null);
+
+    // Si no hay usuario autenticado, mostrar pantalla de PIN
+    if (!user) {
+        return <LoginPage />;
+    }
 
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
@@ -117,6 +125,39 @@ function App() {
         setSidebarOpen(false);
     };
 
+    const isVisible = (key) => {
+        switch (key) {
+            case 'suppliers':
+            case 'promotions':
+            case 'reports':
+            case 'users':
+                return user.role === 'admin';
+            case 'inventory':
+                return ['admin', 'cajero', 'mecanico'].includes(user.role);
+            case 'sales':
+            case 'cash':
+            case 'clients':
+            case 'calendar':
+                return ['admin', 'cajero'].includes(user.role);
+            case 'dashboard':
+            case 'work_orders':
+            case 'daily_work':
+                return true;
+            default:
+                return true;
+        }
+    };
+
+    const visibleNavItems = NAV_ITEMS.filter(item => item.section || isVisible(item.key));
+    // Quitar secciones vacías
+    const cleanNavItems = visibleNavItems.filter((item, i) => {
+        if (item.section) {
+            const nextNode = visibleNavItems[i + 1];
+            return nextNode && !nextNode.section;
+        }
+        return true;
+    });
+
     return (
         <div className="app-layout">
             {/* Overlay for mobile */}
@@ -132,7 +173,7 @@ function App() {
                 </div>
 
                 <nav className="sidebar-nav">
-                    {NAV_ITEMS.map((item, i) => {
+                    {cleanNavItems.map((item, i) => {
                         if (item.section) {
                             return <div key={i} className="nav-section-title">{item.section}</div>;
                         }
@@ -164,10 +205,11 @@ function App() {
                         </div>
                         <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {MOCK.currentUser.name}
+                                {user.name}
                             </div>
-                            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>
-                                {MOCK.currentUser.role.toUpperCase()} • v2.0
+                            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>{user.role.toUpperCase()} • v2.0</span>
+                                <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 10, padding: 0 }}>Salir</button>
                             </div>
                         </div>
                     </div>

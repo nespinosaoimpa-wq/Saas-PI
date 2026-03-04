@@ -1,6 +1,7 @@
 ﻿import React, { Fragment } from 'react';
 import { formatCurrency, formatML } from '../data/data';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import {
     StatCard,
     QueueCard,
@@ -12,12 +13,22 @@ import {
 
 export const DashboardPage = () => {
     const { data: MOCK, getLowStockItems } = useApp();
+    const { employees } = useAuth();
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
-    const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith('2026-02-2')).length;
+    const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
     const lowStock = getLowStockItems();
-    const todayPayments = MOCK.payments.filter(p => p.date === '2026-02-27');
+    const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0]);
     const todayTotal = todayPayments.reduce((s, p) => s + p.amount, 0);
-    const boxOccupied = MOCK.boxes.filter(b => b.status === 'Ocupado').length;
+
+    const getBoxStatus = (boxId) => {
+        const order = activeOrders.find(wo => wo.box_id === boxId && wo.status === 'En Box');
+        if (order) {
+            return { status: 'Ocupado', mechanic: employees.find(e => e.id === order.mechanic_id)?.name || 'Asignado' };
+        }
+        return { status: 'Libre', mechanic: null };
+    };
+
+    const boxOccupied = MOCK.boxes.filter(b => getBoxStatus(b.id).status === 'Ocupado').length;
 
     return (
         <div className="page-content">
@@ -42,7 +53,14 @@ export const DashboardPage = () => {
                             </Fragment>
                         } />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {MOCK.workOrders.slice(0, 5).map(wo => <QueueCard key={wo.id} wo={wo} />)}
+                            {activeOrders.slice(0, 5).map(wo => {
+                                const clientName = wo.clients ? `${wo.clients.first_name} ${wo.clients.last_name}` : 'Cliente';
+                                const vehicleName = wo.vehicles ? `${wo.vehicles.license_plate} - ${wo.vehicles.brand}` : 'Vehículo';
+                                const mechanicName = employees.find(e => e.id === wo.mechanic_id)?.name || 'Sin Asignar';
+                                const boxName = MOCK.boxes.find(b => b.id === wo.box_id)?.name || 'Sin Box';
+
+                                return <QueueCard key={wo.id} wo={{ ...wo, client: clientName, vehicle: vehicleName, mechanic: mechanicName, box: boxName }} />;
+                            })}
                         </div>
                     </div>
 
@@ -118,33 +136,36 @@ export const DashboardPage = () => {
                         <GlassCard style={{ padding: 22 }}>
                             <SectionHeader icon="garage" title="Estado Boxes" />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                {MOCK.boxes.map(box => (
-                                    <div key={box.id} style={{
-                                        padding: 14, borderRadius: 'var(--radius)',
-                                        background: box.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.06)' : 'var(--bg-hover)',
-                                        border: `1px solid ${box.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.15)' : 'var(--border)'}`
-                                    }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{box.name}</div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <div style={{
-                                                width: 7, height: 7, borderRadius: '50%',
-                                                background: box.status === 'Ocupado' ? 'var(--primary)' : 'var(--text-disabled)'
-                                            }} />
-                                            <span style={{
-                                                fontSize: 11, fontWeight: 600,
-                                                color: box.status === 'Ocupado' ? 'var(--primary)' : 'var(--text-muted)'
-                                            }}>
-                                                {box.status}
-                                            </span>
-                                        </div>
-                                        {box.mechanic && (
-                                            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
-                                                <Icon name="person" size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                                                {box.mechanic}
+                                {MOCK.boxes.map(box => {
+                                    const bStat = getBoxStatus(box.id);
+                                    return (
+                                        <div key={box.id} style={{
+                                            padding: 14, borderRadius: 'var(--radius)',
+                                            background: bStat.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.06)' : 'var(--bg-hover)',
+                                            border: `1px solid ${bStat.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.15)' : 'var(--border)'}`
+                                        }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{box.name} ({box.type})</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <div style={{
+                                                    width: 7, height: 7, borderRadius: '50%',
+                                                    background: bStat.status === 'Ocupado' ? 'var(--primary)' : 'var(--text-disabled)'
+                                                }} />
+                                                <span style={{
+                                                    fontSize: 11, fontWeight: 600,
+                                                    color: bStat.status === 'Ocupado' ? 'var(--primary)' : 'var(--text-muted)'
+                                                }}>
+                                                    {bStat.status}
+                                                </span>
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
+                                            {bStat.mechanic && (
+                                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
+                                                    <Icon name="person" size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                                                    {bStat.mechanic}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </GlassCard>
                     </div>
