@@ -1,9 +1,9 @@
-// ============================================================
-// SAAS PIRIPI - Mock Data & State Management
+﻿// ============================================================
+// SAAS PIRIPI PRO — Mock Data & State Management
 // ============================================================
 
-const MOCK = {
-  currentUser: { id: '1', name: 'Carlos Admin', role: 'admin', avatar: null },
+export const MOCK = {
+  currentUser: { id: '1', name: 'Carlos Admin', role: 'admin', avatar: null, commission_rate: 15.0 },
 
   boxes: [
     { id: 'b1', name: 'Box 1', status: 'Ocupado', mechanic: 'Miguel Torres' },
@@ -13,21 +13,32 @@ const MOCK = {
   ],
 
   clients: [
-    { id: 'c1', first_name: 'Juan', last_name: 'Pérez', phone: '11-2345-6789', email: 'juan@mail.com', dni: '30456789', is_frequent: true, vehicles: ['v1','v2'] },
+    { id: 'c1', first_name: 'Juan', last_name: 'Pérez', phone: '11-2345-6789', email: 'juan@mail.com', dni: '30456789', is_frequent: true, vehicles: ['v1', 'v2'] },
     { id: 'c2', first_name: 'María', last_name: 'González', phone: '11-3456-7890', email: 'maria@mail.com', dni: '28123456', is_frequent: true, vehicles: ['v3'] },
     { id: 'c3', first_name: 'Roberto', last_name: 'Sánchez', phone: '11-4567-8901', email: 'rober@mail.com', dni: '35678901', is_frequent: false, vehicles: ['v4'] },
     { id: 'c4', first_name: 'Ana', last_name: 'Martínez', phone: '11-5678-9012', email: 'ana@mail.com', dni: '32456123', is_frequent: false, vehicles: ['v5'] },
-    { id: 'c5', first_name: 'Luis', last_name: 'Fernández', phone: '11-6789-0123', email: 'luis@mail.com', dni: '29876543', is_frequent: true, vehicles: ['v6','v7'] },
+    { id: 'c5', first_name: 'Luis', last_name: 'Fernández', phone: '11-6789-0123', email: 'luis@mail.com', dni: '29876543', is_frequent: true, vehicles: ['v6', 'v7'] },
   ],
 
   vehicles: [
-    { id: 'v1', client_id: 'c1', license_plate: 'AB 123 CD', brand: 'Toyota', model: 'Corolla', year: 2020, km: 45000, difficulty_factor: 1.0, color: 'Gris', health_score: 85 },
-    { id: 'v2', client_id: 'c1', license_plate: 'EF 456 GH', brand: 'Ford', model: 'Ranger', year: 2018, km: 98000, difficulty_factor: 1.5, color: 'Negro', health_score: 62 },
-    { id: 'v3', client_id: 'c2', license_plate: 'IJ 789 KL', brand: 'Chevrolet', model: 'Cruze', year: 2021, km: 32000, difficulty_factor: 1.0, color: 'Blanco', health_score: 92 },
-    { id: 'v4', client_id: 'c3', license_plate: 'MN 012 OP', brand: 'Volkswagen', model: 'Amarok', year: 2019, km: 120000, difficulty_factor: 1.8, color: 'Plata', health_score: 45 },
-    { id: 'v5', client_id: 'c4', license_plate: 'QR 345 ST', brand: 'Fiat', model: 'Cronos', year: 2022, km: 18000, difficulty_factor: 1.0, color: 'Rojo', health_score: 95 },
-    { id: 'v6', client_id: 'c5', license_plate: 'UV 678 WX', brand: 'Renault', model: 'Duster', year: 2020, km: 67000, difficulty_factor: 1.2, color: 'Azul', health_score: 78 },
-    { id: 'v7', client_id: 'c5', license_plate: 'YZ 901 AB', brand: 'Peugeot', model: '208', year: 2023, km: 8000, difficulty_factor: 1.0, color: 'Blanco', health_score: 98 },
+    {
+      id: 'v1', client_id: 'c1', license_plate: 'AB 123 CD', brand: 'Toyota', model: 'Corolla', year: 2020, km: 45000, difficulty_factor: 1.0, color: 'Gris', health_score: 85,
+      history: [
+        { id: 'h1', date: '2026-01-15', description: 'Cambio de aceite y filtro (YPF Elaion 5W-30)', km: 40000, price: 18500, technician: 'Miguel Torres' },
+        { id: 'h2', date: '2025-08-10', description: 'Revisión de frenos y niveles', km: 35000, price: 5000, technician: 'Pablo Ruiz' }
+      ]
+    },
+    {
+      id: 'v2', client_id: 'c1', license_plate: 'EF 456 GH', brand: 'Ford', model: 'Ranger', year: 2018, km: 98000, difficulty_factor: 1.5, color: 'Negro', health_score: 62,
+      history: [
+        { id: 'h3', date: '2025-11-20', description: 'Cambio de cubiertas delanteras (Pirelli P7)', km: 90000, price: 250000, technician: 'Miguel Torres' }
+      ]
+    },
+    { id: 'v3', client_id: 'c2', license_plate: 'IJ 789 KL', brand: 'Chevrolet', model: 'Cruze', year: 2021, km: 32000, difficulty_factor: 1.0, color: 'Blanco', health_score: 92, history: [] },
+    { id: 'v4', client_id: 'c3', license_plate: 'MN 012 OP', brand: 'Volkswagen', model: 'Amarok', year: 2019, km: 120000, difficulty_factor: 1.8, color: 'Plata', health_score: 45, history: [] },
+    { id: 'v5', client_id: 'c4', license_plate: 'QR 345 ST', brand: 'Fiat', model: 'Cronos', year: 2022, km: 18000, difficulty_factor: 1.0, color: 'Rojo', health_score: 95, history: [] },
+    { id: 'v6', client_id: 'c5', license_plate: 'UV 678 WX', brand: 'Renault', model: 'Duster', year: 2020, km: 67000, difficulty_factor: 1.2, color: 'Azul', health_score: 78, history: [] },
+    { id: 'v7', client_id: 'c5', license_plate: 'YZ 901 AB', brand: 'Peugeot', model: '208', year: 2023, km: 8000, difficulty_factor: 1.0, color: 'Blanco', health_score: 98, history: [] },
   ],
 
   inventory: [
@@ -65,11 +76,11 @@ const MOCK = {
   ],
 
   appointments: [
-    { id: 'a1', client: 'Juan Pérez', vehicle: 'Toyota Corolla', title: 'Service 45.000km', date: '2026-02-27', time: '08:30', box: 'Box 1', status: 'En Curso', color: '#0df2f2' },
-    { id: 'a2', client: 'María González', vehicle: 'Chevrolet Cruze', title: 'Cambio pastillas', date: '2026-02-27', time: '09:15', box: 'Box 2', status: 'En Curso', color: '#0df2f2' },
-    { id: 'a3', client: 'Roberto Sánchez', vehicle: 'VW Amarok', title: 'Service completo', date: '2026-02-27', time: '11:00', box: 'Box 3', status: 'Programado', color: '#39ff14' },
-    { id: 'a4', client: 'Ana Martínez', vehicle: 'Fiat Cronos', title: 'Cambio cubiertas', date: '2026-02-28', time: '09:00', box: 'Box 4', status: 'Confirmado', color: '#0df2f2' },
-    { id: 'a5', client: 'Luis Fernández', vehicle: 'Peugeot 208', title: 'Revisión general', date: '2026-02-28', time: '14:00', box: 'Box 1', status: 'Programado', color: '#ff6b35' },
+    { id: 'a1', client: 'Juan Pérez', vehicle: 'Toyota Corolla', title: 'Service 45.000km', date: '2026-02-27', time: '08:30', box: 'Box 1', status: 'En Curso', color: '#3b82f6' },
+    { id: 'a2', client: 'María González', vehicle: 'Chevrolet Cruze', title: 'Cambio pastillas', date: '2026-02-27', time: '09:15', box: 'Box 2', status: 'En Curso', color: '#3b82f6' },
+    { id: 'a3', client: 'Roberto Sánchez', vehicle: 'VW Amarok', title: 'Service completo', date: '2026-02-27', time: '11:00', box: 'Box 3', status: 'Programado', color: '#22c55e' },
+    { id: 'a4', client: 'Ana Martínez', vehicle: 'Fiat Cronos', title: 'Cambio cubiertas', date: '2026-02-28', time: '09:00', box: 'Box 4', status: 'Confirmado', color: '#8b5cf6' },
+    { id: 'a5', client: 'Luis Fernández', vehicle: 'Peugeot 208', title: 'Revisión general', date: '2026-02-28', time: '14:00', box: 'Box 1', status: 'Programado', color: '#f59e0b' },
   ],
 
   promotions: [
@@ -82,7 +93,7 @@ const MOCK = {
     daily: [
       { day: 'Lun', cash: 45000, transfer: 32000, card: 18000 },
       { day: 'Mar', cash: 62000, transfer: 28000, card: 35000 },
-      { day: 'Mie', cash: 38000, transfer: 45000, card: 22000 },
+      { day: 'Mié', cash: 38000, transfer: 45000, card: 22000 },
       { day: 'Jue', cash: 55000, transfer: 38000, card: 42000 },
       { day: 'Vie', cash: 72000, transfer: 52000, card: 38000 },
     ],
@@ -112,18 +123,11 @@ const MOCK = {
   ],
 };
 
-// Helper functions
-const formatCurrency = (n) => '$' + (n || 0).toLocaleString('es-AR');
-const formatML = (ml) => ml >= 1000 ? (ml / 1000).toFixed(1) + 'L' : ml + 'ml';
-const getClient = (id) => MOCK.clients.find(c => c.id === id);
-const getVehicle = (id) => MOCK.vehicles.find(v => v.id === id);
-const getClientVehicles = (clientId) => MOCK.vehicles.filter(v => v.client_id === clientId);
-const getLowStockItems = () => MOCK.inventory.filter(i =>
-  (i.stock_type === 'UNIT' && i.stock_quantity <= i.stock_min) ||
-  (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
-);
-const getHealthColor = (score) => score >= 80 ? '#39ff14' : score >= 50 ? '#ffc107' : '#ff3366';
-const getStatusBadge = (status) => {
+// Helper functions exported for use across pages
+export const formatCurrency = (n) => '$' + (n || 0).toLocaleString('es-AR');
+export const formatML = (ml) => ml >= 1000 ? (ml / 1000).toFixed(1) + 'L' : ml + 'ml';
+export const getHealthColor = (score) => score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
+export const getStatusBadge = (status) => {
   const map = { 'Pendiente': 'badge-pending', 'En Box': 'badge-active', 'Finalizado': 'badge-done', 'Cancelado': 'badge-canceled', 'Programado': 'badge-pending', 'Confirmado': 'badge-active', 'En Curso': 'badge-active', 'Completado': 'badge-done' };
   return map[status] || 'badge-pending';
 };
