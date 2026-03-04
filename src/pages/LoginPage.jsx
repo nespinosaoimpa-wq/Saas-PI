@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/ui';
+import { supabase } from '../lib/supabase';
 
 export function LoginPage() {
     const { employees, login, loading } = useAuth();
@@ -39,6 +40,10 @@ export function LoginPage() {
                     </div>
                     <h1>PIRIPI <strong>PRO</strong></h1>
                     <p style={{ color: 'var(--text-muted)' }}>Selecciona tu usuario para ingresar</p>
+                    {/* Debug Info */}
+                    <div style={{ marginTop: 20, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
+                        Connected: {employees.length > 0 ? 'YES' : 'NO'} | Loading: {loading ? 'YES' : 'NO'} | Supabase: {supabase ? 'INIT' : 'FAIL'}
+                    </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 20, width: '100%', maxWidth: 800, padding: 20 }}>
