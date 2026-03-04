@@ -25,7 +25,7 @@ export const AppProvider = ({ children }) => {
             const [
                 { data: clients }, { data: vehicles }, { data: workOrders },
                 { data: inventory }, { data: suppliers }, { data: boxes },
-                { data: payments }, { data: closings }
+                { data: payments }, { data: closings }, { data: appointments }
             ] = await Promise.all([
                 supabase.from('clients').select('*'),
                 supabase.from('vehicles').select('*'),
@@ -34,7 +34,8 @@ export const AppProvider = ({ children }) => {
                 supabase.from('suppliers').select('*'),
                 supabase.from('boxes').select('*'),
                 supabase.from('payments').select('*').order('created_at', { ascending: false }),
-                supabase.from('cash_register_closings').select('*').order('created_at', { ascending: false })
+                supabase.from('cash_register_closings').select('*').order('created_at', { ascending: false }),
+                supabase.from('appointments').select('*').order('date', { ascending: true })
             ]);
 
             setData(prev => ({
@@ -46,7 +47,8 @@ export const AppProvider = ({ children }) => {
                 suppliers: suppliers || [],
                 boxes: boxes || [],
                 payments: payments || [],
-                closings: closings || []
+                closings: closings || [],
+                appointments: appointments || []
             }));
         } catch (e) {
             console.error(e);

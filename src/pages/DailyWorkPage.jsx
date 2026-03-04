@@ -1,8 +1,8 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon } from '../components/ui';
+import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormField } from '../components/ui';
 
 export const DailyWorkPage = () => {
     const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions } = useApp();
@@ -10,13 +10,19 @@ export const DailyWorkPage = () => {
 
     const myOrders = MOCK.workOrders.filter(wo => wo.status === 'En Box');
     const commissions = getCommissions(user?.full_name || user?.name || 'Administrador');
+
+    const [editingAction, setEditingAction] = useState(null);
+    const [editPrice, setEditPrice] = useState('');
+    const [showTicketModal, setShowTicketModal] = useState(false);
+    const [lastTicket, setLastTicket] = useState(null);
+
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
             updateWorkOrder(id, { status: 'Finalizado', completed_at: new Date().toISOString() });
         }
     };
 
-    const QUICK_ACTIONS = [
+    const DEFAULT_QUICK_ACTIONS = [
         { id: 'qa1', label: 'Parche Moto', icon: 'tire_repair', price: 2500, color: 'var(--primary)' },
         { id: 'qa2', label: 'Parche Auto', icon: 'tire_repair', price: 3500, color: 'var(--primary)' },
         { id: 'qa3', label: 'Inflado / Aire', icon: 'air', price: 0, color: 'var(--success)' },
@@ -24,6 +30,70 @@ export const DailyWorkPage = () => {
         { id: 'qa5', label: 'Lubric. Cadena', icon: 'oil_barrel', price: 1000, color: 'var(--accent)' },
         { id: 'qa6', label: 'Repar. Cámara', icon: 'build', price: 2800, color: 'var(--danger)' },
     ];
+
+    // Load custom prices from localStorage
+    const [quickActions, setQuickActions] = useState(() => {
+        try {
+            const saved = localStorage.getItem('piripi_quick_actions');
+            return saved ? JSON.parse(saved) : DEFAULT_QUICK_ACTIONS;
+        } catch { return DEFAULT_QUICK_ACTIONS; }
+    });
+
+    const handleQuickAction = (action) => {
+        addQuickService(action);
+        setLastTicket({
+            id: `T-${Date.now()}`,
+            label: action.label,
+            price: action.price,
+            timestamp: new Date().toLocaleString('es-AR')
+        });
+        setShowTicketModal(true);
+    };
+
+    const openEditPrice = (action) => {
+        setEditingAction(action);
+        setEditPrice(action.price.toString());
+    };
+
+    const saveEditPrice = () => {
+        if (!editingAction) return;
+        const newPrice = parseFloat(editPrice) || 0;
+        const updated = quickActions.map(a => a.id === editingAction.id ? { ...a, price: newPrice } : a);
+        setQuickActions(updated);
+        localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        setEditingAction(null);
+    };
+
+    const printTicket = () => {
+        if (!lastTicket) return;
+        const printWindow = window.open('', '_blank', 'width=320,height=500');
+        printWindow.document.write(`
+            <html><head><title>Ticket</title>
+            <style>
+                body { font-family: 'Courier New', monospace; padding: 20px; text-align: center; margin: 0; font-size: 12px; }
+                .line { border-top: 1px dashed #000; margin: 10px 0; }
+                h2 { margin: 5px 0; font-size: 16px; }
+                .price { font-size: 22px; font-weight: bold; margin: 10px 0; }
+            </style></head>
+            <body>
+                <h2>PIRIPI PRO</h2>
+                <p>Lubricentro & Gomería</p>
+                <div class="line"></div>
+                <p><strong>SERVICIO EXPRESS</strong></p>
+                <p>${lastTicket.label}</p>
+                <div class="price">$${lastTicket.price.toLocaleString('es-AR')}</div>
+                <div class="line"></div>
+                <p>Ticket: ${lastTicket.id}</p>
+                <p>${lastTicket.timestamp}</p>
+                <p>Operador: ${user?.full_name || 'Admin'}</p>
+                <div class="line"></div>
+                <p style="font-size:10px;">¡Gracias por su confianza!</p>
+            </body></html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+    };
 
     return (
         <div className="page-content">
@@ -34,6 +104,13 @@ export const DailyWorkPage = () => {
                         <span className="nav-badge alert">{myOrders.length} ACTIVOS</span>
                     } />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {myOrders.length === 0 && (
+                            <GlassCard style={{ padding: 32, textAlign: 'center', opacity: 0.6 }}>
+                                <Icon name="engineering" size={40} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+                                <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>No hay trabajos en box asignados</div>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Creá una OT y asignala a un box para verla acá</div>
+                            </GlassCard>
+                        )}
                         {myOrders.map(wo => {
                             const client = getClient(wo.client_id);
                             const vehicle = getVehicle(wo.vehicle_id);
@@ -59,7 +136,7 @@ export const DailyWorkPage = () => {
 
                                     <SectionHeader icon="checklist" title="Control de Tareas" />
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-                                        {MOCK.checklist_template.slice(0, 6).map(item => (
+                                        {(MOCK.checklist_template || []).slice(0, 6).map(item => (
                                             <CheckItem key={item.key} label={item.label} sub={item.group} />
                                         ))}
                                     </div>
@@ -85,17 +162,23 @@ export const DailyWorkPage = () => {
                     } />
                     <div className="glass-card" style={{ padding: 20 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-                            Clic para registrar un servicio inmediato sin OT.
+                            Clic para registrar. Mantené presionado (clic derecho) para editar precio.
                         </p>
 
                         <div className="quick-action-grid">
-                            {QUICK_ACTIONS.map(action => (
-                                <div key={action.id} className="quick-action-card" onClick={() => addQuickService(action)}>
+                            {quickActions.map(action => (
+                                <div key={action.id} className="quick-action-card"
+                                    onClick={() => handleQuickAction(action)}
+                                    onContextMenu={(e) => { e.preventDefault(); openEditPrice(action); }}>
                                     <Icon name={action.icon} size={28} style={{ color: action.color, marginBottom: 8 }} />
                                     <div className="quick-action-label">{action.label}</div>
                                     <div style={{ fontSize: 11, color: action.price > 0 ? 'var(--text-primary)' : 'var(--success)', fontWeight: 700, marginTop: 4 }}>
                                         {action.price > 0 ? formatCurrency(action.price) : 'GRATIS'}
                                     </div>
+                                    <button className="btn btn-ghost" style={{ position: 'absolute', top: 4, right: 4, padding: 2, opacity: 0.4 }}
+                                        onClick={(e) => { e.stopPropagation(); openEditPrice(action); }}>
+                                        <Icon name="edit" size={12} />
+                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -132,6 +215,45 @@ export const DailyWorkPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Price Modal */}
+            {editingAction && (
+                <Modal title={`Editar Precio: ${editingAction.label}`} onClose={() => setEditingAction(null)} width="400px"
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setEditingAction(null)}>Cancelar</button>
+                        <button className="btn btn-primary" onClick={saveEditPrice}>Guardar Precio</button>
+                    </>}>
+                    <FormField label="Precio ($)">
+                        <input type="number" className="form-input" value={editPrice}
+                            onChange={e => setEditPrice(e.target.value)}
+                            style={{ fontSize: 24, fontWeight: 700, textAlign: 'center' }}
+                            autoFocus />
+                    </FormField>
+                    <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                        Los precios se guardan localmente para este dispositivo
+                    </div>
+                </Modal>
+            )}
+
+            {/* Ticket Confirmation Modal */}
+            {showTicketModal && lastTicket && (
+                <Modal title="✅ Servicio Registrado" onClose={() => setShowTicketModal(false)} width="400px"
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowTicketModal(false)}>Cerrar</button>
+                        <button className="btn btn-primary" onClick={printTicket}><Icon name="print" size={16} /> Imprimir Ticket</button>
+                    </>}>
+                    <div style={{ textAlign: 'center', padding: 20 }}>
+                        <Icon name="check_circle" size={48} style={{ color: 'var(--success)', marginBottom: 12 }} />
+                        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{lastTicket.label}</h3>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>
+                            {lastTicket.price > 0 ? formatCurrency(lastTicket.price) : 'GRATIS'}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+                            {lastTicket.timestamp} • Ticket {lastTicket.id}
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };
