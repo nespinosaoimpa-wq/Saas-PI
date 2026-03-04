@@ -97,7 +97,7 @@ export const DailyWorkPage = () => {
 
     return (
         <div className="page-content">
-            <div className="page-grid" style={{ gridTemplateColumns: '1.2fr 0.8fr', gap: 24 }}>
+            <div className="page-grid grid-2col">
                 {/* My Orders */}
                 <div>
                     <SectionHeader icon="engineering" title="Mis Trabajos: Órdenes Activas" right={

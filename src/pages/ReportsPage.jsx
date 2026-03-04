@@ -52,7 +52,7 @@ export const ReportsPage = () => {
 
                 {tab === 'revenue' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+                        <div className="grid-auto-cards">
                             <StatCard icon="trending_up" label="Ingreso Mensual" value={formatCurrency(590000)} sub="+15.2% vs mes anterior" barPercent={85} />
                             <StatCard icon="attach_money" label="Ticket Promedio" value={formatCurrency(18500)} sub="Basado en 32 servicios" barPercent={60} />
                             <StatCard icon="savings" label="Ganancia Estimada" value={formatCurrency(210000)} sub="Margen bruto: 35.6%" barPercent={40} barAlert />
@@ -90,7 +90,7 @@ export const ReportsPage = () => {
                 )}
 
                 {tab === 'services' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 24 }}>
+                    <div className="grid-reports">
                         <GlassCard style={{ padding: 24 }}>
                             <SectionHeader icon="pie_chart" title="Distribución de Ingresos por Tipo" />
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

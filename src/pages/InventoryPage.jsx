@@ -130,7 +130,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                 {(tab === 'all' || tab === 'volume') && (
                     <div>
                         <SectionHeader icon="water_drop" title="Niveles de Aceite / Fluidos" />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
+                        <div className="grid-auto-cards-sm">
                             {inventory.filter(i => i.stock_type === 'VOLUME').map(item => (
                                 <GlassCard key={item.id} style={{ padding: 16 }}>
                                     <LiquidGauge label={item.name.split(' ').slice(0, 3).join(' ')} current_ml={item.stock_ml} max_ml={(item.container_size_ml || 200000) * 1} min_ml={item.stock_min_ml} />

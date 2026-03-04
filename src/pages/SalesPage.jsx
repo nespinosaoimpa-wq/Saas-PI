@@ -94,7 +94,7 @@ export const SalesPage = () => {
 
     return (
         <div className="page-content">
-            <div className="page-grid" style={{ gridTemplateColumns: '1fr 380px', gap: 20 }}>
+            <div className="page-grid grid-sales">
 
                 {/* Columna Izquierda: Carrito */}
                 <div>

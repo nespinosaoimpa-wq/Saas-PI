@@ -71,7 +71,7 @@ export const ClientsPage = () => {
                         width="900px"
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setSelectedClient(null)}>Cerrar</button><button className="btn btn-primary">Editar Datos</button></Fragment>}
                     >
-                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 1.5fr', gap: 24 }}>
+                        <div className="grid-client-detail">
                             {/* Profile + Vehicles */}
                             <div>
                                 <div style={{ background: 'var(--bg-base)', padding: 18, borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 20 }}>

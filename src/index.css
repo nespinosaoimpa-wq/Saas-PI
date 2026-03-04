@@ -1438,7 +1438,90 @@ body {
 }
 
 /* ============================================================
-   25. RESPONSIVE BREAKPOINTS
+   25. RESPONSIVE GRID UTILITIES
+   ============================================================ */
+
+/* Stats/KPI row: auto-fit responsive cards */
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+/* Main content + sidebar layout */
+.grid-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+}
+
+/* Main content + narrow sidebar (calendar, etc) */
+.grid-sidebar-narrow {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+
+/* Two-column split (60/40) */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+/* Two-column even */
+.grid-2col-even {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Client detail: sidebar + content */
+.grid-client-detail {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 1.5fr;
+  gap: 24px;
+}
+
+/* Sales layout */
+.grid-sales {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+}
+
+/* Reports 2-col split */
+.grid-reports {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+/* Auto-fit cards (promotions, inventory gauges, etc) */
+.grid-auto-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.grid-auto-cards-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* Login grid */
+.grid-login {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+}
+
+/* ============================================================
+   26. RESPONSIVE BREAKPOINTS
    ============================================================ */
 
 /* Quick action card needs relative for edit icon */
@@ -1504,9 +1587,25 @@ body {
     grid-template-columns: 1fr !important;
   }
 
+  /* Collapse ALL custom grids on tablet */
+  .grid-sidebar,
+  .grid-sidebar-narrow,
+  .grid-2col,
+  .grid-client-detail,
+  .grid-sales,
+  .grid-reports {
+    grid-template-columns: 1fr !important;
+  }
+
   /* Stat cards grid for tablets */
-  .stat-cards, .stats-grid {
+  .stat-cards,
+  .stats-grid,
+  .grid-stats {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .grid-2col-even {
+    grid-template-columns: 1fr 1fr !important;
   }
 
   /* Tables: horizontal scroll */
@@ -1529,6 +1628,21 @@ body {
   .page-grid {
     gap: 16px;
     grid-template-columns: 1fr !important;
+  }
+
+  /* Collapse ALL grids on mobile */
+  .grid-sidebar,
+  .grid-sidebar-narrow,
+  .grid-2col,
+  .grid-2col-even,
+  .grid-client-detail,
+  .grid-sales,
+  .grid-reports {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
   .stat-card-value {
@@ -1596,7 +1710,7 @@ body {
     gap: 12px;
   }
 
-  .form-row > * {
+  .form-row>* {
     width: 100% !important;
     flex: unset !important;
   }
@@ -1636,7 +1750,8 @@ body {
   }
 
   /* Stat cards 2-column */
-  .stat-cards, .stats-grid {
+  .stat-cards,
+  .stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px;
   }
@@ -1704,7 +1819,8 @@ body {
   }
 
   /* Buttons full width */
-  .btn-primary, .btn-success {
+  .btn-primary,
+  .btn-success {
     width: 100%;
     justify-content: center;
   }
@@ -1714,8 +1830,11 @@ body {
     min-width: 500px;
   }
 
-  .form-input, .form-select, .form-textarea {
-    font-size: 16px; /* Prevent iOS zoom on focus */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px;
+    /* Prevent iOS zoom on focus */
   }
 }
 
@@ -1724,6 +1843,7 @@ body {
   .header {
     padding-top: env(safe-area-inset-top);
   }
+
   .sidebar {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);

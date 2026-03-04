@@ -11,7 +11,7 @@ export const PromotionsPage = () => {
                 <SectionHeader icon="loyalty" title="Gestión de Promociones" right={
                     <button className="btn btn-primary btn-sm"><Icon name="add" size={16} /> Nueva Promo</button>
                 } />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16 }}>
+                <div className="grid-auto-cards">
                     {MOCK.promotions.map(p => (
                         <GlassCard key={p.id} style={{ padding: 20, borderLeft: `3px solid ${p.is_active ? 'var(--success)' : 'var(--text-muted)'}` }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 8 }}>

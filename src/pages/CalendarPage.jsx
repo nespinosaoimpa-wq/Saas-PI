@@ -98,7 +98,7 @@ export const CalendarPage = () => {
 
     return (
         <div className="page-content">
-            <div className="page-grid" style={{ gridTemplateColumns: '1fr 340px' }}>
+            <div className="page-grid grid-sidebar-narrow">
                 <div>
                     <SectionHeader icon="calendar_month" title={`${monthNames[month]} ${year}`} right={
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

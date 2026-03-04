@@ -34,7 +34,7 @@ export const DashboardPage = () => {
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 {/* KPI Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
+                <div className="grid-stats">
                     <StatCard icon="payments" label="Caja del Día" value={formatCurrency(todayTotal)} sub="Cobros procesados hoy" tag="LIVE" barPercent={75} />
                     <StatCard icon="engineering" label="OTs Activas" value={activeOrders.length} sub={`${completedToday} finalizadas hoy`} tag="TALLER" barPercent={(activeOrders.length / 5) * 100} barAlert={activeOrders.length > 3} />
                     <StatCard icon="garage" label="Ocupación Boxes" value={`${boxOccupied}/${MOCK.boxes.length}`} sub="Capacidad de planta" barPercent={(boxOccupied / MOCK.boxes.length) * 100} />
@@ -42,7 +42,7 @@ export const DashboardPage = () => {
                 </div>
 
                 {/* Main Grid — Queue + Sidebar */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20 }}>
+                <div className="grid-sidebar">
 
                     {/* Service Queue */}
                     <div>
@@ -135,7 +135,7 @@ export const DashboardPage = () => {
                         {/* Box Status */}
                         <GlassCard style={{ padding: 22 }}>
                             <SectionHeader icon="garage" title="Estado Boxes" />
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div className="grid-2col-even">
                                 {MOCK.boxes.map(box => {
                                     const bStat = getBoxStatus(box.id);
                                     return (
