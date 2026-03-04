@@ -22,9 +22,7 @@ export const AuthProvider = ({ children }) => {
         const { data, error } = await supabase.from('employees').select('*').eq('is_active', true);
         if (error) {
             console.error('Error loading employees:', error);
-            console.error('Error details:', JSON.stringify(error, null, 2));
         } else {
-            console.log('Employees loaded successfully:', data?.length || 0);
             setEmployees(data || []);
         }
         setLoading(false);
