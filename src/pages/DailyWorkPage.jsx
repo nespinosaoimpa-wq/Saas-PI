@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { formatCurrency } from '../data/data';
+import { formatCurrency, MOCK as STATIC_MOCK } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormField } from '../components/ui';
@@ -9,12 +9,16 @@ export const DailyWorkPage = () => {
     const { user } = useAuth();
 
     const myOrders = MOCK.workOrders.filter(wo => wo.status === 'En Box');
-    const commissions = getCommissions(user?.full_name || user?.name || 'Administrador');
+    // Using user.id as per the user's latest update in saas-app
+    const commissions = user ? getCommissions(user.id) : 0;
 
     const [editingAction, setEditingAction] = useState(null);
     const [editPrice, setEditPrice] = useState('');
     const [showTicketModal, setShowTicketModal] = useState(false);
     const [lastTicket, setLastTicket] = useState(null);
+    const [gomeriaQueue, setGomeriaQueue] = useState([]);
+    const [selectedQueueClient, setSelectedQueueClient] = useState(null);
+    const [newQueueName, setNewQueueName] = useState('');
 
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
@@ -40,14 +44,40 @@ export const DailyWorkPage = () => {
     });
 
     const handleQuickAction = (action) => {
-        addQuickService(action);
+        const isSecond = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
+
+        addQuickService(action, isSecond);
+
+        if (selectedQueueClient) {
+            setGomeriaQueue(prev => prev.map(q => {
+                if (q.id === selectedQueueClient.id) {
+                    return { ...q, services: [...q.services, action] };
+                }
+                return q;
+            }));
+            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, action] }));
+        }
+
         setLastTicket({
             id: `T-${Date.now()}`,
-            label: action.label,
-            price: action.price,
+            label: isSecond ? `${action.label} (Adicional)` : action.label,
+            price: isSecond ? action.price * 0.7 : action.price,
             timestamp: new Date().toLocaleString('es-AR')
         });
         setShowTicketModal(true);
+    };
+
+    const addToQueue = () => {
+        if (!newQueueName.trim()) return;
+        const newItem = { id: Date.now(), name: newQueueName, services: [] };
+        setGomeriaQueue(prev => [...prev, newItem]);
+        setNewQueueName('');
+        if (!selectedQueueClient) setSelectedQueueClient(newItem);
+    };
+
+    const removeFromQueue = (id) => {
+        setGomeriaQueue(prev => prev.filter(q => q.id !== id));
+        if (selectedQueueClient?.id === id) setSelectedQueueClient(null);
     };
 
     const openEditPrice = (action) => {
@@ -85,7 +115,7 @@ export const DailyWorkPage = () => {
                 <div class="line"></div>
                 <p>Ticket: ${lastTicket.id}</p>
                 <p>${lastTicket.timestamp}</p>
-                <p>Operador: ${user?.full_name || 'Admin'}</p>
+                <p>Operador: ${user?.name || user?.full_name || 'Admin'}</p>
                 <div class="line"></div>
                 <p style="font-size:10px;">¡Gracias por su confianza!</p>
             </body></html>
@@ -104,13 +134,6 @@ export const DailyWorkPage = () => {
                         <span className="nav-badge alert">{myOrders.length} ACTIVOS</span>
                     } />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        {myOrders.length === 0 && (
-                            <GlassCard style={{ padding: 32, textAlign: 'center', opacity: 0.6 }}>
-                                <Icon name="engineering" size={40} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
-                                <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>No hay trabajos en box asignados</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Creá una OT y asignala a un box para verla acá</div>
-                            </GlassCard>
-                        )}
                         {myOrders.map(wo => {
                             const client = getClient(wo.client_id);
                             const vehicle = getVehicle(wo.vehicle_id);
@@ -135,8 +158,8 @@ export const DailyWorkPage = () => {
                                     </div>
 
                                     <SectionHeader icon="checklist" title="Control de Tareas" />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-                                        {(MOCK.checklist_template || []).slice(0, 6).map(item => (
+                                    <div className="grid-2col-even" style={{ marginBottom: 20 }}>
+                                        {(STATIC_MOCK.checklist_template || []).slice(0, 6).map(item => (
                                             <CheckItem key={item.key} label={item.label} sub={item.group} />
                                         ))}
                                     </div>
@@ -152,6 +175,14 @@ export const DailyWorkPage = () => {
                                 </GlassCard>
                             );
                         })}
+
+                        {myOrders.length === 0 && (
+                            <GlassCard style={{ padding: 40, textAlign: 'center' }}>
+                                <Icon name="sentiment_satisfied" size={48} style={{ color: 'var(--text-disabled)', marginBottom: 16 }} />
+                                <h3>No tienes órdenes activas</h3>
+                                <p style={{ color: 'var(--text-muted)' }}>Mantené la sección despejada para nuevos trabajos.</p>
+                            </GlassCard>
+                        )}
                     </div>
                 </div>
 
@@ -160,25 +191,74 @@ export const DailyWorkPage = () => {
                     <SectionHeader icon="tire_repair" title="Gomería: Registro Rápido" right={
                         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>MÓDULO EXPRESS</span>
                     } />
+
+                    {/* Cola de Espera Gomería */}
+                    <div className="glass-card" style={{ padding: 20, marginBottom: 16 }}>
+                        <SectionHeader icon="groups" title="Cola de Espera" />
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <input className="form-input" placeholder="Nombre de cliente/Vehículo..." value={newQueueName} onChange={e => setNewQueueName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addToQueue()} />
+                            <button className="btn btn-primary btn-sm" onClick={addToQueue}>Agregar</button>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8 }}>
+                            {gomeriaQueue.map(q => (
+                                <div key={q.id}
+                                    onClick={() => setSelectedQueueClient(q)}
+                                    className={`nav-item ${selectedQueueClient?.id === q.id ? 'active' : ''}`}
+                                    style={{
+                                        padding: '8px 14px', borderRadius: 'var(--radius)',
+                                        whiteSpace: 'nowrap', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        border: selectedQueueClient?.id === q.id ? '2px solid var(--primary)' : '1px solid var(--border)'
+                                    }}>
+                                    <span>{q.name}</span>
+                                    {q.services.length > 0 && <span className="nav-badge">{q.services.length}</span>}
+                                    <button onClick={(e) => { e.stopPropagation(); removeFromQueue(q.id); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: 0 }}>&times;</button>
+                                </div>
+                            ))}
+                            {gomeriaQueue.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No hay clientes en espera</div>}
+                        </div>
+                    </div>
+
                     <div className="glass-card" style={{ padding: 20 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-                            Clic para registrar. Mantené presionado (clic derecho) para editar precio.
+                            {selectedQueueClient ? (
+                                <span>Registrando servicios para: <strong>{selectedQueueClient.name}</strong>. A partir del 2do parche de igual tipo, descuento del 30%.</span>
+                            ) : (
+                                <span>Seleccioná un cliente de la cola para aplicar lógica de parches adicionales.</span>
+                            )}
                         </p>
 
                         <div className="quick-action-grid">
                             {quickActions.map(action => (
-                                <div key={action.id} className="quick-action-card"
+                                <div
+                                    key={action.id}
+                                    className="quick-action-card"
                                     onClick={() => handleQuickAction(action)}
-                                    onContextMenu={(e) => { e.preventDefault(); openEditPrice(action); }}>
+                                    title="Clic izquierdo: Registrar | Clic derecho: Editar Precio"
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        openEditPrice(action);
+                                    }}
+                                >
+                                    {/* Icono de edición (absoluto) */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); openEditPrice(action); }}
+                                        style={{
+                                            position: 'absolute', top: 6, right: 6,
+                                            background: 'var(--bg-base)', border: 'none',
+                                            borderRadius: '50%', width: 24, height: 24,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', color: 'var(--text-muted)'
+                                        }}
+                                    >
+                                        <Icon name="edit" size={14} />
+                                    </button>
+
                                     <Icon name={action.icon} size={28} style={{ color: action.color, marginBottom: 8 }} />
                                     <div className="quick-action-label">{action.label}</div>
                                     <div style={{ fontSize: 11, color: action.price > 0 ? 'var(--text-primary)' : 'var(--success)', fontWeight: 700, marginTop: 4 }}>
                                         {action.price > 0 ? formatCurrency(action.price) : 'GRATIS'}
                                     </div>
-                                    <button className="btn btn-ghost" style={{ position: 'absolute', top: 4, right: 4, padding: 2, opacity: 0.4 }}
-                                        onClick={(e) => { e.stopPropagation(); openEditPrice(action); }}>
-                                        <Icon name="edit" size={12} />
-                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -216,41 +296,54 @@ export const DailyWorkPage = () => {
                 </div>
             </div>
 
-            {/* Edit Price Modal */}
+            {/* Modal de Edición de Precios Rápidos */}
             {editingAction && (
-                <Modal title={`Editar Precio: ${editingAction.label}`} onClose={() => setEditingAction(null)} width="400px"
-                    footer={<>
+                <Modal title={`Editar Precio: ${editingAction.label}`} onClose={() => setEditingAction(null)} footer={
+                    <React.Fragment>
                         <button className="btn btn-ghost" onClick={() => setEditingAction(null)}>Cancelar</button>
                         <button className="btn btn-primary" onClick={saveEditPrice}>Guardar Precio</button>
-                    </>}>
-                    <FormField label="Precio ($)">
-                        <input type="number" className="form-input" value={editPrice}
-                            onChange={e => setEditPrice(e.target.value)}
-                            style={{ fontSize: 24, fontWeight: 700, textAlign: 'center' }}
-                            autoFocus />
+                    </React.Fragment>
+                }>
+                    <FormField label="Nuevo Precio Fijo ($)" icon="attach_money">
+                        <input
+                            type="number"
+                            className="form-input"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                            min={0}
+                            step={100}
+                            autoFocus
+                        />
                     </FormField>
-                    <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
-                        Los precios se guardan localmente para este dispositivo
-                    </div>
+                    <p style={{ marginTop: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+                        <Icon name="info" size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                        Al guardar, el precio fijado será aplicable solo en este navegador (se guarda en caché local). Si pones 0, el servicio figurará como GRATIS.
+                    </p>
                 </Modal>
             )}
 
-            {/* Ticket Confirmation Modal */}
+            {/* Modal de Ticket Generado */}
             {showTicketModal && lastTicket && (
-                <Modal title="✅ Servicio Registrado" onClose={() => setShowTicketModal(false)} width="400px"
-                    footer={<>
+                <Modal title="Servicio Registrado" onClose={() => setShowTicketModal(false)} footer={
+                    <React.Fragment>
                         <button className="btn btn-ghost" onClick={() => setShowTicketModal(false)}>Cerrar</button>
-                        <button className="btn btn-primary" onClick={printTicket}><Icon name="print" size={16} /> Imprimir Ticket</button>
-                    </>}>
-                    <div style={{ textAlign: 'center', padding: 20 }}>
-                        <Icon name="check_circle" size={48} style={{ color: 'var(--success)', marginBottom: 12 }} />
-                        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{lastTicket.label}</h3>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>
-                            {lastTicket.price > 0 ? formatCurrency(lastTicket.price) : 'GRATIS'}
+                        <button className="btn btn-success" onClick={printTicket}>
+                            <Icon name="print" size={18} /> Imprimir Ticket
+                        </button>
+                    </React.Fragment>
+                }>
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <Icon name="check_circle" size={56} style={{ color: 'var(--success)', marginBottom: 16 }} />
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: 20 }}>¡Servicio registrado con éxito!</h3>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', margin: '16px 0' }}>
+                            {lastTicket.label}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-                            {lastTicket.timestamp} • Ticket {lastTicket.id}
+                        <div style={{ fontSize: 18, color: 'var(--primary)', fontWeight: 700 }}>
+                            {lastTicket.price > 0 ? `$${lastTicket.price.toLocaleString('es-AR')}` : 'GRATIS'}
                         </div>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 16 }}>
+                            Podés entregarle el ticket impreso al cliente para que lo abone en caja.
+                        </p>
                     </div>
                 </Modal>
             )}

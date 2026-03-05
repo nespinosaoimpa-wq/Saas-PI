@@ -8,7 +8,7 @@ import {
 } from '../components/ui';
 
 export const InventoryPage = ({ initialScannedCode = '' }) => {
-    const { data: MOCK, refreshData } = useApp();
+    const { data: MOCK, refreshData, exportToExcel } = useApp();
     const { user } = useAuth();
 
     // Check access
@@ -123,6 +123,9 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 250 }}><SearchBar value={search} onChange={setSearch} placeholder="Buscar por nombre, código de barras, marca..." /></div>
                     <Tabs tabs={[{ key: 'all', label: 'Todos' }, { key: 'volume', label: 'Volumen' }, { key: 'unit', label: 'Unidad' }, { key: 'low', label: '⚠️ Bajo Stock' }]} active={tab} onChange={setTab} />
+                    <button className="btn btn-ghost" onClick={() => exportToExcel('inventory')}>
+                        <Icon name="download" size={18} /> Exportar Excel
+                    </button>
                     {canEdit && <button className="btn btn-primary" onClick={() => handleOpenModal()}><Icon name="add_shopping_cart" size={18} /> Nuevo Producto</button>}
                 </div>
 

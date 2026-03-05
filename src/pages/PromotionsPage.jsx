@@ -12,7 +12,7 @@ export const PromotionsPage = () => {
                     <button className="btn btn-primary btn-sm"><Icon name="add" size={16} /> Nueva Promo</button>
                 } />
                 <div className="grid-auto-cards">
-                    {MOCK.promotions.map(p => (
+                    {MOCK.promotions?.map(p => (
                         <GlassCard key={p.id} style={{ padding: 20, borderLeft: `3px solid ${p.is_active ? 'var(--success)' : 'var(--text-muted)'}` }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 8 }}>
                                 <h4 style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</h4>

@@ -15,31 +15,38 @@ export const SuppliersPage = () => {
     const [search, setSearch] = useState('');
     const [showNew, setShowNew] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
-    const [newSupplier, setNewSupplier] = useState({ name: '', contact: '', phone: '', email: '', cuit: '', address: '' });
+    const [saving, setSaving] = useState(false);
+    const [newSupplier, setNewSupplier] = useState({ name: '', contact: '', phone: '', cuit: '' });
 
-    const filtered = MOCK.suppliers.filter(s =>
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.contact.toLowerCase().includes(search.toLowerCase())
+    const filtered = (MOCK.suppliers || []).filter(s =>
+        (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (s.contact || '').toLowerCase().includes(search.toLowerCase())
     );
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!newSupplier.name) {
             alert('El nombre es obligatorio');
             return;
         }
-        if (editingSupplier) {
-            updateSupplier(editingSupplier.id, newSupplier);
-        } else {
-            addSupplier(newSupplier);
+        setSaving(true);
+        try {
+            if (editingSupplier) {
+                await updateSupplier(editingSupplier.id, newSupplier);
+            } else {
+                await addSupplier(newSupplier);
+            }
+            setShowNew(false);
+            setEditingSupplier(null);
+            setNewSupplier({ name: '', contact: '', phone: '', cuit: '' });
+        } catch (err) {
+            alert('Error al guardar proveedor: ' + (err.message || ''));
         }
-        setShowNew(false);
-        setEditingSupplier(null);
-        setNewSupplier({ name: '', contact: '', phone: '', email: '', cuit: '', address: '' });
+        setSaving(false);
     };
 
     const handleEdit = (supplier) => {
         setEditingSupplier(supplier);
-        setNewSupplier({ ...supplier });
+        setNewSupplier({ name: supplier.name, contact: supplier.contact || '', phone: supplier.phone || '', cuit: supplier.cuit || '' });
         setShowNew(true);
     };
 
@@ -86,13 +93,13 @@ export const SuppliersPage = () => {
                         onClose={() => { setShowNew(false); setEditingSupplier(null); }}
                         footer={
                             <Fragment>
-                                <button className="btn btn-ghost" onClick={() => { setShowNew(false); setEditingSupplier(null); }}>Cancelar</button>
-                                <button className="btn btn-primary" onClick={handleSave}>Guardar</button>
+                                <button className="btn btn-ghost" disabled={saving} onClick={() => { setShowNew(false); setEditingSupplier(null); }}>Cancelar</button>
+                                <button className="btn btn-primary" disabled={saving} onClick={handleSave}>{saving ? 'Guardando...' : 'Guardar'}</button>
                             </Fragment>
                         }
                     >
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <FormField label="Nombre de la Empresa">
+                            <FormField label="Nombre de la Empresa *">
                                 <input className="form-input" value={newSupplier.name} onChange={e => setNewSupplier({ ...newSupplier, name: e.target.value })} placeholder="Ej: Distribuidora Lubricantes S.A." />
                             </FormField>
                             <FormRow>
@@ -103,16 +110,8 @@ export const SuppliersPage = () => {
                                     <input className="form-input" value={newSupplier.cuit} onChange={e => setNewSupplier({ ...newSupplier, cuit: e.target.value })} placeholder="XX-XXXXXXXX-X" />
                                 </FormField>
                             </FormRow>
-                            <FormRow>
-                                <FormField label="Teléfono">
-                                    <input className="form-input" value={newSupplier.phone} onChange={e => setNewSupplier({ ...newSupplier, phone: e.target.value })} placeholder="+54 223 ..." />
-                                </FormField>
-                                <FormField label="Email">
-                                    <input className="form-input" value={newSupplier.email} onChange={e => setNewSupplier({ ...newSupplier, email: e.target.value })} placeholder="proveedor@empresa.com" />
-                                </FormField>
-                            </FormRow>
-                            <FormField label="Dirección / Localidad">
-                                <input className="form-input" value={newSupplier.address} onChange={e => setNewSupplier({ ...newSupplier, address: e.target.value })} placeholder="Calle, Nivel, Ciudad" />
+                            <FormField label="Teléfono">
+                                <input className="form-input" value={newSupplier.phone} onChange={e => setNewSupplier({ ...newSupplier, phone: e.target.value })} placeholder="+54 223 ..." />
                             </FormField>
                         </div>
                     </Modal>

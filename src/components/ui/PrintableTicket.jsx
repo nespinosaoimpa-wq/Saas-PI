@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { formatCurrency } from '../../data/data';
 
 // Componente diseñado para imprimirse en tickeadora térmica o exportar a PDF (A4)
@@ -7,6 +7,17 @@ export const PrintableTicket = ({ workOrder, onClose }) => {
     const handlePrint = () => {
         window.print();
     };
+
+    // Extraer datos de relaciones de Supabase si existen
+    const clientName = workOrder.clients
+        ? `${workOrder.clients.first_name} ${workOrder.clients.last_name}`
+        : (workOrder._clientName || 'Consumidor Final');
+    const vehicleInfo = workOrder.vehicles
+        ? `${workOrder.vehicles.brand} ${workOrder.vehicles.model} (${workOrder.vehicles.license_plate})`
+        : (workOrder._vehicleInfo || '—');
+    const laborCost = parseFloat(workOrder.labor_cost) || 0;
+    const partsCost = parseFloat(workOrder.parts_cost) || 0;
+    const totalPrice = parseFloat(workOrder.total_price) || (laborCost + partsCost);
 
     return (
         <div className="ticket-overlay">
@@ -29,10 +40,10 @@ export const PrintableTicket = ({ workOrder, onClose }) => {
 
                     <div className="ticket-info">
                         <div><strong>Ticket N°:</strong> {workOrder.order_number}</div>
-                        <div><strong>Fecha:</strong> {new Date().toLocaleDateString()}</div>
-                        <div><strong>Cliente:</strong> {workOrder.client || 'Consumidor Final'}</div>
-                        <div><strong>Vehículo:</strong> {workOrder.vehicle || '—'}</div>
-                        <div><strong>Mecánico:</strong> {workOrder.mechanic || '—'}</div>
+                        <div><strong>Fecha:</strong> {workOrder.completed_at ? new Date(workOrder.completed_at).toLocaleDateString() : new Date().toLocaleDateString()}</div>
+                        <div><strong>Cliente:</strong> {clientName}</div>
+                        <div><strong>Vehículo:</strong> {vehicleInfo}</div>
+                        <div><strong>Km:</strong> {workOrder.km_at_entry ? `${workOrder.km_at_entry} km` : '—'}</div>
                     </div>
 
                     <div className="ticket-divider" />
@@ -41,22 +52,25 @@ export const PrintableTicket = ({ workOrder, onClose }) => {
                         <table>
                             <thead>
                                 <tr>
-                                    <th>CANT</th>
                                     <th>DESCRIPCIÓN</th>
-                                    <th style={{ textAlign: 'right' }}>TOTAL</th>
+                                    <th style={{ textAlign: 'right' }}>IMPORTE</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>1</td>
-                                    <td>Servicio: {workOrder.description || 'Mantenimiento General'}</td>
-                                    <td style={{ textAlign: 'right' }}>{formatCurrency(workOrder.labor_cost || 0)}</td>
+                                    <td>{workOrder.description || 'Servicio realizado'}</td>
+                                    <td style={{ textAlign: 'right' }}>{formatCurrency(totalPrice)}</td>
                                 </tr>
-                                {(workOrder.parts_cost > 0) && (
-                                    <tr>
-                                        <td>1</td>
-                                        <td>Repuestos / Materiales</td>
-                                        <td style={{ textAlign: 'right' }}>{formatCurrency(workOrder.parts_cost || 0)}</td>
+                                {laborCost > 0 && (
+                                    <tr style={{ fontSize: '0.85em', color: '#666' }}>
+                                        <td style={{ paddingLeft: 16 }}>— Mano de Obra</td>
+                                        <td style={{ textAlign: 'right' }}>{formatCurrency(laborCost)}</td>
+                                    </tr>
+                                )}
+                                {partsCost > 0 && (
+                                    <tr style={{ fontSize: '0.85em', color: '#666' }}>
+                                        <td style={{ paddingLeft: 16 }}>— Repuestos / Materiales</td>
+                                        <td style={{ textAlign: 'right' }}>{formatCurrency(partsCost)}</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -68,13 +82,13 @@ export const PrintableTicket = ({ workOrder, onClose }) => {
                     <div className="ticket-total">
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 'bold' }}>
                             <span>TOTAL:</span>
-                            <span>{formatCurrency(workOrder.total_price || 0)}</span>
+                            <span>{formatCurrency(totalPrice)}</span>
                         </div>
                     </div>
 
                     <div className="ticket-footer">
                         <p>¡Gracias por confiar en nosotros!</p>
-                        <p style={{ fontSize: 10 }}>Documento no válido como factura. Los cambios se aceptan dentro de los 15 días con este comprobante.</p>
+                        <p style={{ fontSize: 10 }}>Los cambios se aceptan dentro de los 15 días con este comprobante.</p>
                     </div>
                 </div>
             </div>

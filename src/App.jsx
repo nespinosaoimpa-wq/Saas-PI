@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
+console.log("%c>>> DEPLOY V2.2 - EMERGENCY RESET ACTIVE <<<", "color: #ff00ff; font-weight: bold; font-size: 20px;");
 import { useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { Icon, Modal, FormField, CameraScanner } from './components/ui';
@@ -17,7 +18,6 @@ import { PromotionsPage } from './pages/PromotionsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SalesPage } from './pages/SalesPage';
-import { PublicVehiclePage } from './pages/PublicVehiclePage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -61,16 +61,16 @@ function App() {
 
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
-        const item = MOCK.inventory.find(i =>
-            i.id.toLowerCase() === code.toLowerCase() ||
-            i.name.toLowerCase().includes(code.toLowerCase()) ||
-            code === '123456' // Código de prueba universal
+        if (!user) return; // No procesar si no hay usuario logueado
+        const item = (MOCK.inventory || []).find(i =>
+            (i.barcode && i.barcode === code) ||
+            (i.name && i.name.toLowerCase().includes(code.toLowerCase()))
         );
 
         if (item) {
             setScannedItem(item);
             setScannedQuantity(1);
-            setShowCameraScanner(false); // Cerramos cámara si estaba abierta
+            setShowCameraScanner(false);
             setScannedUnknownCode(null);
         } else {
             console.warn('Código no encontrado:', code);
@@ -84,15 +84,8 @@ function App() {
     };
 
     // Escucha global de código de barras físico (lector USB/Bluetooth)
+    // IMPORTANTE: Este hook DEBE estar antes de cualquier return condicional
     useBarcodeScanner(handleBarcodeScan);
-
-    // Detección de URL pública (Historial Clínico)
-    const urlParams = new URLSearchParams(window.location.search);
-    const publicVehicleId = urlParams.get('vehicle_id');
-
-    if (publicVehicleId) {
-        return <PublicVehiclePage vehicleId={publicVehicleId} />;
-    }
 
     // Si no hay usuario autenticado, mostrar pantalla de PIN
     if (!user) {
@@ -217,7 +210,7 @@ function App() {
                                 {user.name}
                             </div>
                             <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>{user.role.toUpperCase()} • v2.0</span>
+                                <span>{user.role.toUpperCase()} • v2.2 – EMERGENCY RESET</span>
                                 <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 10, padding: 0 }}>Salir</button>
                             </div>
                         </div>
@@ -300,9 +293,9 @@ function App() {
 
                         <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Precio Sugerido</div>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency(scannedItem.price)}</div>
-                            <div style={{ fontSize: 12, marginTop: 4, color: scannedItem.stock > 5 ? 'var(--success)' : 'var(--danger)' }}>
-                                {scannedItem.stock} unidades disponibles en stock
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency(scannedItem.sell_price)}</div>
+                            <div style={{ fontSize: 12, marginTop: 4, color: (scannedItem.stock_type === 'UNIT' ? (scannedItem.stock_quantity || 0) : (scannedItem.stock_ml || 0)) > 5 ? 'var(--success)' : 'var(--danger)' }}>
+                                {scannedItem.stock_type === 'UNIT' ? `${scannedItem.stock_quantity || 0} unidades` : `${((scannedItem.stock_ml || 0) / 1000).toFixed(1)}L`} disponibles
                             </div>
                         </div>
 
@@ -313,7 +306,6 @@ function App() {
                                 value={scannedQuantity}
                                 onChange={(e) => setScannedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                                 min="1"
-                                max={scannedItem.stock}
                                 style={{ textAlign: 'center', fontSize: 18 }}
                             />
                         </FormField>
