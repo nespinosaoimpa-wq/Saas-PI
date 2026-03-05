@@ -14,11 +14,11 @@ import {
 export const DashboardPage = () => {
     const { data: MOCK, getLowStockItems } = useApp();
     const { employees } = useAuth();
-    const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
-    const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
+    const activeOrders = (MOCK.workOrders || []).filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
+    const completedToday = (MOCK.workOrders || []).filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
     const lowStock = getLowStockItems();
-    const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0]);
-    const todayTotal = todayPayments.reduce((s, p) => s + p.amount, 0);
+    const todayPayments = (MOCK.payments || []).filter(p => p.date === new Date().toISOString().split('T')[0]);
+    const todayTotal = todayPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
 
     const getBoxStatus = (boxId) => {
         const order = activeOrders.find(wo => wo.box_id === boxId && wo.status === 'En Box');
@@ -28,7 +28,7 @@ export const DashboardPage = () => {
         return { status: 'Libre', mechanic: null };
     };
 
-    const boxOccupied = MOCK.boxes.filter(b => getBoxStatus(b.id).status === 'Ocupado').length;
+    const boxOccupied = (MOCK.boxes || []).filter(b => getBoxStatus(b.id).status === 'Ocupado').length;
 
     return (
         <div className="page-content">
@@ -37,7 +37,7 @@ export const DashboardPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
                     <StatCard icon="payments" label="Caja del Día" value={formatCurrency(todayTotal)} sub="Cobros procesados hoy" tag="LIVE" barPercent={75} />
                     <StatCard icon="engineering" label="OTs Activas" value={activeOrders.length} sub={`${completedToday} finalizadas hoy`} tag="TALLER" barPercent={(activeOrders.length / 5) * 100} barAlert={activeOrders.length > 3} />
-                    <StatCard icon="garage" label="Ocupación Boxes" value={`${boxOccupied}/${MOCK.boxes.length}`} sub="Capacidad de planta" barPercent={(boxOccupied / MOCK.boxes.length) * 100} />
+                    <StatCard icon="garage" label="Ocupación Boxes" value={`${boxOccupied}/${(MOCK.boxes || []).length}`} sub="Capacidad de planta" barPercent={(boxOccupied / ((MOCK.boxes || []).length || 1)) * 100} />
                     <StatCard icon="inventory_2" label="Stock Crítico" value={lowStock.length} sub="Items bajo mínimo" tag="ALERTA" barPercent={lowStock.length > 0 ? 100 : 0} barAlert={lowStock.length > 0} />
                 </div>
 
@@ -67,35 +67,30 @@ export const DashboardPage = () => {
                     {/* Right Sidebar */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                        {/* Revenue Chart */}
+                        {/* Revenue Summary (from Work Orders) */}
                         <GlassCard style={{ padding: 22 }}>
-                            <SectionHeader icon="trending_up" title="Ingresos Semanal" />
+                            <SectionHeader icon="trending_up" title="Resumen Facturación" />
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
                                 <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
-                                    {formatCurrency(MOCK.revenue.weekly_total)}
+                                    {formatCurrency((MOCK.workOrders || []).filter(wo => wo.status === 'Finalizado' || wo.status === 'Cobrado').reduce((s, wo) => s + (parseFloat(wo.total_price) || 0), 0))}
                                 </div>
-                                <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>+8.2%</span>
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                                Mes: {formatCurrency(MOCK.revenue.monthly_total)}
+                                Total acumulado en OTs finalizadas
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
-                                {MOCK.revenue.daily.map((d, i) => {
-                                    const max = Math.max(...MOCK.revenue.daily.map(x => x.cash + x.transfer + x.card));
-                                    const total = d.cash + d.transfer + d.card;
-                                    const h = (total / max) * 100;
-                                    return (
-                                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                                            <div style={{
-                                                width: '100%', borderRadius: '4px 4px 0 0',
-                                                background: `rgba(var(--primary-rgb), ${i === 4 ? '1' : '0.25'})`,
-                                                height: h + '%', minHeight: 4,
-                                                transition: 'height 0.6s ease'
-                                            }} />
-                                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{d.day}</span>
-                                        </div>
-                                    );
-                                })}
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <div style={{ flex: 1, padding: 12, background: 'rgba(var(--success-rgb), 0.06)', borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Mano de Obra</div>
+                                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--success)' }}>
+                                        {formatCurrency((MOCK.workOrders || []).filter(wo => wo.status === 'Finalizado' || wo.status === 'Cobrado').reduce((s, wo) => s + (parseFloat(wo.labor_cost) || 0), 0))}
+                                    </div>
+                                </div>
+                                <div style={{ flex: 1, padding: 12, background: 'rgba(var(--primary-rgb), 0.06)', borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Repuestos</div>
+                                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>
+                                        {formatCurrency((MOCK.workOrders || []).filter(wo => wo.status === 'Finalizado' || wo.status === 'Cobrado').reduce((s, wo) => s + (parseFloat(wo.parts_cost) || 0), 0))}
+                                    </div>
+                                </div>
                             </div>
                         </GlassCard>
 
@@ -136,7 +131,7 @@ export const DashboardPage = () => {
                         <GlassCard style={{ padding: 22 }}>
                             <SectionHeader icon="garage" title="Estado Boxes" />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                {MOCK.boxes.map(box => {
+                                {(MOCK.boxes || []).map(box => {
                                     const bStat = getBoxStatus(box.id);
                                     return (
                                         <div key={box.id} style={{

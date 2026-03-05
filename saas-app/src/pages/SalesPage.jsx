@@ -17,14 +17,15 @@ export const SalesPage = () => {
     const [showCamera, setShowCamera] = useState(false);
     const [payMethod, setPayMethod] = useState('EFECTIVO');
     const [lastSale, setLastSale] = useState(null);
+    const [processing, setProcessing] = useState(false);
     const codeInputRef = useRef(null);
 
     // Buscar producto por código o nombre
     const findProduct = (code) => {
-        return MOCK.inventory.find(i =>
+        return (MOCK.inventory || []).find(i =>
             (i.barcode && i.barcode === code) ||
-            i.id.toLowerCase() === code.toLowerCase() ||
-            i.name.toLowerCase().includes(code.toLowerCase())
+            (i.id && i.id.toLowerCase() === code.toLowerCase()) ||
+            (i.name && i.name.toLowerCase().includes(code.toLowerCase()))
         );
     };
 
@@ -78,11 +79,17 @@ export const SalesPage = () => {
 
     const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (cart.length === 0) return alert('El carrito está vacío');
-        const saleTotal = processSale(cart, payMethod);
-        setLastSale({ items: [...cart], total: saleTotal, method: payMethod, date: new Date() });
-        setCart([]);
+        setProcessing(true);
+        try {
+            const saleTotal = await processSale(cart, payMethod);
+            setLastSale({ items: [...cart], total: saleTotal, method: payMethod, date: new Date() });
+            setCart([]);
+        } catch (err) {
+            alert('Error al procesar la venta: ' + (err.message || ''));
+        }
+        setProcessing(false);
     };
 
     const handleCancelSale = () => {

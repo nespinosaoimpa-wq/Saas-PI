@@ -6,6 +6,7 @@
 -- LIMPIEZA DE TABLAS EXISTENTES PARA EVITAR ERRORES
 DROP TABLE IF EXISTS cash_closings CASCADE;
 DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS vehicle_notes CASCADE;
 DROP TABLE IF EXISTS work_orders CASCADE;
 DROP TABLE IF EXISTS boxes CASCADE;
 DROP TABLE IF EXISTS suppliers CASCADE;
@@ -113,7 +114,19 @@ CREATE TABLE work_orders (
     completed_at TIMESTAMP WITH TIME ZONE
 );
 
--- 8. TABLA DE PAGOS Y MOVIMIENTOS DE CAJA
+-- 8. TABLA DE NOTAS MANUALES DEL VEHÍCULO (Historial manual)
+CREATE TABLE vehicle_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+    description TEXT NOT NULL,
+    km INTEGER,
+    cost NUMERIC(10,2) DEFAULT 0.0,
+    technician TEXT,
+    note_type TEXT DEFAULT 'MANUAL' CHECK (note_type IN ('MANUAL', 'SERVICE'))
+);
+
+-- 9. TABLA DE PAGOS Y MOVIMIENTOS DE CAJA
 CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -154,6 +167,7 @@ ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE suppliers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE boxes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cash_closings ENABLE ROW LEVEL SECURITY;
 
@@ -164,6 +178,7 @@ CREATE POLICY "Allow all access to authenticated anon" ON inventory FOR ALL USIN
 CREATE POLICY "Allow all access to authenticated anon" ON suppliers FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON boxes FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON work_orders FOR ALL USING (true);
+CREATE POLICY "Allow all access to authenticated anon" ON vehicle_notes FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON payments FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON cash_closings FOR ALL USING (true);
 

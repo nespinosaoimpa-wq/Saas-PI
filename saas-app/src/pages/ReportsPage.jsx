@@ -11,26 +11,44 @@ import {
 } from '../components/ui';
 
 export const ReportsPage = () => {
-    const { data: MOCK } = useApp();
+    const { data: MOCK, getClientVehicles } = useApp();
     const [tab, setTab] = useState('revenue');
 
-    // MOCK logic for reports (since we don't have a real backend yet)
-    const REVENUE_BY_MONTH = [
-        { month: 'Ene', value: 450000, color: 'var(--primary)' },
-        { month: 'Feb', value: 620000, color: 'var(--primary)' },
-        { month: 'Mar', value: 580000, color: 'var(--primary)' },
-        { month: 'Abr', value: 710000, color: 'var(--primary)' },
-        { month: 'May', value: 590000, color: 'var(--accent)' },
-    ];
+    // Agrupar ingresos por mes a partir de los pagos (payments)
+    const revenueByMonthMap = {};
+    (MOCK.payments || []).forEach(p => {
+        if (!p.date || p.amount <= 0) return;
+        const [year, month] = p.date.split('-');
+        const monthKey = `${year}-${month}`;
+        revenueByMonthMap[monthKey] = (revenueByMonthMap[monthKey] || 0) + parseFloat(p.amount);
+    });
+
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const REVENUE_BY_MONTH = Object.entries(revenueByMonthMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-6) // Últimos 6 meses
+        .map(([key, value]) => {
+            const m = parseInt(key.split('-')[1], 10) - 1;
+            return { month: monthNames[m], value, color: 'var(--primary)' };
+        });
+
+    if (REVENUE_BY_MONTH.length === 0) {
+        REVENUE_BY_MONTH.push({ month: monthNames[new Date().getMonth()], value: 0, color: 'var(--primary)' });
+    }
+
+    // Agrupar servicios por categoría básica
+    const posSales = (MOCK.payments || []).filter(p => !p.work_order_id && p.type === 'VENTA');
+    const wos = (MOCK.workOrders || []).filter(wo => wo.status === 'Finalizado' || wo.status === 'Cobrado');
+
+    const totalPos = posSales.reduce((s, p) => s + parseFloat(p.amount), 0);
+    const totalWos = wos.reduce((s, wo) => s + parseFloat(wo.total_price), 0);
 
     const SERVICES_BY_TYPE = [
-        { label: 'Cambio de Aceite', count: 45, value: 540000, color: 'var(--primary)' },
-        { label: 'Frenos', count: 28, value: 310000, color: 'var(--success)' },
-        { label: 'Gomería Express', count: 112, value: 280000, color: 'var(--warning)' },
-        { label: 'Mecánica Gral', count: 15, value: 420000, color: 'var(--accent)' },
-    ];
+        { label: 'Servicios de Taller (OTs)', count: wos.length, value: totalWos, color: 'var(--primary)' },
+        { label: 'Ventas de Mostrador (POS)', count: posSales.length, value: totalPos, color: 'var(--success)' },
+    ].filter(s => s.value > 0);
 
-    const maxVal = Math.max(...REVENUE_BY_MONTH.map(m => m.value));
+    const maxVal = Math.max(...REVENUE_BY_MONTH.map(m => m.value), 1000);
 
     return (
         <div className="page-content">
@@ -130,11 +148,22 @@ export const ReportsPage = () => {
                     <DataTable
                         columns={[
                             { key: 'name', label: 'Cliente', render: r => <strong>{r.first_name} {r.last_name}</strong> },
-                            { key: 'vehicles', label: 'Vehículos', render: r => <span>{r.vehicles.length} unidades</span> },
-                            { key: 'total_spent', label: 'Total Invertido', render: r => <strong style={{ color: 'var(--primary)' }}>{formatCurrency(Math.floor(Math.random() * 150000) + 50000)}</strong> },
-                            { key: 'last_visit', label: 'Última Visita', render: r => 'Hace 12 días' },
+                            { key: 'vehicles', label: 'Vehículos', render: r => <span>{getClientVehicles(r.id).length} unidades</span> },
+                            {
+                                key: 'total_spent', label: 'Total Invertido', render: r => {
+                                    const clientWOs = (MOCK.workOrders || []).filter(wo => wo.client_id === r.id && (wo.status === 'Finalizado' || wo.status === 'Cobrado'));
+                                    const total = clientWOs.reduce((s, wo) => s + (parseFloat(wo.total_price) || 0), 0);
+                                    return <strong style={{ color: 'var(--primary)' }}>{formatCurrency(total)}</strong>;
+                                }
+                            },
+                            {
+                                key: 'last_visit', label: 'Última Visita', render: r => {
+                                    const lastWO = (MOCK.workOrders || []).find(wo => wo.client_id === r.id);
+                                    return lastWO ? lastWO.created_at?.split('T')[0] : '—';
+                                }
+                            },
                         ]}
-                        data={MOCK.clients.slice(0, 5)}
+                        data={(MOCK.clients || []).slice(0, 10)}
                     />
                 )}
             </div>

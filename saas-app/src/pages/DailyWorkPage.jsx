@@ -1,12 +1,14 @@
 ﻿import React from 'react';
-import { formatCurrency } from '../data/data';
+import { formatCurrency, MOCK as STATIC_MOCK } from '../data/data';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon } from '../components/ui';
 
 export const DailyWorkPage = () => {
-    const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions } = useApp();
+    const { data: MOCK, getClient, getVehicle, updateWorkOrder, getCommissions } = useApp();
+    const { user } = useAuth();
     const myOrders = MOCK.workOrders.filter(wo => wo.status === 'En Box');
-    const commissions = getCommissions(MOCK.currentUser.name);
+    const commissions = user ? getCommissions(user.id) : 0;
 
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
@@ -57,7 +59,7 @@ export const DailyWorkPage = () => {
 
                                     <SectionHeader icon="checklist" title="Control de Tareas" />
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-                                        {MOCK.checklist_template.slice(0, 6).map(item => (
+                                        {(STATIC_MOCK.checklist_template || []).slice(0, 6).map(item => (
                                             <CheckItem key={item.key} label={item.label} sub={item.group} />
                                         ))}
                                     </div>
@@ -88,7 +90,7 @@ export const DailyWorkPage = () => {
 
                         <div className="quick-action-grid">
                             {QUICK_ACTIONS.map(action => (
-                                <div key={action.id} className="quick-action-card" onClick={() => addQuickService(action)}>
+                                <div key={action.id} className="quick-action-card" onClick={() => alert(`Servicio rápido: ${action.label} — ${formatCurrency(action.price)}`)}>
                                     <Icon name={action.icon} size={28} style={{ color: action.color, marginBottom: 8 }} />
                                     <div className="quick-action-label">{action.label}</div>
                                     <div style={{ fontSize: 11, color: action.price > 0 ? 'var(--text-primary)' : 'var(--success)', fontWeight: 700, marginTop: 4 }}>

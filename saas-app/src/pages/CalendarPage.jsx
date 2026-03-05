@@ -1,9 +1,12 @@
 ﻿import React from 'react';
 import { useApp } from '../context/AppContext';
+import { MOCK as STATIC_MOCK } from '../data/data';
 import { SectionHeader, GlassCard, StatusBadge, Icon } from '../components/ui';
 
 export const CalendarPage = () => {
     const { data: MOCK } = useApp();
+    const appointments = MOCK.appointments || STATIC_MOCK.appointments || [];
+
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const today = 27;
     const daysInMonth = 28;
@@ -24,7 +27,7 @@ export const CalendarPage = () => {
                         <div className="calendar-grid">
                             {days.map(d => <div key={d} className="calendar-day-header">{d}</div>)}
                             {cells.map((d, i) => (
-                                <div key={i} className={`calendar-cell ${d === today ? 'today' : ''} ${d && MOCK.appointments.some(a => a.date === `2026-02-${String(d).padStart(2, '0')}`) ? 'has-event' : ''}`}>
+                                <div key={i} className={`calendar-cell ${d === today ? 'today' : ''} ${d && appointments.some(a => a.date === `2026-02-${String(d).padStart(2, '0')}`) ? 'has-event' : ''}`}>
                                     {d && <span style={{ fontSize: 12, fontWeight: d === today ? 700 : 400, color: d === today ? 'var(--primary)' : 'var(--text-secondary)' }}>{d}</span>}
                                 </div>
                             ))}
@@ -35,7 +38,7 @@ export const CalendarPage = () => {
                 <div>
                     <SectionHeader icon="event" title="Turnos del Día" />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {MOCK.appointments.filter(a => a.date === '2026-02-27').map(apt => (
+                        {appointments.filter(a => a.date === '2026-02-27').map(apt => (
                             <GlassCard key={apt.id} style={{ padding: 16, borderLeft: `3px solid ${apt.color}` }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 8 }}>
                                     <div>
@@ -54,7 +57,7 @@ export const CalendarPage = () => {
                     <div style={{ marginTop: 20 }}>
                         <SectionHeader icon="upcoming" title="Próximos Días" />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {MOCK.appointments.filter(a => a.date > '2026-02-27').map(apt => (
+                            {appointments.filter(a => a.date > '2026-02-27').map(apt => (
                                 <GlassCard key={apt.id} style={{ padding: 14, opacity: 0.7 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600 }}>{apt.title}</div>
                                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>

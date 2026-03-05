@@ -58,23 +58,18 @@ function App() {
     const [showCameraScanner, setShowCameraScanner] = useState(false);
     const [scannedUnknownCode, setScannedUnknownCode] = useState(null);
 
-    // Si no hay usuario autenticado, mostrar pantalla de PIN
-    if (!user) {
-        return <LoginPage />;
-    }
-
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
-        const item = MOCK.inventory.find(i =>
-            i.id.toLowerCase() === code.toLowerCase() ||
-            i.name.toLowerCase().includes(code.toLowerCase()) ||
-            code === '123456' // Código de prueba universal
+        if (!user) return; // No procesar si no hay usuario logueado
+        const item = (MOCK.inventory || []).find(i =>
+            (i.barcode && i.barcode === code) ||
+            (i.name && i.name.toLowerCase().includes(code.toLowerCase()))
         );
 
         if (item) {
             setScannedItem(item);
             setScannedQuantity(1);
-            setShowCameraScanner(false); // Cerramos cámara si estaba abierta
+            setShowCameraScanner(false);
             setScannedUnknownCode(null);
         } else {
             console.warn('Código no encontrado:', code);
@@ -88,7 +83,13 @@ function App() {
     };
 
     // Escucha global de código de barras físico (lector USB/Bluetooth)
+    // IMPORTANTE: Este hook DEBE estar antes de cualquier return condicional
     useBarcodeScanner(handleBarcodeScan);
+
+    // Si no hay usuario autenticado, mostrar pantalla de PIN
+    if (!user) {
+        return <LoginPage />;
+    }
 
     const pageInfo = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
     const PageComponent = PAGES[page] || DashboardPage;
@@ -291,9 +292,9 @@ function App() {
 
                         <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Precio Sugerido</div>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency(scannedItem.price)}</div>
-                            <div style={{ fontSize: 12, marginTop: 4, color: scannedItem.stock > 5 ? 'var(--success)' : 'var(--danger)' }}>
-                                {scannedItem.stock} unidades disponibles en stock
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency(scannedItem.sell_price)}</div>
+                            <div style={{ fontSize: 12, marginTop: 4, color: (scannedItem.stock_type === 'UNIT' ? (scannedItem.stock_quantity || 0) : (scannedItem.stock_ml || 0)) > 5 ? 'var(--success)' : 'var(--danger)' }}>
+                                {scannedItem.stock_type === 'UNIT' ? `${scannedItem.stock_quantity || 0} unidades` : `${((scannedItem.stock_ml || 0) / 1000).toFixed(1)}L`} disponibles
                             </div>
                         </div>
 
@@ -304,7 +305,6 @@ function App() {
                                 value={scannedQuantity}
                                 onChange={(e) => setScannedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                                 min="1"
-                                max={scannedItem.stock}
                                 style={{ textAlign: 'center', fontSize: 18 }}
                             />
                         </FormField>
