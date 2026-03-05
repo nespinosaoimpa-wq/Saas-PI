@@ -9,7 +9,7 @@ export const AppProvider = ({ children }) => {
         clients: [], vehicles: [], workOrders: [],
         inventory: [], suppliers: [], boxes: [],
         payments: [], cashClosings: [], vehicleNotes: [],
-        appointments: [],
+        appointments: [], promotions: [],
         activityLog: []
     });
     const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export const AppProvider = ({ children }) => {
                 { data: clients }, { data: vehicles }, { data: workOrders },
                 { data: inventory }, { data: suppliers }, { data: boxes },
                 { data: vehicleNotes }, { data: payments }, { data: cashClosings },
-                { data: appointments }
+                { data: appointments }, { data: promotions }
             ] = await Promise.all([
                 supabase.from('clients').select('*'),
                 supabase.from('vehicles').select('*'),
@@ -33,7 +33,8 @@ export const AppProvider = ({ children }) => {
                 supabase.from('vehicle_notes').select('*').order('created_at', { ascending: false }),
                 supabase.from('payments').select('*').order('created_at', { ascending: false }),
                 supabase.from('cash_closings').select('*').order('created_at', { ascending: false }),
-                supabase.from('appointments').select('*').order('date', { ascending: true })
+                supabase.from('appointments').select('*').order('date', { ascending: true }),
+                supabase.from('promotions').select('*').order('created_at', { ascending: false })
             ]);
 
             setData({
@@ -47,6 +48,7 @@ export const AppProvider = ({ children }) => {
                 payments: payments || [],
                 cashClosings: cashClosings || [],
                 appointments: appointments || [],
+                promotions: promotions || [],
                 activityLog: []
             });
         } catch (e) {

@@ -172,6 +172,18 @@ CREATE TABLE appointments (
     notes TEXT
 );
 
+-- 11. TABLA DE PROMOCIONES
+CREATE TABLE promotions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    discount_type TEXT NOT NULL CHECK (discount_type IN ('PERCENTAGE', 'FIXED')),
+    discount_value NUMERIC(10,2) NOT NULL,
+    category TEXT,
+    is_active BOOLEAN DEFAULT true
+);
+
 -- ==========================================
 -- Habilitar Row Level Security (RLS)
 -- ==========================================
@@ -186,6 +198,7 @@ ALTER TABLE vehicle_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cash_closings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all access to authenticated anon" ON employees FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON clients FOR ALL USING (true);
@@ -198,6 +211,7 @@ CREATE POLICY "Allow all access to authenticated anon" ON vehicle_notes FOR ALL 
 CREATE POLICY "Allow all access to authenticated anon" ON payments FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON cash_closings FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON appointments FOR ALL USING (true);
+CREATE POLICY "Allow all access to authenticated anon" ON promotions FOR ALL USING (true);
 
 -- ==========================================
 -- INSERTAR DATOS SEMILLA BÁSICOS

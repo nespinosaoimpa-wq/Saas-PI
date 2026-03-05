@@ -20,6 +20,25 @@ export const DashboardPage = () => {
     const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0]);
     const todayTotal = todayPayments.reduce((s, p) => s + p.amount, 0);
 
+    const getRevenueStats = () => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const monthlyTotal = MOCK.payments.filter(p => p.date?.startsWith(todayStr.slice(0, 7))).reduce((s, p) => s + p.amount, 0);
+        const weeklyTotal = MOCK.payments.filter(p => {
+            const date = new Date(p.date);
+            return (Date.now() - date.getTime()) / (1000 * 3600 * 24) <= 7;
+        }).reduce((s, p) => s + p.amount, 0);
+
+        const daily = [
+            { day: 'Lun', cash: 0, transfer: 0, card: 0 },
+            { day: 'Mar', cash: 0, transfer: 0, card: 0 },
+            { day: 'Mié', cash: 0, transfer: 0, card: 0 },
+            { day: 'Jue', cash: 0, transfer: 0, card: 0 },
+            { day: 'Vie', cash: todayTotal, transfer: 0, card: 0 },
+        ];
+        return { daily, weekly_total: weeklyTotal, monthly_total: monthlyTotal };
+    };
+    const revenue = getRevenueStats();
+
     const getBoxStatus = (boxId) => {
         const order = activeOrders.find(wo => wo.box_id === boxId && wo.status === 'En Box');
         if (order) {
@@ -72,18 +91,18 @@ export const DashboardPage = () => {
                             <SectionHeader icon="trending_up" title="Ingresos Semanal" />
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
                                 <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
-                                    {formatCurrency(MOCK.revenue.weekly_total)}
+                                    {formatCurrency(revenue.weekly_total)}
                                 </div>
                                 <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>+8.2%</span>
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                                Mes: {formatCurrency(MOCK.revenue.monthly_total)}
+                                Mes: {formatCurrency(revenue.monthly_total)}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
-                                {MOCK.revenue.daily.map((d, i) => {
-                                    const max = Math.max(...MOCK.revenue.daily.map(x => x.cash + x.transfer + x.card));
+                                {revenue.daily.map((d, i) => {
+                                    const max = Math.max(...revenue.daily.map(x => x.cash + x.transfer + x.card));
                                     const total = d.cash + d.transfer + d.card;
-                                    const h = (total / max) * 100;
+                                    const h = max > 0 ? (total / max) * 100 : (i === 4 ? 20 : 0);
                                     return (
                                         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                                             <div style={{
