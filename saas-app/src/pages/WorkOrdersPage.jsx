@@ -1,4 +1,4 @@
-﻿import React, { useState, Fragment } from 'react';
+﻿import React, { useState, Fragment, useMemo } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,8 @@ import {
     SectionHeader,
     CheckItem,
     Icon,
-    PrintableTicket
+    PrintableTicket,
+    SearchBar
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
@@ -28,6 +29,9 @@ export const WorkOrdersPage = () => {
         client_id: '', vehicle_id: '', box_id: '', km_at_entry: '',
         description: '', labor_cost: '', parts_cost: '', mechanic_id: ''
     });
+
+    // Nuevo estado para la búsqueda interactiva
+    const [clientSearch, setClientSearch] = useState('');
 
     const laborCost = parseFloat(newOrder.labor_cost) || 0;
     const partsCost = parseFloat(newOrder.parts_cost) || 0;
@@ -53,6 +57,7 @@ export const WorkOrdersPage = () => {
 
         setShowNew(false);
         setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '' });
+        setClientSearch('');
     };
 
     const filtered = MOCK.workOrders.filter(wo => {
@@ -60,6 +65,18 @@ export const WorkOrdersPage = () => {
         if (tab === 'done') return wo.status === 'Finalizado';
         return true;
     });
+
+    // Filtro inteligente de Clientes/Vehículos
+    const filteredClients = useMemo(() => {
+        if (!clientSearch) return [];
+        const term = clientSearch.toLowerCase();
+        return MOCK.clients.filter(client => {
+            const clientVehicles = getClientVehicles(client.id);
+            const matchesClient = `${client.first_name} ${client.last_name} ${client.dni}`.toLowerCase().includes(term);
+            const matchesVehicle = clientVehicles.some(v => v.license_plate.toLowerCase().includes(term));
+            return matchesClient || matchesVehicle;
+        }).slice(0, 5); // Limitar resultados para no colapsar la UI
+    }, [clientSearch, MOCK.clients, MOCK.vehicles]);
 
     return (
         <div className="page-content">
@@ -103,20 +120,67 @@ export const WorkOrdersPage = () => {
                     <Modal title="Nueva Orden de Trabajo" onClose={() => setShowNew(false)} width="800px"
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleCreateWorkOrder}><Icon name="print" size={16} /> Crear OT</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <FormRow>
-                                <FormField label="Cliente">
-                                    <select className="form-select" value={newOrder.client_id} onChange={e => setNewOrder({ ...newOrder, client_id: e.target.value, vehicle_id: '' })}>
-                                        <option value="">Seleccionar cliente...</option>
-                                        {MOCK.clients.map(c => <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>)}
-                                    </select>
-                                </FormField>
-                                <FormField label="Vehículo">
-                                    <select className="form-select" value={newOrder.vehicle_id} onChange={e => setNewOrder({ ...newOrder, vehicle_id: e.target.value })} disabled={!newOrder.client_id}>
-                                        <option value="">Seleccionar vehículo...</option>
-                                        {newOrder.client_id ? getClientVehicles(newOrder.client_id).map(v => <option key={v.id} value={v.id}>{v.license_plate} - {v.brand} {v.model}</option>) : null}
-                                    </select>
-                                </FormField>
-                            </FormRow>
+                            {newOrder.client_id ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 700 }}>{MOCK.clients.find(c => c.id === newOrder.client_id)?.first_name} {MOCK.clients.find(c => c.id === newOrder.client_id)?.last_name}</div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>DNI: {MOCK.clients.find(c => c.id === newOrder.client_id)?.dni}</div>
+                                        </div>
+                                        <button className="btn btn-sm btn-ghost" onClick={() => { setNewOrder({ ...newOrder, client_id: '', vehicle_id: '' }); setClientSearch(''); }}>
+                                            Cambiar
+                                        </button>
+                                    </div>
+                                    <FormField label="Seleccionar Vehículo Asociado">
+                                        <select className="form-select" value={newOrder.vehicle_id} onChange={e => setNewOrder({ ...newOrder, vehicle_id: e.target.value })}>
+                                            <option value="">Seleccionar vehículo...</option>
+                                            {getClientVehicles(newOrder.client_id).map(v => <option key={v.id} value={v.id}>{v.license_plate} - {v.brand} {v.model}</option>)}
+                                        </select>
+                                    </FormField>
+                                </div>
+                            ) : (
+                                <div style={{ position: 'relative' }}>
+                                    <FormField label="Buscar Cliente o Vehículo">
+                                        <SearchBar
+                                            value={clientSearch}
+                                            onChange={setClientSearch}
+                                            placeholder="Buscar por DNI, Nombre o Patente..."
+                                        />
+                                    </FormField>
+
+                                    {clientSearch && filteredClients.length > 0 && (
+                                        <div style={{
+                                            position: 'absolute', top: '100%', left: 0, right: 0,
+                                            background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                            borderRadius: 'var(--radius-sm)', marginTop: 4, zIndex: 10,
+                                            maxHeight: 200, overflowY: 'auto', boxShadow: 'var(--shadow-md)'
+                                        }}>
+                                            {filteredClients.map(c => (
+                                                <div
+                                                    key={c.id}
+                                                    style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
+                                                    onClick={() => setNewOrder({ ...newOrder, client_id: c.id, vehicle_id: '' })}
+                                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                >
+                                                    <div>
+                                                        <div style={{ fontSize: 13, fontWeight: 600 }}>{c.first_name} {c.last_name}</div>
+                                                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>DNI: {c.dni}</div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--text-muted)' }}>
+                                                        {getClientVehicles(c.id).map(v => <span key={v.id} style={{ display: 'inline-block', background: 'var(--bg-base)', padding: '2px 4px', borderRadius: 4, marginLeft: 4 }}>{v.license_plate}</span>)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {clientSearch && filteredClients.length === 0 && (
+                                        <div style={{ padding: 12, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', marginTop: 8 }}>
+                                            No se encontraron coincidencias.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             <FormRow>
                                 <FormField label="Box asignado">
                                     <select className="form-select" value={newOrder.box_id} onChange={e => setNewOrder({ ...newOrder, box_id: e.target.value })}>

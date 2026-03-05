@@ -22,17 +22,22 @@ export const ClientsPage = () => {
     const [newClient, setNewClient] = useState({ first_name: '', last_name: '', phone: '', dni: '' });
     const [newVehicle, setNewVehicle] = useState({ license_plate: '', brand: '', model: '', year: '' });
 
-    const handleSaveNew = () => {
+    const handleSaveNew = async () => {
         if (!newClient.first_name || !newClient.last_name || !newVehicle.license_plate) {
             alert('Por favor completá los campos obligatorios (Nombre, Apellido y Patente).');
             return;
         }
-        const createdClient = addClient({ ...newClient, is_frequent: false });
-        addVehicle({ ...newVehicle, client_id: createdClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
 
-        setShowNewModal(false);
-        setNewClient({ first_name: '', last_name: '', phone: '', dni: '' });
-        setNewVehicle({ license_plate: '', brand: '', model: '', year: '' });
+        try {
+            const createdClient = await addClient({ ...newClient, is_frequent: false });
+            await addVehicle({ ...newVehicle, client_id: createdClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
+
+            setShowNewModal(false);
+            setNewClient({ first_name: '', last_name: '', phone: '', dni: '' });
+            setNewVehicle({ license_plate: '', brand: '', model: '', year: '' });
+        } catch (error) {
+            alert('Hubo un error al guardar el cliente o el vehículo. Intente nuevamente.');
+        }
     };
 
     const filtered = MOCK.clients.filter(c =>

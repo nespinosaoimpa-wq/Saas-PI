@@ -27,6 +27,7 @@ CREATE TABLE user_profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT NOT NULL,
     role user_role NOT NULL DEFAULT 'mechanic',
+    commission_rate NUMERIC(5,2) DEFAULT 0, -- Porcentaje de comisión (ej: 10.00 = 10%)
     phone TEXT,
     avatar_url TEXT,
     is_active BOOLEAN DEFAULT TRUE,
@@ -431,6 +432,57 @@ CREATE TABLE daily_work_log (
 
 CREATE INDEX idx_daily_log_date ON daily_work_log(work_date);
 CREATE INDEX idx_daily_log_mechanic ON daily_work_log(mechanic_id);
+
+-- ============================================================
+-- 18. GOMERÍA (Servicios Rápidos Diarios)
+-- ============================================================
+
+CREATE TABLE daily_quick_services (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_type TEXT NOT NULL, -- 'Parche Moto', 'Parche Auto', 'Ajuste Cadena', 'Inflado Air'
+    price NUMERIC(12,2) NOT NULL,
+    mechanic_id UUID REFERENCES user_profiles(id),
+    vehicle_id UUID REFERENCES vehicles(id),
+    client_id UUID REFERENCES clients(id),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 19. HISTORIAL DE SERVICIOS (Línea de tiempo)
+-- ============================================================
+
+CREATE TABLE service_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+    work_order_id UUID REFERENCES work_orders(id) ON DELETE SET NULL,
+    quick_service_id UUID REFERENCES daily_quick_services(id) ON DELETE SET NULL,
+    service_date TIMESTAMPTZ DEFAULT NOW(),
+    description TEXT NOT NULL, -- "Lo que se le hizo al vehículo"
+    km_at_service INTEGER,
+    performed_by UUID REFERENCES user_profiles(id),
+    total_amount NUMERIC(12,2) DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 20. GANANCIAS DE EMPLEADOS (Comisiones)
+-- ============================================================
+
+CREATE TABLE employee_earnings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+    work_order_id UUID REFERENCES work_orders(id),
+    quick_service_id UUID REFERENCES daily_quick_services(id),
+    amount_earned NUMERIC(12,2) NOT NULL,
+    description TEXT,
+    payment_reference_id UUID REFERENCES payments(id),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_earnings_employee ON employee_earnings(employee_id);
+CREATE INDEX idx_quick_services_date ON daily_quick_services(created_at);
+CREATE INDEX idx_service_history_vehicle ON service_history(vehicle_id);
 
 -- ============================================================
 -- FUNCIONES

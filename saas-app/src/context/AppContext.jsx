@@ -58,6 +58,59 @@ export const AppProvider = ({ children }) => {
         (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
+    // ==========================================
+    // Acciones CRUD Básicas
+    // ==========================================
+    const addClient = async (clientData) => {
+        const { data: newClient, error } = await supabase
+            .from('clients')
+            .insert([{
+                first_name: clientData.first_name,
+                last_name: clientData.last_name,
+                phone: clientData.phone,
+                dni: clientData.dni,
+                email: clientData.email || null,
+                is_frequent: clientData.is_frequent || false
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error creating client", error);
+            throw error;
+        }
+
+        // Fetch everything again or manually insert
+        setData(prev => ({ ...prev, clients: [...prev.clients, newClient] }));
+        return newClient;
+    };
+
+    const addVehicle = async (vehicleData) => {
+        const { data: newVehicle, error } = await supabase
+            .from('vehicles')
+            .insert([{
+                client_id: vehicleData.client_id,
+                license_plate: vehicleData.license_plate,
+                brand: vehicleData.brand,
+                model: vehicleData.model,
+                year: parseInt(vehicleData.year) || null,
+                km: parseInt(vehicleData.km) || 0,
+                color: vehicleData.color,
+                health_score: 100,
+                difficulty_factor: 1.0
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error creating vehicle", error);
+            throw error;
+        }
+
+        setData(prev => ({ ...prev, vehicles: [...prev.vehicles, newVehicle] }));
+        return newVehicle;
+    };
+
     // Órdenes de Trabajo (Sincronizado)
     const addWorkOrder = async (woData) => {
         const { data: newWo, error } = await supabase.from('work_orders').insert([{
@@ -104,6 +157,8 @@ export const AppProvider = ({ children }) => {
             getVehicle,
             getClientVehicles,
             getLowStockItems,
+            addClient,
+            addVehicle,
             addWorkOrder,
             updateWorkOrder,
             getCommissions
