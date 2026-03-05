@@ -72,7 +72,7 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = (action, isSecondOrMore = false) => {
+    const addQuickService = async (action, isSecondOrMore = false) => {
         const finalPrice = isSecondOrMore ? action.price * 0.7 : action.price; // 30% discount if second
         const entry = {
             id: `qs-${Date.now()}`,
@@ -80,6 +80,22 @@ export const AppProvider = ({ children }) => {
             price: finalPrice,
             timestamp: new Date().toISOString()
         };
+
+        // Enlazar con la caja automáticamente si tiene un precio mayor a 0
+        if (finalPrice > 0) {
+            try {
+                await addPayment({
+                    amount: finalPrice,
+                    method: 'EFECTIVO',
+                    description: `Express Gomería: ${entry.label}`,
+                    type: 'INGRESO',
+                    reference: 'LOCAL'
+                });
+            } catch (e) {
+                console.error("Error registering express payment to cash register", e);
+            }
+        }
+
         setData(prev => ({
             ...prev,
             activityLog: [entry, ...(prev.activityLog || [])]
