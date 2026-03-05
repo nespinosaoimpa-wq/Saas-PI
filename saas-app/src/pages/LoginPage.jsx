@@ -32,7 +32,8 @@ export function LoginPage() {
 
     if (!selectedEmployee) {
         return (
-            <div className="app-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
+            <div className="app-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#4c1d95' }}>
+                <div style={{ position: 'absolute', top: 20, right: 20, color: 'white', opacity: 0.5, fontSize: 12 }}>v2.3 – FORCE REFRESH</div>
                 <div style={{ textAlign: 'center', marginBottom: 40 }}>
                     <div style={{ display: 'inline-flex', padding: 20, background: 'linear-gradient(135deg, var(--primary), var(--accent))', borderRadius: 'var(--radius)', color: 'white', marginBottom: 20 }}>
                         <Icon name="precision_manufacturing" size={48} />
