@@ -17,3 +17,4 @@ export { FormRow, FormField } from './FormHelpers';
 export { PrintableTicket } from './PrintableTicket';
 export { CameraScanner } from './CameraScanner';
 export { PrintableClosing } from './PrintableClosing';
+export { PrintableSaleTicket } from './PrintableSaleTicket';

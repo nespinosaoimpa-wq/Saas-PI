@@ -6,7 +6,8 @@ import {
     Modal,
     FormField,
     Icon,
-    CameraScanner
+    CameraScanner,
+    PrintableSaleTicket
 } from '../components/ui';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 
@@ -17,6 +18,7 @@ export const SalesPage = () => {
     const [showCamera, setShowCamera] = useState(false);
     const [payMethod, setPayMethod] = useState('EFECTIVO');
     const [lastSale, setLastSale] = useState(null);
+    const [printSale, setPrintSale] = useState(null);
     const codeInputRef = useRef(null);
 
     // Buscar producto por código o nombre
@@ -81,7 +83,9 @@ export const SalesPage = () => {
     const handleCheckout = () => {
         if (cart.length === 0) return alert('El carrito está vacío');
         const saleTotal = processSale(cart, payMethod);
-        setLastSale({ items: [...cart], total: saleTotal, method: payMethod, date: new Date() });
+        const saleData = { items: [...cart], total: saleTotal, method: payMethod, date: new Date() };
+        setLastSale(saleData);
+        setPrintSale(saleData);
         setCart([]);
     };
 
@@ -233,10 +237,15 @@ export const SalesPage = () => {
 
                         {/* Última venta */}
                         {lastSale && (
-                            <div style={{ marginTop: 20, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>✅ Última venta</div>
-                                <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(lastSale.total)}</div>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{lastSale.items.length} productos • {lastSale.method}</div>
+                            <div style={{ marginTop: 20, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>✅ Última venta</div>
+                                    <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(lastSale.total)}</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{lastSale.items.length} productos • {lastSale.method}</div>
+                                </div>
+                                <button className="btn btn-ghost" onClick={() => setPrintSale(lastSale)} title="Reimprimir Ticket">
+                                    <Icon name="print" size={20} />
+                                </button>
                             </div>
                         )}
                     </div>
@@ -245,6 +254,10 @@ export const SalesPage = () => {
 
             {showCamera && (
                 <CameraScanner onScan={handleCameraScan} onClose={() => setShowCamera(false)} />
+            )}
+
+            {printSale && (
+                <PrintableSaleTicket sale={printSale} onClose={() => setPrintSale(null)} />
             )}
         </div>
     );
