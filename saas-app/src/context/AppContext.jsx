@@ -294,7 +294,7 @@ export const AppProvider = ({ children }) => {
             total_price: woData.total_price,
             applied_commission_rate: woData.applied_commission_rate,
             status: woData.box_id ? 'En Box' : 'Pendiente'
-        }]).select().single();
+        }]).select('*, clients(*), vehicles(*)').single();
         if (!error && newWo) {
             setData(prev => ({ ...prev, workOrders: [newWo, ...prev.workOrders] }));
             return newWo;

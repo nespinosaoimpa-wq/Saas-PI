@@ -45,17 +45,21 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
         setShowCamera(false);
     };
 
-    const handleSaveNew = () => {
+    const handleSaveNew = async () => {
         if (!newClient.first_name || !newClient.last_name || !newVehicle.license_plate) {
             alert('Por favor completá los campos obligatorios (Nombre, Apellido y Patente).');
             return;
         }
-        const createdClient = addClient({ ...newClient, is_frequent: false });
-        addVehicle({ ...newVehicle, client_id: createdClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
-
-        setShowNewModal(false);
-        setNewClient({ first_name: '', last_name: '', phone: '', dni: '' });
-        setNewVehicle({ license_plate: '', brand: '', model: '', year: '' });
+        try {
+            const createdClient = await addClient({ ...newClient, is_frequent: false });
+            await addVehicle({ ...newVehicle, client_id: createdClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
+            alert('✅ Cliente y vehículo registrados con éxito.');
+            setShowNewModal(false);
+            setNewClient({ first_name: '', last_name: '', phone: '', dni: '' });
+            setNewVehicle({ license_plate: '', brand: '', model: '', year: '' });
+        } catch (e) {
+            alert('Error al registrar el cliente: ' + e.message);
+        }
     };
 
     const getWhatsAppUrl = (phone, text = '') => {
@@ -90,7 +94,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                         { key: 'name', label: 'Cliente', render: r => <div><strong>{r.first_name} {r.last_name}</strong>{r.is_frequent && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--success)', fontWeight: 700 }}>★ FRECUENTE</span>}</div> },
                         { key: 'phone', label: 'Teléfono' },
                         { key: 'dni', label: 'DNI' },
-                        { key: 'vehicles', label: 'Vehículos', render: r => <span className="nav-badge" style={{ background: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)' }}>{r.vehicles.length}</span> },
+                        { key: 'vehicles', label: 'Vehículos', render: r => <span className="nav-badge" style={{ background: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)' }}>{getClientVehicles(r.id).length}</span> },
                         { key: 'actions', label: '', render: r => <button className="btn btn-sm btn-ghost" onClick={(e) => { e.stopPropagation(); handleSelectClient(r); }}>Ver Ficha</button> },
                     ]}
                     data={filtered}

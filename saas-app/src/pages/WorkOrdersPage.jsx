@@ -54,6 +54,7 @@ export const WorkOrdersPage = () => {
             applied_commission_rate: parseFloat(newOrder.applied_commission_rate) || appliedCommission
         });
 
+        alert('✅ Orden de Trabajo creada con éxito.');
         setShowNew(false);
         setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '', applied_commission_rate: '' });
         setClientSearch('');
