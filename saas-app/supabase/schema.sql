@@ -163,9 +163,11 @@ CREATE TABLE appointments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     date DATE NOT NULL,
     time TEXT NOT NULL,
-    client_name TEXT NOT NULL,
-    vehicle_info TEXT,
-    service_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    client TEXT NOT NULL,
+    vehicle TEXT,
+    box TEXT,
+    color TEXT DEFAULT '#3b82f6',
     status TEXT DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'Confirmado', 'Completado', 'Cancelado')),
     notes TEXT
 );

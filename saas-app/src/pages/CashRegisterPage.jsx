@@ -1,6 +1,7 @@
 ﻿import React, { useState, Fragment } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import {
     Tabs,
     StatCard,
@@ -15,6 +16,7 @@ import {
 
 export const CashRegisterPage = () => {
     const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions } = useApp();
+    const { employees } = useAuth();
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
@@ -23,7 +25,7 @@ export const CashRegisterPage = () => {
     const [newPayment, setNewPayment] = useState({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
     const [newWithdrawal, setNewWithdrawal] = useState({ amount: '', description: '' });
 
-    const technicians = [...new Set(MOCK.workOrders.map(wo => wo.mechanic).filter(Boolean))];
+    const technicians = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
     const handleRegisterPayment = () => {
         if (!newPayment.amount || isNaN(newPayment.amount)) {
@@ -182,37 +184,21 @@ export const CashRegisterPage = () => {
                 <div style={{ marginTop: 24 }}>
                     <SectionHeader icon="engineering" title="Comisiones de Técnicos — Historial Detallado" />
                     {technicians.map(tech => {
-                        // Buscar OTs con mechanics array detallado
-                        const detailedWOs = MOCK.workOrders.filter(wo =>
-                            wo.mechanics && wo.mechanics.some(m => m.name === tech)
-                        );
-                        // Fallback: OTs con el campo mechanic simple
-                        const simpleWOs = MOCK.workOrders.filter(wo =>
-                            !wo.mechanics && wo.mechanic === tech && (wo.status === 'Finalizado' || wo.status === 'Cobrado')
+                        // Buscar OTs por mechanic_id (nuevo sistema)
+                        const relevantWOs = MOCK.workOrders.filter(wo =>
+                            wo.mechanic_id === tech.id && (wo.status === 'Finalizado' || wo.status === 'Cobrado')
                         );
 
                         const allEntries = [
-                            ...detailedWOs.map(wo => {
-                                const m = wo.mechanics.find(mm => mm.name === tech);
+                            ...relevantWOs.map(wo => {
                                 const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
                                 return {
                                     wo_number: wo.order_number,
-                                    date: wo.created_at?.split('T')[0] || '—',
+                                    date: wo.completed_at?.split('T')[0] || wo.created_at?.split('T')[0] || '—',
                                     vehicle: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : '—',
-                                    work_total: wo.total_price,
-                                    percent: m.commission_percent,
-                                    amount: m.commission_amount
-                                };
-                            }),
-                            ...simpleWOs.map(wo => {
-                                const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
-                                return {
-                                    wo_number: wo.order_number,
-                                    date: wo.created_at?.split('T')[0] || '—',
-                                    vehicle: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : '—',
-                                    work_total: wo.total_price,
-                                    percent: 15,
-                                    amount: wo.total_price * 0.15
+                                    work_total: wo.labor_cost || 0,
+                                    percent: wo.applied_commission_rate || tech.commission_rate || 0,
+                                    amount: (wo.labor_cost || 0) * ((wo.applied_commission_rate || tech.commission_rate || 0) / 100)
                                 };
                             })
                         ];
@@ -220,10 +206,10 @@ export const CashRegisterPage = () => {
                         const totalComm = allEntries.reduce((s, e) => s + e.amount, 0);
 
                         return (
-                            <div key={tech} style={{ marginBottom: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+                            <div key={tech.id} style={{ marginBottom: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
                                 <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-hover)', borderBottom: '1px solid var(--border)' }}>
-                                    <div style={{ fontWeight: 700, fontSize: 14 }}>{tech}</div>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--primary)' }}>Total a pagar: {formatCurrency(totalComm)}</div>
+                                    <div style={{ fontWeight: 700, fontSize: 14 }}>{tech.name}</div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--primary)' }}>Cerrado: {formatCurrency(totalComm)}</div>
                                 </div>
                                 {allEntries.length > 0 ? (
                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
