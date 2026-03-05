@@ -157,6 +157,19 @@ CREATE TABLE cash_closings (
     notes TEXT
 );
 
+-- 10. TABLA DE TURNOS (Appointments)
+CREATE TABLE appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    date DATE NOT NULL,
+    time TEXT NOT NULL,
+    client_name TEXT NOT NULL,
+    vehicle_info TEXT,
+    service_type TEXT NOT NULL,
+    status TEXT DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'Confirmado', 'Completado', 'Cancelado')),
+    notes TEXT
+);
+
 -- ==========================================
 -- Habilitar Row Level Security (RLS)
 -- ==========================================
@@ -170,6 +183,7 @@ ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicle_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cash_closings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all access to authenticated anon" ON employees FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON clients FOR ALL USING (true);
@@ -181,6 +195,7 @@ CREATE POLICY "Allow all access to authenticated anon" ON work_orders FOR ALL US
 CREATE POLICY "Allow all access to authenticated anon" ON vehicle_notes FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON payments FOR ALL USING (true);
 CREATE POLICY "Allow all access to authenticated anon" ON cash_closings FOR ALL USING (true);
+CREATE POLICY "Allow all access to authenticated anon" ON appointments FOR ALL USING (true);
 
 -- ==========================================
 -- INSERTAR DATOS SEMILLA BÁSICOS

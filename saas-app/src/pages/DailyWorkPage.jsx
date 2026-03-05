@@ -1,14 +1,21 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import { formatCurrency, MOCK as STATIC_MOCK } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon } from '../components/ui';
+import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormField } from '../components/ui';
 
 export const DailyWorkPage = () => {
-    const { data: MOCK, getClient, getVehicle, updateWorkOrder, getCommissions } = useApp();
+    const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions } = useApp();
     const { user } = useAuth();
+
     const myOrders = MOCK.workOrders.filter(wo => wo.status === 'En Box');
+    // Using user.id as per the user's latest update in saas-app
     const commissions = user ? getCommissions(user.id) : 0;
+
+    const [editingAction, setEditingAction] = useState(null);
+    const [editPrice, setEditPrice] = useState('');
+    const [showTicketModal, setShowTicketModal] = useState(false);
+    const [lastTicket, setLastTicket] = useState(null);
 
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
@@ -16,7 +23,7 @@ export const DailyWorkPage = () => {
         }
     };
 
-    const QUICK_ACTIONS = [
+    const DEFAULT_QUICK_ACTIONS = [
         { id: 'qa1', label: 'Parche Moto', icon: 'tire_repair', price: 2500, color: 'var(--primary)' },
         { id: 'qa2', label: 'Parche Auto', icon: 'tire_repair', price: 3500, color: 'var(--primary)' },
         { id: 'qa3', label: 'Inflado / Aire', icon: 'air', price: 0, color: 'var(--success)' },
@@ -25,9 +32,73 @@ export const DailyWorkPage = () => {
         { id: 'qa6', label: 'Repar. Cámara', icon: 'build', price: 2800, color: 'var(--danger)' },
     ];
 
+    // Load custom prices from localStorage
+    const [quickActions, setQuickActions] = useState(() => {
+        try {
+            const saved = localStorage.getItem('piripi_quick_actions');
+            return saved ? JSON.parse(saved) : DEFAULT_QUICK_ACTIONS;
+        } catch { return DEFAULT_QUICK_ACTIONS; }
+    });
+
+    const handleQuickAction = (action) => {
+        addQuickService(action);
+        setLastTicket({
+            id: `T-${Date.now()}`,
+            label: action.label,
+            price: action.price,
+            timestamp: new Date().toLocaleString('es-AR')
+        });
+        setShowTicketModal(true);
+    };
+
+    const openEditPrice = (action) => {
+        setEditingAction(action);
+        setEditPrice(action.price.toString());
+    };
+
+    const saveEditPrice = () => {
+        if (!editingAction) return;
+        const newPrice = parseFloat(editPrice) || 0;
+        const updated = quickActions.map(a => a.id === editingAction.id ? { ...a, price: newPrice } : a);
+        setQuickActions(updated);
+        localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        setEditingAction(null);
+    };
+
+    const printTicket = () => {
+        if (!lastTicket) return;
+        const printWindow = window.open('', '_blank', 'width=320,height=500');
+        printWindow.document.write(`
+            <html><head><title>Ticket</title>
+            <style>
+                body { font-family: 'Courier New', monospace; padding: 20px; text-align: center; margin: 0; font-size: 12px; }
+                .line { border-top: 1px dashed #000; margin: 10px 0; }
+                h2 { margin: 5px 0; font-size: 16px; }
+                .price { font-size: 22px; font-weight: bold; margin: 10px 0; }
+            </style></head>
+            <body>
+                <h2>PIRIPI PRO</h2>
+                <p>Lubricentro & Gomería</p>
+                <div class="line"></div>
+                <p><strong>SERVICIO EXPRESS</strong></p>
+                <p>${lastTicket.label}</p>
+                <div class="price">$${lastTicket.price.toLocaleString('es-AR')}</div>
+                <div class="line"></div>
+                <p>Ticket: ${lastTicket.id}</p>
+                <p>${lastTicket.timestamp}</p>
+                <p>Operador: ${user?.name || user?.full_name || 'Admin'}</p>
+                <div class="line"></div>
+                <p style="font-size:10px;">¡Gracias por su confianza!</p>
+            </body></html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+    };
+
     return (
         <div className="page-content">
-            <div className="page-grid" style={{ gridTemplateColumns: '1.2fr 0.8fr', gap: 24 }}>
+            <div className="page-grid grid-2col">
                 {/* My Orders */}
                 <div>
                     <SectionHeader icon="engineering" title="Mis Trabajos: Órdenes Activas" right={
@@ -58,7 +129,7 @@ export const DailyWorkPage = () => {
                                     </div>
 
                                     <SectionHeader icon="checklist" title="Control de Tareas" />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+                                    <div className="grid-2col-even" style={{ marginBottom: 20 }}>
                                         {(STATIC_MOCK.checklist_template || []).slice(0, 6).map(item => (
                                             <CheckItem key={item.key} label={item.label} sub={item.group} />
                                         ))}
@@ -75,6 +146,14 @@ export const DailyWorkPage = () => {
                                 </GlassCard>
                             );
                         })}
+
+                        {myOrders.length === 0 && (
+                            <GlassCard style={{ padding: 40, textAlign: 'center' }}>
+                                <Icon name="sentiment_satisfied" size={48} style={{ color: 'var(--text-disabled)', marginBottom: 16 }} />
+                                <h3>No tienes órdenes activas</h3>
+                                <p style={{ color: 'var(--text-muted)' }}>Mantené la sección despejada para nuevos trabajos.</p>
+                            </GlassCard>
+                        )}
                     </div>
                 </div>
 
@@ -85,12 +164,35 @@ export const DailyWorkPage = () => {
                     } />
                     <div className="glass-card" style={{ padding: 20 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-                            Clic para registrar un servicio inmediato sin OT.
+                            Clic para registrar un servicio inmediato. Clic derecho para editar precio rápido.
                         </p>
 
                         <div className="quick-action-grid">
-                            {QUICK_ACTIONS.map(action => (
-                                <div key={action.id} className="quick-action-card" onClick={() => alert(`Servicio rápido: ${action.label} — ${formatCurrency(action.price)}`)}>
+                            {quickActions.map(action => (
+                                <div
+                                    key={action.id}
+                                    className="quick-action-card"
+                                    onClick={() => handleQuickAction(action)}
+                                    title="Clic izquierdo: Registrar | Clic derecho: Editar Precio"
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        openEditPrice(action);
+                                    }}
+                                >
+                                    {/* Icono de edición (absoluto) */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); openEditPrice(action); }}
+                                        style={{
+                                            position: 'absolute', top: 6, right: 6,
+                                            background: 'var(--bg-base)', border: 'none',
+                                            borderRadius: '50%', width: 24, height: 24,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', color: 'var(--text-muted)'
+                                        }}
+                                    >
+                                        <Icon name="edit" size={14} />
+                                    </button>
+
                                     <Icon name={action.icon} size={28} style={{ color: action.color, marginBottom: 8 }} />
                                     <div className="quick-action-label">{action.label}</div>
                                     <div style={{ fontSize: 11, color: action.price > 0 ? 'var(--text-primary)' : 'var(--success)', fontWeight: 700, marginTop: 4 }}>
@@ -132,6 +234,58 @@ export const DailyWorkPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Edición de Precios Rápidos */}
+            {editingAction && (
+                <Modal title={`Editar Precio: ${editingAction.label}`} onClose={() => setEditingAction(null)} footer={
+                    <React.Fragment>
+                        <button className="btn btn-ghost" onClick={() => setEditingAction(null)}>Cancelar</button>
+                        <button className="btn btn-primary" onClick={saveEditPrice}>Guardar Precio</button>
+                    </React.Fragment>
+                }>
+                    <FormField label="Nuevo Precio Fijo ($)" icon="attach_money">
+                        <input
+                            type="number"
+                            className="form-input"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                            min={0}
+                            step={100}
+                            autoFocus
+                        />
+                    </FormField>
+                    <p style={{ marginTop: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+                        <Icon name="info" size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                        Al guardar, el precio fijado será aplicable solo en este navegador (se guarda en caché local). Si pones 0, el servicio figurará como GRATIS.
+                    </p>
+                </Modal>
+            )}
+
+            {/* Modal de Ticket Generado */}
+            {showTicketModal && lastTicket && (
+                <Modal title="Servicio Registrado" onClose={() => setShowTicketModal(false)} footer={
+                    <React.Fragment>
+                        <button className="btn btn-ghost" onClick={() => setShowTicketModal(false)}>Cerrar</button>
+                        <button className="btn btn-success" onClick={printTicket}>
+                            <Icon name="print" size={18} /> Imprimir Ticket
+                        </button>
+                    </React.Fragment>
+                }>
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <Icon name="check_circle" size={56} style={{ color: 'var(--success)', marginBottom: 16 }} />
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: 20 }}>¡Servicio registrado con éxito!</h3>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', margin: '16px 0' }}>
+                            {lastTicket.label}
+                        </div>
+                        <div style={{ fontSize: 18, color: 'var(--primary)', fontWeight: 700 }}>
+                            {lastTicket.price > 0 ? `$${lastTicket.price.toLocaleString('es-AR')}` : 'GRATIS'}
+                        </div>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 16 }}>
+                            Podés entregarle el ticket impreso al cliente para que lo abone en caja.
+                        </p>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };

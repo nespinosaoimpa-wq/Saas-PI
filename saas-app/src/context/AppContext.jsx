@@ -9,6 +9,7 @@ export const AppProvider = ({ children }) => {
         clients: [], vehicles: [], workOrders: [],
         inventory: [], suppliers: [], boxes: [],
         payments: [], cashClosings: [], vehicleNotes: [],
+        appointments: [],
         activityLog: []
     });
     const [loading, setLoading] = useState(true);
@@ -20,7 +21,8 @@ export const AppProvider = ({ children }) => {
             const [
                 { data: clients }, { data: vehicles }, { data: workOrders },
                 { data: inventory }, { data: suppliers }, { data: boxes },
-                { data: vehicleNotes }, { data: payments }, { data: cashClosings }
+                { data: vehicleNotes }, { data: payments }, { data: cashClosings },
+                { data: appointments }
             ] = await Promise.all([
                 supabase.from('clients').select('*'),
                 supabase.from('vehicles').select('*'),
@@ -30,7 +32,8 @@ export const AppProvider = ({ children }) => {
                 supabase.from('boxes').select('*'),
                 supabase.from('vehicle_notes').select('*').order('created_at', { ascending: false }),
                 supabase.from('payments').select('*').order('created_at', { ascending: false }),
-                supabase.from('cash_closings').select('*').order('created_at', { ascending: false })
+                supabase.from('cash_closings').select('*').order('created_at', { ascending: false }),
+                supabase.from('appointments').select('*').order('date', { ascending: true })
             ]);
 
             setData({
@@ -43,6 +46,7 @@ export const AppProvider = ({ children }) => {
                 vehicleNotes: vehicleNotes || [],
                 payments: payments || [],
                 cashClosings: cashClosings || [],
+                appointments: appointments || [],
                 activityLog: []
             });
         } catch (e) {
@@ -65,6 +69,24 @@ export const AppProvider = ({ children }) => {
         (i.stock_type === 'UNIT' && i.stock_quantity <= i.stock_min) ||
         (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
+
+    const addQuickService = (action) => {
+        const entry = {
+            id: `qs-${Date.now()}`,
+            label: action.label,
+            price: action.price,
+            timestamp: new Date().toISOString()
+        };
+        setData(prev => ({
+            ...prev,
+            activityLog: [entry, ...(prev.activityLog || [])]
+        }));
+        if (action.price > 0) {
+            alert(`✅ ${action.label} registrado — ${action.price > 0 ? '$' + action.price.toLocaleString('es-AR') : 'GRATIS'}`);
+        } else {
+            alert(`✅ ${action.label} registrado — GRATIS`);
+        }
+    };
 
     // Historial unificado: OTs finalizadas + notas manuales
     const getVehicleHistory = (vehicleId) => {
@@ -390,7 +412,8 @@ export const AppProvider = ({ children }) => {
             addWithdrawal,
             performCashClose,
             processSale,
-            getCommissions
+            getCommissions,
+            addQuickService
         }}>
             {children}
         </AppContext.Provider>

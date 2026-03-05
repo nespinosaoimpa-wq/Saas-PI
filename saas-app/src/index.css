@@ -1438,13 +1438,111 @@ body {
 }
 
 /* ============================================================
-   25. RESPONSIVE BREAKPOINTS
+   25. RESPONSIVE GRID UTILITIES
    ============================================================ */
+
+/* Stats/KPI row: auto-fit responsive cards */
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+/* Main content + sidebar layout */
+.grid-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+}
+
+/* Main content + narrow sidebar (calendar, etc) */
+.grid-sidebar-narrow {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+
+/* Two-column split (60/40) */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+/* Two-column even */
+.grid-2col-even {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Client detail: sidebar + content */
+.grid-client-detail {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 1.5fr;
+  gap: 24px;
+}
+
+/* Sales layout */
+.grid-sales {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+}
+
+/* Reports 2-col split */
+.grid-reports {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+}
+
+/* Auto-fit cards (promotions, inventory gauges, etc) */
+.grid-auto-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.grid-auto-cards-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* Login grid */
+.grid-login {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+}
+
+/* ============================================================
+   26. RESPONSIVE BREAKPOINTS
+   ============================================================ */
+
+/* Quick action card needs relative for edit icon */
+.quick-action-card {
+  position: relative;
+}
+
+/* Calendar selected day */
+.calendar-cell.selected {
+  background: rgba(var(--primary-rgb), 0.2);
+  border: 1px solid rgba(var(--primary-rgb), 0.4);
+}
 
 /* Tablet / Small laptop */
 @media (max-width: 1200px) {
   .page-content {
     padding: 24px 20px;
+  }
+
+  .page-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
@@ -1455,6 +1553,9 @@ body {
     left: 0;
     top: 0;
     transform: translateX(-100%);
+    z-index: 300;
+    height: 100vh;
+    width: 240px;
   }
 
   .sidebar.open {
@@ -1464,6 +1565,10 @@ body {
 
   .sidebar-overlay {
     display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 299;
   }
 
   .header {
@@ -1477,6 +1582,42 @@ body {
   .header-live {
     display: none;
   }
+
+  .page-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Collapse ALL custom grids on tablet */
+  .grid-sidebar,
+  .grid-sidebar-narrow,
+  .grid-2col,
+  .grid-client-detail,
+  .grid-sales,
+  .grid-reports {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stat cards grid for tablets */
+  .stat-cards,
+  .stats-grid,
+  .grid-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .grid-2col-even {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Tables: horizontal scroll */
+  .data-table-wrapper,
+  .data-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table table {
+    min-width: 600px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1486,6 +1627,22 @@ body {
 
   .page-grid {
     gap: 16px;
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Collapse ALL grids on mobile */
+  .grid-sidebar,
+  .grid-sidebar-narrow,
+  .grid-2col,
+  .grid-2col-even,
+  .grid-client-detail,
+  .grid-sales,
+  .grid-reports {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
   .stat-card-value {
@@ -1514,12 +1671,103 @@ body {
   }
 
   .modal-overlay {
-    padding: 12px;
+    padding: 8px;
+    align-items: flex-end;
   }
 
   .modal-box {
-    max-height: 90vh;
-    border-radius: var(--radius-lg);
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+  }
+
+  /* Calendar compact */
+  .calendar-cell {
+    aspect-ratio: 1;
+  }
+
+  .calendar-day-header {
+    font-size: 10px;
+    padding: 6px 2px;
+  }
+
+  /* Form rows stack on mobile */
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-row>* {
+    width: 100% !important;
+    flex: unset !important;
+  }
+
+  /* Tabs scroll horizontally */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  .tab {
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  /* Quick action grid 2 cols */
+  .quick-action-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .quick-action-card {
+    padding: 14px 10px;
+  }
+
+  /* Search bar full width */
+  .search-bar {
+    min-width: unset !important;
+  }
+
+  /* Section header stack on small screens */
+  .section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Stat cards 2-column */
+  .stat-cards,
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  /* Glass card compact */
+  .glass-card {
+    padding: 14px;
+  }
+
+  /* Login adjustments */
+  .login-container {
+    padding: 20px;
   }
 }
 
@@ -1538,11 +1786,67 @@ body {
   }
 
   .stat-card {
-    padding: 16px;
+    padding: 12px;
   }
 
   .stat-card-value {
-    font-size: 20px;
+    font-size: 18px;
+  }
+
+  .stat-card-label {
+    font-size: 10px;
+  }
+
+  /* Quick action grid single col on very small */
+  .quick-action-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Modal full screen on very small devices */
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .modal-box {
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  /* Calendar even more compact */
+  .calendar-cell {
+    font-size: 11px;
+  }
+
+  /* Buttons full width */
+  .btn-primary,
+  .btn-success {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Data table narrow */
+  .data-table table {
+    min-width: 500px;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px;
+    /* Prevent iOS zoom on focus */
+  }
+}
+
+/* Safe area for notch devices (PWA) */
+@supports (padding: env(safe-area-inset-top)) {
+  .header {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .sidebar {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
