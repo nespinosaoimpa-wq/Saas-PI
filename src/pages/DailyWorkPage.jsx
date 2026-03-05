@@ -24,6 +24,25 @@ export const DailyWorkPage = () => {
     const [showCustomModal, setShowCustomModal] = useState(false);
     const [customService, setCustomService] = useState({ label: '', price: '' });
 
+    // OT Interactivity States
+    const [checklistState, setChecklistState] = useState({});
+
+    const toggleCheck = (woId, itemKey) => {
+        setChecklistState(prev => {
+            const current = prev[woId] || [];
+            if (current.includes(itemKey)) {
+                return { ...prev, [woId]: current.filter(k => k !== itemKey) };
+            }
+            return { ...prev, [woId]: [...current, itemKey] };
+        });
+    };
+
+    const handlePhotoCapture = (woId, file) => {
+        if (!file) return;
+        // Muestra aviso temporalmente simulando guardado de imagen
+        alert(`📸 Foto capturada correctamente para la OT. Guardada como: ${file.name}`);
+    };
+
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
             updateWorkOrder(id, { status: 'Finalizado', completed_at: new Date().toISOString() });
@@ -178,7 +197,13 @@ export const DailyWorkPage = () => {
                                     <SectionHeader icon="checklist" title="Control de Tareas" />
                                     <div className="grid-2col-even" style={{ marginBottom: 20 }}>
                                         {(STATIC_MOCK.checklist_template || []).slice(0, 6).map(item => (
-                                            <CheckItem key={item.key} label={item.label} sub={item.group} />
+                                            <CheckItem
+                                                key={item.key}
+                                                label={item.label}
+                                                sub={item.group}
+                                                checked={(checklistState[wo.id] || []).includes(item.key)}
+                                                onChange={() => toggleCheck(wo.id, item.key)}
+                                            />
                                         ))}
                                     </div>
 
@@ -186,9 +211,16 @@ export const DailyWorkPage = () => {
                                         <button className="btn btn-success" style={{ flex: 1, height: 46, fontSize: 14, fontWeight: 700 }} onClick={() => handleFinishOrder(wo.id)}>
                                             <Icon name="check_circle" size={20} /> FINALIZAR TRABAJO
                                         </button>
-                                        <button className="btn btn-ghost" style={{ width: 46, height: 46, padding: 0, justifyContent: 'center' }}>
+                                        <label className="btn btn-ghost" style={{ width: 46, height: 46, padding: 0, justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                             <Icon name="photo_camera" size={20} />
-                                        </button>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                style={{ display: 'none' }}
+                                                onChange={(e) => handlePhotoCapture(wo.id, e.target.files[0])}
+                                            />
+                                        </label>
                                     </div>
                                 </GlassCard>
                             );
