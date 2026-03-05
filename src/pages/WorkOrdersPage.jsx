@@ -46,18 +46,22 @@ export const WorkOrdersPage = () => {
             return;
         }
 
-        await addWorkOrder({
+        const createdWO = await addWorkOrder({
             ...newOrder,
             labor_cost: laborCost,
             parts_cost: partsCost,
             total_price: totalPrice,
-            applied_commission_rate: parseFloat(newOrder.applied_commission_rate) || appliedCommission
+            applied_commission_rate: parseFloat(newOrder.applied_commission_rate) || (selectedMechanic ? selectedMechanic.commission_rate : 0)
         });
 
         alert('✅ Orden de Trabajo creada con éxito.');
         setShowNew(false);
         setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '', applied_commission_rate: '' });
         setClientSearch('');
+        // Opcional: imprimir el ticket de ingreso inmediatamente
+        if (createdWO) {
+            setPrintWO(createdWO);
+        }
     };
 
     const filtered = MOCK.workOrders.filter(wo => {
