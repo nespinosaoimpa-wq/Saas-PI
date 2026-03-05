@@ -14,7 +14,7 @@ export const QueueCard = ({ wo, onClick }) => {
             <div className="queue-card-left">
                 <div className="queue-bay">
                     <small>{box ? 'BOX' : 'COLA'}</small>
-                    <strong>{box ? box.name.replace('Box ', '') : 'â€”'}</strong>
+                    <strong>{box ? (box.name || '').replace('Box ', '') : '—'}</strong>
                 </div>
                 <div className="queue-info">
                     <h4>{vehicle ? `${vehicle.brand} ${vehicle.model}` : 'VehÃ­culo'} â€” {wo.description}</h4>

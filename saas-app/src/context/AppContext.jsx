@@ -66,7 +66,7 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     const getClient = (id) => data.clients.find(c => c.id === id);
     const getVehicle = (id) => data.vehicles.find(v => v.id === id);
-    const getClientVehicles = (clientId) => data.vehicles.filter(v => v.client_id === clientId);
+    const getClientVehicles = (clientId) => (data.vehicles || []).filter(v => v && v.client_id === clientId);
     const getLowStockItems = () => data.inventory.filter(i =>
         (i.stock_type === 'UNIT' && i.stock_quantity <= i.stock_min) ||
         (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)

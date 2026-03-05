@@ -31,7 +31,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
     }, [initialScannedCode]);
 
     const handleScanResult = (code) => {
-        const vehicle = MOCK.vehicles.find(v => v.license_plate.toUpperCase() === code.toUpperCase());
+        const vehicle = (MOCK.vehicles || []).find(v => (v.license_plate || '').toUpperCase() === code.toUpperCase());
         if (vehicle) {
             const client = MOCK.clients.find(c => c.id === vehicle.client_id);
             if (client) {
@@ -186,7 +186,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                             {(selectedVehicle.history || []).length > 0 ? (
                                                 selectedVehicle.history.map(h => (
                                                     <div key={h.id} className="timeline-item">
-                                                        <div className="timeline-date">{h.date} • {h.km.toLocaleString()} km</div>
+                                                        <div className="timeline-date">{h.date} • {(h.km || 0).toLocaleString()} km</div>
                                                         <div className="timeline-content">
                                                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{h.description}</div>
                                                             <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
