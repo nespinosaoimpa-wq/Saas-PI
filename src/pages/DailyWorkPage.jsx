@@ -20,6 +20,10 @@ export const DailyWorkPage = () => {
     const [selectedQueueClient, setSelectedQueueClient] = useState(null);
     const [newQueueName, setNewQueueName] = useState('');
 
+    // Custom Service State
+    const [showCustomModal, setShowCustomModal] = useState(false);
+    const [customService, setCustomService] = useState({ label: '', price: '' });
+
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
             updateWorkOrder(id, { status: 'Finalizado', completed_at: new Date().toISOString() });
@@ -92,6 +96,20 @@ export const DailyWorkPage = () => {
         setQuickActions(updated);
         localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
         setEditingAction(null);
+    };
+
+    const handleCustomSubmit = () => {
+        if (!customService.label.trim() || customService.price === '') return alert('Complete nombre y precio del servicio');
+        const priceNum = parseFloat(customService.price) || 0;
+        handleQuickAction({
+            id: `custom-${Date.now()}`,
+            label: customService.label,
+            price: priceNum,
+            icon: 'build_circle',
+            color: 'var(--primary)'
+        });
+        setShowCustomModal(false);
+        setCustomService({ label: '', price: '' });
     };
 
     const printTicket = () => {
@@ -261,6 +279,17 @@ export const DailyWorkPage = () => {
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Botón de Servicio Libre */}
+                            <div
+                                className="quick-action-card"
+                                onClick={() => setShowCustomModal(true)}
+                                style={{ border: '2px dashed var(--primary)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <Icon name="add" size={28} style={{ color: 'var(--primary)', marginBottom: 8 }} />
+                                <div className="quick-action-label" style={{ color: 'var(--primary)' }}>Servicio Libre</div>
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Precio Variable</div>
+                            </div>
                         </div>
 
                         <div style={{ marginTop: 20, padding: 14, background: 'rgba(var(--primary-rgb), 0.04)', borderRadius: 'var(--radius)', border: '1px dashed var(--border)' }}>
@@ -344,6 +373,38 @@ export const DailyWorkPage = () => {
                         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 16 }}>
                             Podés entregarle el ticket impreso al cliente para que lo abone en caja.
                         </p>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal de Servicio Libre */}
+            {showCustomModal && (
+                <Modal title="Agregar Servicio Libre" onClose={() => setShowCustomModal(false)} footer={
+                    <React.Fragment>
+                        <button className="btn btn-ghost" onClick={() => setShowCustomModal(false)}>Cancelar</button>
+                        <button className="btn btn-primary" onClick={handleCustomSubmit}>Confirmar y Cobrar</button>
+                    </React.Fragment>
+                }>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormField label="¿Qué servicio realizaste? *">
+                            <input
+                                type="text"
+                                className="form-input"
+                                placeholder="Ej: Soldadura de escape"
+                                value={customService.label}
+                                onChange={(e) => setCustomService(prev => ({ ...prev, label: e.target.value }))}
+                                autoFocus
+                            />
+                        </FormField>
+                        <FormField label="Precio Acordado ($) *" icon="attach_money">
+                            <input
+                                type="number"
+                                className="form-input"
+                                placeholder="Ej: 8500"
+                                value={customService.price}
+                                onChange={(e) => setCustomService(prev => ({ ...prev, price: e.target.value }))}
+                            />
+                        </FormField>
                     </div>
                 </Modal>
             )}
