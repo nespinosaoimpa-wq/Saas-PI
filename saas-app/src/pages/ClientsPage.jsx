@@ -14,15 +14,18 @@ import {
 } from '../components/ui';
 
 export const ClientsPage = ({ initialScannedCode = '' }) => {
-    const { data: MOCK, getClientVehicles, addClient, addVehicle } = useApp();
+    const { data: MOCK, getClientVehicles, addClient, addVehicle, updateClient, addVehicleNote, getVehicleHistory } = useApp();
     const [search, setSearch] = useState('');
     const [selectedClient, setSelectedClient] = useState(null);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showNoteModal, setShowNoteModal] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
 
-    const [newClient, setNewClient] = useState({ first_name: '', last_name: '', phone: '', dni: '' });
+    const [newClient, setNewClient] = useState({ first_name: '', last_name: '', phone: '', dni: '', email: '' });
     const [newVehicle, setNewVehicle] = useState({ license_plate: initialScannedCode, brand: '', model: '', year: '' });
+    const [noteData, setNoteData] = useState({ description: '', km: '', cost: '', technician: '' });
 
     React.useEffect(() => {
         if (initialScannedCode) {
@@ -55,10 +58,37 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
             await addVehicle({ ...newVehicle, client_id: createdClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
             alert('✅ Cliente y vehículo registrados con éxito.');
             setShowNewModal(false);
-            setNewClient({ first_name: '', last_name: '', phone: '', dni: '' });
+            setNewClient({ first_name: '', last_name: '', phone: '', dni: '', email: '' });
             setNewVehicle({ license_plate: '', brand: '', model: '', year: '' });
         } catch (e) {
             alert('Error al registrar el cliente: ' + e.message);
+        }
+    };
+
+    const handleSaveEditClient = async () => {
+        if (!newClient.first_name || !newClient.last_name) return alert('Nombre y Apellido son obligatorios.');
+        try {
+            await updateClient(selectedClient.id, newClient);
+            alert('✅ Cliente actualizado con éxito.');
+            setSelectedClient({ ...selectedClient, ...newClient });
+            setShowEditModal(false);
+        } catch (e) {
+            alert('Error al actualizar: ' + e.message);
+        }
+    };
+
+    const handleSaveNote = async () => {
+        if (!noteData.description) return alert('La descripción es obligatoria.');
+        try {
+            await addVehicleNote({
+                vehicle_id: selectedVehicle.id,
+                ...noteData
+            });
+            alert('✅ Nota agregada con éxito.');
+            setShowNoteModal(false);
+            setNoteData({ description: '', km: '', cost: '', technician: '' });
+        } catch (e) {
+            alert('Error al agregar nota: ' + e.message);
         }
     };
 
@@ -108,7 +138,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                         title={`Ficha: ${selectedClient?.first_name || 'Sin Nombre'} ${selectedClient?.last_name || ''}`}
                         onClose={() => setSelectedClient(null)}
                         width="900px"
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setSelectedClient(null)}>Cerrar</button><button className="btn btn-primary">Editar Datos</button></Fragment>}
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setSelectedClient(null)}>Cerrar</button><button className="btn btn-primary" onClick={() => { setNewClient({ ...selectedClient }); setShowEditModal(true); }}>Editar Datos</button></Fragment>}
                     >
                         <div className="grid-client-detail">
                             {/* Profile + Vehicles */}
@@ -178,13 +208,13 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                                         width={60} height={60}
                                                     />
                                                 </div>
-                                                <button className="btn btn-primary btn-sm" style={{ alignSelf: 'stretch' }}><Icon name="add_notes" size={16} /> Nueva Nota</button>
+                                                <button className="btn btn-primary btn-sm" style={{ alignSelf: 'stretch' }} onClick={() => setShowNoteModal(true)}><Icon name="add_notes" size={16} /> Nueva Nota</button>
                                             </div>
                                         </div>
 
                                         <div className="timeline">
-                                            {(selectedVehicle.history || []).length > 0 ? (
-                                                selectedVehicle.history.map(h => (
+                                            {getVehicleHistory(selectedVehicle.id).length > 0 ? (
+                                                getVehicleHistory(selectedVehicle.id).map(h => (
                                                     <div key={h.id} className="timeline-item">
                                                         <div className="timeline-date">{h.date} • {(h.km || 0).toLocaleString()} km</div>
                                                         <div className="timeline-content">
@@ -245,6 +275,39 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
 
             {showCamera && (
                 <CameraScanner onScan={handleScanResult} onClose={() => setShowCamera(false)} defaultMode="plate" />
+            )}
+
+            {showEditModal && (
+                <Modal title="Editar Datos del Cliente" onClose={() => setShowEditModal(false)}
+                    footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEditModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSaveEditClient}>Guardar Cambios</button></Fragment>}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormRow>
+                            <FormField label="Nombre"><input className="form-input" value={newClient.first_name} onChange={e => setNewClient({ ...newClient, first_name: e.target.value })} /></FormField>
+                            <FormField label="Apellido"><input className="form-input" value={newClient.last_name} onChange={e => setNewClient({ ...newClient, last_name: e.target.value })} /></FormField>
+                        </FormRow>
+                        <FormRow>
+                            <FormField label="Teléfono"><input className="form-input" value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} /></FormField>
+                            <FormField label="Email"><input className="form-input" value={newClient.email || ''} onChange={e => setNewClient({ ...newClient, email: e.target.value })} /></FormField>
+                        </FormRow>
+                        <FormField label="DNI"><input className="form-input" value={newClient.dni} onChange={e => setNewClient({ ...newClient, dni: e.target.value })} /></FormField>
+                    </div>
+                </Modal>
+            )}
+
+            {showNoteModal && (
+                <Modal title="Agregar Nota / Recordatorio" onClose={() => setShowNoteModal(false)}
+                    footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNoteModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSaveNote}>Guardar Nota</button></Fragment>}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormField label="Descripción de la Nota *">
+                            <textarea className="form-input" style={{ minHeight: 100 }} placeholder="Ej: Cambio de aceite recomendado en 5000km..." value={noteData.description} onChange={e => setNoteData({ ...noteData, description: e.target.value })} />
+                        </FormField>
+                        <FormRow>
+                            <FormField label="Kilometraje (opcional)"><input className="form-input" type="number" value={noteData.km} onChange={e => setNoteData({ ...noteData, km: e.target.value })} /></FormField>
+                            <FormField label="Costo (si aplica)"><input className="form-input" type="number" value={noteData.cost} onChange={e => setNoteData({ ...noteData, cost: e.target.value })} /></FormField>
+                        </FormRow>
+                        <FormField label="Técnico / Responsable"><input className="form-input" value={noteData.technician} onChange={e => setNoteData({ ...noteData, technician: e.target.value })} /></FormField>
+                    </div>
+                </Modal>
             )}
         </div>
     );
