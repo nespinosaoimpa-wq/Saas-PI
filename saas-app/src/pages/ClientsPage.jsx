@@ -9,18 +9,41 @@ import {
     HealthRing,
     FormRow,
     FormField,
-    Icon
+    Icon,
+    CameraScanner
 } from '../components/ui';
 
-export const ClientsPage = () => {
+export const ClientsPage = ({ initialScannedCode = '' }) => {
     const { data: MOCK, getClientVehicles, addClient, addVehicle } = useApp();
     const [search, setSearch] = useState('');
     const [selectedClient, setSelectedClient] = useState(null);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
+    const [showCamera, setShowCamera] = useState(false);
 
     const [newClient, setNewClient] = useState({ first_name: '', last_name: '', phone: '', dni: '' });
-    const [newVehicle, setNewVehicle] = useState({ license_plate: '', brand: '', model: '', year: '' });
+    const [newVehicle, setNewVehicle] = useState({ license_plate: initialScannedCode, brand: '', model: '', year: '' });
+
+    React.useEffect(() => {
+        if (initialScannedCode) {
+            handleScanResult(initialScannedCode);
+        }
+    }, [initialScannedCode]);
+
+    const handleScanResult = (code) => {
+        const vehicle = MOCK.vehicles.find(v => v.license_plate.toUpperCase() === code.toUpperCase());
+        if (vehicle) {
+            const client = MOCK.clients.find(c => c.id === vehicle.client_id);
+            if (client) {
+                setSelectedClient(client);
+                setSelectedVehicle(vehicle);
+            }
+        } else {
+            setNewVehicle(prev => ({ ...prev, license_plate: code }));
+            setShowNewModal(true);
+        }
+        setShowCamera(false);
+    };
 
     const handleSaveNew = () => {
         if (!newClient.first_name || !newClient.last_name || !newVehicle.license_plate) {
@@ -56,6 +79,9 @@ export const ClientsPage = () => {
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 250 }}><SearchBar value={search} onChange={setSearch} placeholder="Buscar cliente por nombre, teléfono o DNI..." /></div>
+                    <button className="btn btn-ghost" onClick={() => setShowCamera(true)}>
+                        <Icon name="photo_camera" size={20} /> Escanear Patente
+                    </button>
                     <button className="btn btn-primary" onClick={() => setShowNewModal(true)}><Icon name="person_add" size={18} /> Nuevo Cliente</button>
                 </div>
 
@@ -210,6 +236,10 @@ export const ClientsPage = () => {
                     </Modal>
                 )}
             </div>
+
+            {showCamera && (
+                <CameraScanner onScan={handleScanResult} onClose={() => setShowCamera(false)} defaultMode="plate" />
+            )}
         </div>
     );
 };

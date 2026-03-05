@@ -16,6 +16,9 @@ export const DailyWorkPage = () => {
     const [editPrice, setEditPrice] = useState('');
     const [showTicketModal, setShowTicketModal] = useState(false);
     const [lastTicket, setLastTicket] = useState(null);
+    const [gomeriaQueue, setGomeriaQueue] = useState([]);
+    const [selectedQueueClient, setSelectedQueueClient] = useState(null);
+    const [newQueueName, setNewQueueName] = useState('');
 
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
@@ -41,14 +44,40 @@ export const DailyWorkPage = () => {
     });
 
     const handleQuickAction = (action) => {
-        addQuickService(action);
+        const isSecond = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
+
+        addQuickService(action, isSecond);
+
+        if (selectedQueueClient) {
+            setGomeriaQueue(prev => prev.map(q => {
+                if (q.id === selectedQueueClient.id) {
+                    return { ...q, services: [...q.services, action] };
+                }
+                return q;
+            }));
+            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, action] }));
+        }
+
         setLastTicket({
             id: `T-${Date.now()}`,
-            label: action.label,
-            price: action.price,
+            label: isSecond ? `${action.label} (Adicional)` : action.label,
+            price: isSecond ? action.price * 0.7 : action.price,
             timestamp: new Date().toLocaleString('es-AR')
         });
         setShowTicketModal(true);
+    };
+
+    const addToQueue = () => {
+        if (!newQueueName.trim()) return;
+        const newItem = { id: Date.now(), name: newQueueName, services: [] };
+        setGomeriaQueue(prev => [...prev, newItem]);
+        setNewQueueName('');
+        if (!selectedQueueClient) setSelectedQueueClient(newItem);
+    };
+
+    const removeFromQueue = (id) => {
+        setGomeriaQueue(prev => prev.filter(q => q.id !== id));
+        if (selectedQueueClient?.id === id) setSelectedQueueClient(null);
     };
 
     const openEditPrice = (action) => {
@@ -162,9 +191,41 @@ export const DailyWorkPage = () => {
                     <SectionHeader icon="tire_repair" title="Gomería: Registro Rápido" right={
                         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>MÓDULO EXPRESS</span>
                     } />
+
+                    {/* Cola de Espera Gomería */}
+                    <div className="glass-card" style={{ padding: 20, marginBottom: 16 }}>
+                        <SectionHeader icon="groups" title="Cola de Espera" />
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <input className="form-input" placeholder="Nombre de cliente/Vehículo..." value={newQueueName} onChange={e => setNewQueueName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addToQueue()} />
+                            <button className="btn btn-primary btn-sm" onClick={addToQueue}>Agregar</button>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8 }}>
+                            {gomeriaQueue.map(q => (
+                                <div key={q.id}
+                                    onClick={() => setSelectedQueueClient(q)}
+                                    className={`nav-item ${selectedQueueClient?.id === q.id ? 'active' : ''}`}
+                                    style={{
+                                        padding: '8px 14px', borderRadius: 'var(--radius)',
+                                        whiteSpace: 'nowrap', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        border: selectedQueueClient?.id === q.id ? '2px solid var(--primary)' : '1px solid var(--border)'
+                                    }}>
+                                    <span>{q.name}</span>
+                                    {q.services.length > 0 && <span className="nav-badge">{q.services.length}</span>}
+                                    <button onClick={(e) => { e.stopPropagation(); removeFromQueue(q.id); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: 0 }}>&times;</button>
+                                </div>
+                            ))}
+                            {gomeriaQueue.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No hay clientes en espera</div>}
+                        </div>
+                    </div>
+
                     <div className="glass-card" style={{ padding: 20 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-                            Clic para registrar un servicio inmediato. Clic derecho para editar precio rápido.
+                            {selectedQueueClient ? (
+                                <span>Registrando servicios para: <strong>{selectedQueueClient.name}</strong>. A partir del 2do parche de igual tipo, descuento del 30%.</span>
+                            ) : (
+                                <span>Seleccioná un cliente de la cola para aplicar lógica de parches adicionales.</span>
+                            )}
                         </p>
 
                         <div className="quick-action-grid">

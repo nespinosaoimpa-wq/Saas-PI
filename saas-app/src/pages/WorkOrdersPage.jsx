@@ -27,7 +27,8 @@ export const WorkOrdersPage = () => {
 
     const [newOrder, setNewOrder] = useState({
         client_id: '', vehicle_id: '', box_id: '', km_at_entry: '',
-        description: '', labor_cost: '', parts_cost: '', mechanic_id: ''
+        description: '', labor_cost: '', parts_cost: '', mechanic_id: '',
+        applied_commission_rate: ''
     });
 
     // Nuevo estado para la búsqueda interactiva
@@ -45,18 +46,16 @@ export const WorkOrdersPage = () => {
             return;
         }
 
-        const appliedCommission = selectedMechanic ? selectedMechanic.commission_rate : 0;
-
         await addWorkOrder({
             ...newOrder,
             labor_cost: laborCost,
             parts_cost: partsCost,
             total_price: totalPrice,
-            applied_commission_rate: appliedCommission
+            applied_commission_rate: parseFloat(newOrder.applied_commission_rate) || appliedCommission
         });
 
         setShowNew(false);
-        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '' });
+        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_id: '', applied_commission_rate: '' });
         setClientSearch('');
     };
 
@@ -222,11 +221,22 @@ export const WorkOrdersPage = () => {
                                 </select>
                             </FormField>
                             {selectedMechanic && laborCost > 0 && (
-                                <div style={{ marginTop: 8, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Mano de obra: {formatCurrency(laborCost)}. Comisión estimada <strong>({selectedMechanic.commission_rate}% de la mano de obra)</strong>:</span>
-                                    <strong style={{ color: 'var(--primary)' }}>
-                                        {formatCurrency(laborCost * (selectedMechanic.commission_rate / 100))}
-                                    </strong>
+                                <div style={{ marginTop: 8, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>Comisión Base del Técnico:</span>
+                                        <strong>{selectedMechanic.commission_rate}%</strong>
+                                    </div>
+                                    <FormField label="% Comisión para esta Orden (Opcional)">
+                                        <input className="form-input" type="number" step="0.1" placeholder={selectedMechanic.commission_rate}
+                                            value={newOrder.applied_commission_rate}
+                                            onChange={e => setNewOrder({ ...newOrder, applied_commission_rate: e.target.value })} />
+                                    </FormField>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                                        <span style={{ fontWeight: 600 }}>Comisión Final:</span>
+                                        <strong style={{ color: 'var(--primary)' }}>
+                                            {formatCurrency(laborCost * ((parseFloat(newOrder.applied_commission_rate) || selectedMechanic.commission_rate) / 100))}
+                                        </strong>
+                                    </div>
                                 </div>
                             )}
                         </div>

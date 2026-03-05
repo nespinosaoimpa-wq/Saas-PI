@@ -70,22 +70,59 @@ export const AppProvider = ({ children }) => {
         (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = (action) => {
+    const addQuickService = (action, isSecondOrMore = false) => {
+        const finalPrice = isSecondOrMore ? action.price * 0.7 : action.price; // 30% discount if second
         const entry = {
             id: `qs-${Date.now()}`,
-            label: action.label,
-            price: action.price,
+            label: isSecondOrMore ? `${action.label} (Adicional -30%)` : action.label,
+            price: finalPrice,
             timestamp: new Date().toISOString()
         };
         setData(prev => ({
             ...prev,
             activityLog: [entry, ...(prev.activityLog || [])]
         }));
-        if (action.price > 0) {
-            alert(`✅ ${action.label} registrado — ${action.price > 0 ? '$' + action.price.toLocaleString('es-AR') : 'GRATIS'}`);
-        } else {
-            alert(`✅ ${action.label} registrado — GRATIS`);
+        alert(`✅ ${entry.label} registrado — $${finalPrice.toLocaleString('es-AR')}`);
+    };
+
+    const exportToExcel = (dataType) => {
+        let rows = [];
+        let filename = 'export.csv';
+
+        if (dataType === 'payments') {
+            rows = data.payments.map(p => ({
+                Fecha: p.date,
+                Monto: p.amount,
+                Metodo: p.method,
+                Tipo: p.type,
+                Descripcion: p.description
+            }));
+            filename = `movimientos_caja_${new Date().toISOString().split('T')[0]}.csv`;
+        } else if (dataType === 'inventory') {
+            rows = data.inventory.map(i => ({
+                Producto: i.name,
+                Marca: i.brand,
+                Precio_Venta: i.sell_price,
+                Stock: i.stock_type === 'UNIT' ? i.stock_quantity : i.stock_ml,
+                Tipo: i.stock_type
+            }));
+            filename = `inventario_${new Date().toISOString().split('T')[0]}.csv`;
         }
+
+        if (rows.length === 0) return alert('No hay datos para exportar');
+
+        const headers = Object.keys(rows[0]).join(';');
+        const csvContent = [headers, ...rows.map(r => Object.values(r).join(';'))].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Historial unificado: OTs finalizadas + notas manuales
@@ -413,7 +450,8 @@ export const AppProvider = ({ children }) => {
             performCashClose,
             processSale,
             getCommissions,
-            addQuickService
+            addQuickService,
+            exportToExcel
         }}>
             {children}
         </AppContext.Provider>

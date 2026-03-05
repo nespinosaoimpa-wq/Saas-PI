@@ -11,16 +11,18 @@ import {
     FormRow,
     StatusBadge,
     SectionHeader,
-    Icon
+    Icon,
+    PrintableClosing
 } from '../components/ui';
 
 export const CashRegisterPage = () => {
-    const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions } = useApp();
+    const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
     const { employees } = useAuth();
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
     const [showClose, setShowClose] = useState(false);
+    const [lastClosing, setLastClosing] = useState(null);
     const [closingCash, setClosingCash] = useState('');
     const [newPayment, setNewPayment] = useState({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
     const [newWithdrawal, setNewWithdrawal] = useState({ amount: '', description: '' });
@@ -53,18 +55,19 @@ export const CashRegisterPage = () => {
         setNewWithdrawal({ amount: '', description: '' });
     };
 
-    const handlePerformClose = () => {
+    const handlePerformClose = async () => {
         const cash_expected = cash;
         const diff = parseFloat(closingCash || 0) - cash_expected;
-        performCashClose({
+        const res = await performCashClose({
             cash_expected,
             cash_real: parseFloat(closingCash || 0),
             difference: diff,
             transfer_total: transfer,
             card_total: card,
-            total_day: cash + transfer + card
+            total_day: cash + transfer + card,
+            employee_id: user.id
         });
-        alert('Cierre de caja realizado con éxito');
+        setLastClosing({ ...res, employee_name: user.name });
         setShowClose(false);
         setClosingCash('');
     };
@@ -88,8 +91,11 @@ export const CashRegisterPage = () => {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Tabs tabs={[{ key: 'daily', label: 'Diario' }, { key: 'weekly', label: 'Semanal' }, { key: 'monthly', label: 'Mensual' }]} active={period} onChange={setPeriod} />
                     <div style={{ flex: 1 }} />
+                    <button className="btn btn-ghost" onClick={() => exportToExcel('payments')}>
+                        <Icon name="download" size={18} /> Exportar Excel
+                    </button>
                     <button className="btn btn-ghost" onClick={() => setShowClose(true)}><Icon name="lock" size={18} /> Cierre de Caja</button>
-                    <button className="btn btn-ghost" onClick={() => setShowWithdrawal(true)}><Icon name="money_off" size={18} /> Retiro / Egreso</button>
+                    <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => setShowWithdrawal(true)}><Icon name="money_off" size={18} /> Retiro / Egreso</button>
                     <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add" size={18} /> Registrar Ingreso</button>
                 </div>
 
@@ -103,10 +109,17 @@ export const CashRegisterPage = () => {
                 <DataTable
                     columns={[
                         { key: 'date', label: 'Fecha', render: r => r.payment_date || r.date },
-                        { key: 'amount', label: 'Monto', render: r => <strong style={{ color: r.amount < 0 ? 'var(--danger)' : 'var(--primary)' }}>{formatCurrency(r.amount)}</strong> },
+                        {
+                            key: 'amount', label: 'Monto', render: r => (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    {r.amount < 0 && <Icon name="trending_down" size={14} style={{ color: 'var(--danger)' }} />}
+                                    <strong style={{ color: r.amount < 0 ? 'var(--danger)' : 'var(--primary)' }}>{formatCurrency(r.amount)}</strong>
+                                </div>
+                            )
+                        },
                         { key: 'method', label: 'Método', render: r => <StatusBadge status={r.payment_method === 'EFECTIVO' ? 'Pendiente' : r.payment_method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} /> },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
-                        { key: 'wo', label: 'OT', render: r => r.work_order_id ? <span className="nav-badge">OT</span> : '—' },
+                        { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
                     ]}
                     data={allPayments}
                 />
@@ -245,6 +258,10 @@ export const CashRegisterPage = () => {
                 </div>
 
             </div>
+
+            {lastClosing && (
+                <PrintableClosing closing={lastClosing} onClose={() => setLastClosing(null)} />
+            )}
         </div>
     );
 };
