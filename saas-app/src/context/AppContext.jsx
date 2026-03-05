@@ -64,12 +64,12 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Helpers
     // ==========================================
-    const getClient = (id) => data.clients.find(c => c.id === id);
-    const getVehicle = (id) => data.vehicles.find(v => v.id === id);
+    const getClient = (id) => (data.clients || []).find(c => c.id === id);
+    const getVehicle = (id) => (data.vehicles || []).find(v => v.id === id);
     const getClientVehicles = (clientId) => (data.vehicles || []).filter(v => v && v.client_id === clientId);
-    const getLowStockItems = () => data.inventory.filter(i =>
-        (i.stock_type === 'UNIT' && i.stock_quantity <= i.stock_min) ||
-        (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
+    const getLowStockItems = () => (data.inventory || []).filter(i =>
+        (i && i.stock_type === 'UNIT' && i.stock_quantity <= i.stock_min) ||
+        (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
     const addQuickService = (action, isSecondOrMore = false) => {
@@ -129,8 +129,8 @@ export const AppProvider = ({ children }) => {
 
     // Historial unificado: OTs finalizadas + notas manuales
     const getVehicleHistory = (vehicleId) => {
-        const otEntries = data.workOrders
-            .filter(wo => wo.vehicle_id === vehicleId && (wo.status === 'Finalizado' || wo.status === 'Cobrado'))
+        const otEntries = (data.workOrders || [])
+            .filter(wo => wo && wo.vehicle_id === vehicleId && (wo.status === 'Finalizado' || wo.status === 'Cobrado'))
             .map(wo => ({
                 id: wo.id,
                 date: wo.completed_at || wo.created_at,
@@ -142,8 +142,8 @@ export const AppProvider = ({ children }) => {
                 order_number: wo.order_number
             }));
 
-        const noteEntries = data.vehicleNotes
-            .filter(n => n.vehicle_id === vehicleId)
+        const noteEntries = (data.vehicleNotes || [])
+            .filter(n => n && n.vehicle_id === vehicleId)
             .map(n => ({
                 id: n.id,
                 date: n.created_at,
@@ -424,7 +424,7 @@ export const AppProvider = ({ children }) => {
     // Comisiones
     // ==========================================
     const getCommissions = (technicianId) => {
-        const finished = data.workOrders.filter(wo => wo.mechanic_id === technicianId && (wo.status === 'Finalizado' || wo.status === 'Cobrado'));
+        const finished = (data.workOrders || []).filter(wo => wo && wo.mechanic_id === technicianId && (wo.status === 'Finalizado' || wo.status === 'Cobrado'));
         return finished.reduce((sum, wo) => sum + ((parseFloat(wo.labor_cost) || 0) * ((parseFloat(wo.applied_commission_rate) || 0) / 100)), 0);
     };
 
