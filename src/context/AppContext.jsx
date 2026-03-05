@@ -109,7 +109,7 @@ export const AppProvider = ({ children }) => {
 
         if (dataType === 'payments') {
             rows = data.payments.map(p => ({
-                Fecha: p.date,
+                Fecha: p.date ? new Date(p.date).toLocaleString('es-AR') : '',
                 Monto: p.amount,
                 Metodo: p.method,
                 Tipo: p.type,
@@ -125,6 +125,39 @@ export const AppProvider = ({ children }) => {
                 Tipo: i.stock_type
             }));
             filename = `inventario_${new Date().toISOString().split('T')[0]}.csv`;
+        } else if (dataType === 'sales') {
+            rows = data.payments.filter(p => p.type === 'INGRESO' && p.description?.includes('Venta Libre')).map(s => ({
+                Fecha: s.date ? new Date(s.date).toLocaleString('es-AR') : '',
+                Monto_Total: s.amount,
+                Metodo_Pago: s.method,
+                Cajero: s.cashier_id || 'LOCAL',
+                Detalle: s.description
+            }));
+            filename = `punto_de_venta_${new Date().toISOString().split('T')[0]}.csv`;
+        } else if (dataType === 'work_orders') {
+            rows = data.workOrders.map(wo => {
+                const client = data.clients?.find(c => c.id === wo.client_id);
+                return {
+                    Nro_Orden: wo.order_number,
+                    Fecha_Ingreso: wo.created_at ? new Date(wo.created_at).toLocaleDateString('es-AR') : '',
+                    Cliente: client ? `${client.first_name} ${client.last_name}` : 'N/A',
+                    Descripcion: wo.description,
+                    Estado: wo.status,
+                    Total: wo.total_price || 0
+                };
+            });
+            filename = `ordenes_trabajo_${new Date().toISOString().split('T')[0]}.csv`;
+        } else if (dataType === 'appointments') {
+            rows = data.appointments.map(a => ({
+                Fecha: a.date,
+                Hora: a.time,
+                Motivo: a.title,
+                Cliente: a.client,
+                Vehiculo: a.vehicle,
+                Box: a.box,
+                Estado: a.status
+            }));
+            filename = `turnos_${new Date().toISOString().split('T')[0]}.csv`;
         }
 
         if (rows.length === 0) return alert('No hay datos para exportar');

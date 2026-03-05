@@ -12,7 +12,7 @@ import {
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 
 export const SalesPage = () => {
-    const { data: MOCK, processSale } = useApp();
+    const { data: MOCK, processSale, exportToExcel } = useApp();
     const [cart, setCart] = useState([]);
     const [manualCode, setManualCode] = useState('');
     const [showCamera, setShowCamera] = useState(false);
@@ -119,6 +119,9 @@ export const SalesPage = () => {
                         </button>
                         <button className="btn btn-ghost" onClick={() => setShowCamera(true)} style={{ padding: '12px 16px' }}>
                             <Icon name="photo_camera" size={20} />
+                        </button>
+                        <button className="btn btn-ghost" onClick={() => exportToExcel('sales')} style={{ padding: '12px 16px', marginLeft: 'auto' }} title="Exportar Ventas a Excel">
+                            <Icon name="download" size={20} />
                         </button>
                     </div>
 

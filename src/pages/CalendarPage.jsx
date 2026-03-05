@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { SectionHeader, GlassCard, StatusBadge, Icon, Modal, FormRow, FormField } from '../components/ui';
 
 export const CalendarPage = () => {
-    const { data: MOCK, refreshData } = useApp();
+    const { data: MOCK, refreshData, exportToExcel } = useApp();
     const appointments = MOCK.appointments || [];
 
     // Dynamic date
@@ -104,6 +104,7 @@ export const CalendarPage = () => {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                             <button className="btn btn-ghost btn-sm" onClick={prevMonth}><Icon name="chevron_left" size={20} /></button>
                             <button className="btn btn-ghost btn-sm" onClick={nextMonth}><Icon name="chevron_right" size={20} /></button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => exportToExcel('appointments')} title="Exportar Turnos a Excel"><Icon name="download" size={20} /></button>
                             <button className="btn btn-primary btn-sm" onClick={openNewAppointment}><Icon name="add" size={16} /> Nuevo Turno</button>
                         </div>
                     } />

@@ -17,7 +17,7 @@ import {
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
-    const { data: MOCK, getClientVehicles, addWorkOrder } = useApp();
+    const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel } = useApp();
     const { employees } = useAuth();
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
@@ -88,6 +88,9 @@ export const WorkOrdersPage = () => {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Tabs tabs={[{ key: 'active', label: 'Activas' }, { key: 'done', label: 'Finalizadas' }, { key: 'all', label: 'Todas' }]} active={tab} onChange={setTab} />
                     <div style={{ flex: 1 }} />
+                    <button className="btn btn-ghost" onClick={() => exportToExcel('work_orders')}>
+                        <Icon name="download" size={18} /> Exportar Excel
+                    </button>
                     <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add_circle" size={18} /> Nueva OT</button>
                 </div>
 
