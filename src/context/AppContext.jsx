@@ -357,6 +357,28 @@ export const AppProvider = ({ children }) => {
     const updateWorkOrder = async (id, updates) => {
         const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
         if (!error) {
+            // Si la orden se finaliza o cobra, intentar crear el pago automáticamente en caja
+            if (updates.status === 'Finalizado' || updates.status === 'Cobrado') {
+                const wo = data.workOrders?.find(w => w.id === id);
+                if (wo && wo.total_price > 0) {
+                    try {
+                        const existPayment = data.payments?.some(p => p.work_order_id === id);
+                        if (!existPayment) {
+                            await addPayment({
+                                amount: wo.total_price,
+                                method: 'EFECTIVO', // Asumimos efectivo por defecto al finalizar rápido
+                                description: `Pago OT #${wo.order_number}`,
+                                type: 'INGRESO',
+                                reference: 'OT',
+                                work_order_id: wo.id
+                            });
+                        }
+                    } catch (e) {
+                        console.error('No se pudo automatizar el pago de la OT', e);
+                    }
+                }
+            }
+
             setData(prev => ({
                 ...prev,
                 workOrders: prev.workOrders.map(wo => wo.id === id ? { ...wo, ...updates } : wo)
