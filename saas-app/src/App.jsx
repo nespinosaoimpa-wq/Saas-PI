@@ -209,7 +209,7 @@ function App() {
                                 {user.name}
                             </div>
                             <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>{user.role.toUpperCase()} • v2.0</span>
+                                <span>{user.role.toUpperCase()} • v2.1 – ULTRA SAFETY</span>
                                 <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 10, padding: 0 }}>Salir</button>
                             </div>
                         </div>
