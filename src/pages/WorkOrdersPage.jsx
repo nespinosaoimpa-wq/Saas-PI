@@ -24,6 +24,7 @@ export const WorkOrdersPage = () => {
     const [tab, setTab] = useState('active');
     const [showNew, setShowNew] = useState(false);
     const [printWO, setPrintWO] = useState(null);
+    const [vehicleSheet, setVehicleSheet] = useState(null);
 
     const handleFinalize = (e, woId) => {
         e.stopPropagation();
@@ -119,6 +120,7 @@ export const WorkOrdersPage = () => {
                                     mechanic: mechanicName,
                                     box: boxName
                                 }}
+                                onViewVehicle={setVehicleSheet}
                                 rightAction={
                                     (wo.status === 'Pendiente' || wo.status === 'En Box') ? (
                                         <button
@@ -271,6 +273,52 @@ export const WorkOrdersPage = () => {
 
                 {printWO && (
                     <PrintableTicket workOrder={printWO} onClose={() => setPrintWO(null)} />
+                )}
+
+                {vehicleSheet && (
+                    <Modal title="Ficha Histórica del Vehículo" width="800px" onClose={() => setVehicleSheet(null)}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                            <div className="glass-card" style={{ padding: 20, display: 'flex', gap: 20, alignItems: 'center' }}>
+                                <Icon name="directions_car" size={48} style={{ color: 'var(--primary)' }} />
+                                <div>
+                                    <h3 style={{ fontSize: 24, margin: '0 0 4px 0' }}>{vehicleSheet.brand} {vehicleSheet.model}</h3>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+                                        Patente: <strong style={{ color: 'var(--text-primary)' }}>{vehicleSheet.license_plate}</strong> |
+                                        Año: <strong style={{ color: 'var(--text-primary)' }}>{vehicleSheet.year || 'N/A'}</strong> |
+                                        Chasis: <strong style={{ color: 'var(--text-primary)' }}>{vehicleSheet.chassis_number || 'S/N'}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <SectionHeader icon="history" title="Registro Histórico de Servicios" />
+
+                            {MOCK.workOrders.filter(wo => wo.vehicle_id === vehicleSheet.id && (wo.status === 'Finalizado' || wo.status === 'Cobrado')).length === 0 ? (
+                                <EmptyState icon="history" title="Sin historial" sub="Este vehículo no tiene trabajos completados en el sistema aún." />
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto', paddingRight: 8 }}>
+                                    {MOCK.workOrders
+                                        .filter(wo => wo.vehicle_id === vehicleSheet.id && (wo.status === 'Finalizado' || wo.status === 'Cobrado'))
+                                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                                        .map(wo => (
+                                            <div key={wo.id} style={{ background: 'var(--bg-hover)', padding: 16, borderRadius: 'var(--radius)', borderLeft: '4px solid var(--primary)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                    <strong style={{ fontSize: 13, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <Icon name="event" size={14} />
+                                                        {new Date(wo.created_at).toLocaleDateString('es-AR')}
+                                                    </strong>
+                                                    <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Km Registrado: {wo.km_at_entry ? wo.km_at_entry.toLocaleString('es-AR') : 'N/A'}</span>
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>{wo.description}</p>
+                                                <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 16 }}>
+                                                    <span>OT #{wo.order_number}</span>
+                                                    <span style={{ color: 'var(--success)', fontWeight: 700 }}>{formatCurrency(wo.total_price)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            )}
+                        </div>
+                    </Modal>
                 )}
             </div>
         </div>
