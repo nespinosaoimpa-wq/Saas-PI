@@ -17,7 +17,8 @@ export const SalesPage = () => {
     const [manualCode, setManualCode] = useState('');
     const [showCamera, setShowCamera] = useState(false);
     const [payMethod, setPayMethod] = useState('EFECTIVO');
-    const [invoiceType, setInvoiceType] = useState('INTERNAL'); // INTERNAL, FACTURA_B
+    const [invoiceType, setInvoiceType] = useState('INTERNAL'); // INTERNAL, FACTURA_A, FACTURA_B
+    const [customerCuit, setCustomerCuit] = useState('');
     const [lastSale, setLastSale] = useState(null);
     const [printSale, setPrintSale] = useState(null);
     const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
@@ -89,13 +90,16 @@ export const SalesPage = () => {
         let afipData = null;
 
         try {
-            if (invoiceType === 'FACTURA_B') {
-                // Request Factura B (Consumidor Final, docType 99)
+            if (invoiceType === 'FACTURA_A' || invoiceType === 'FACTURA_B') {
+                if (invoiceType === 'FACTURA_A' && (!customerCuit || customerCuit.length < 11)) {
+                    throw new Error('Debe ingresar un CUIT válido para Factura A');
+                }
+
                 afipData = await MOCK.generateAFIPInvoice({
                     amount: total,
-                    docType: 99,
-                    docNumber: 0,
-                    billType: 6 // Factura B
+                    docType: invoiceType === 'FACTURA_A' ? 80 : 99,
+                    docNumber: invoiceType === 'FACTURA_A' ? customerCuit : 0,
+                    billType: invoiceType === 'FACTURA_A' ? 1 : 6
                 });
             }
 
@@ -259,8 +263,21 @@ export const SalesPage = () => {
                             <select className="form-select" value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
                                 <option value="INTERNAL">📄 Ticket Interno (No Fiscal)</option>
                                 <option value="FACTURA_B">🧾 Factura B (Electrónica AFIP)</option>
+                                <option value="FACTURA_A">🏢 Factura A (Responsable Inscripto)</option>
                             </select>
                         </FormField>
+
+                        {invoiceType === 'FACTURA_A' && (
+                            <FormField label="CUIT del Cliente" style={{ marginTop: 12 }}>
+                                <input
+                                    className="form-input"
+                                    placeholder="Ej: 20123456789"
+                                    value={customerCuit}
+                                    onChange={e => setCustomerCuit(e.target.value.replace(/\D/g, ''))}
+                                    maxLength={11}
+                                />
+                            </FormField>
+                        )}
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
                             <button

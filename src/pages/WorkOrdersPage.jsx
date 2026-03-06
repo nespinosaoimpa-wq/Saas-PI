@@ -28,12 +28,20 @@ export const WorkOrdersPage = () => {
 
     const [finalizeWO, setFinalizeWO] = useState(null); // woId to finalize
     const [invoiceType, setInvoiceType] = useState('INTERNAL');
+    const [customerCuit, setCustomerCuit] = useState('');
     const [isFinalizing, setIsFinalizing] = useState(false);
 
     const handleFinalizeClick = (e, woId) => {
         e.stopPropagation();
+        const wo = MOCK.workOrders.find(w => w.id === woId);
         setFinalizeWO(woId);
         setInvoiceType('INTERNAL');
+        // Pre-fill CUIT if cliente has one (dni of 11 digits)
+        if (wo?.clients?.dni && wo.clients.dni.length === 11) {
+            setCustomerCuit(wo.clients.dni);
+        } else {
+            setCustomerCuit('');
+        }
     };
 
     const confirmFinalize = async () => {
@@ -44,12 +52,16 @@ export const WorkOrdersPage = () => {
             if (!wo) throw new Error("OT no encontrada");
 
             let afipData = null;
-            if (invoiceType === 'FACTURA_B') {
+            if (invoiceType === 'FACTURA_A' || invoiceType === 'FACTURA_B') {
+                if (invoiceType === 'FACTURA_A' && (!customerCuit || customerCuit.length < 11)) {
+                    throw new Error('Debe ingresar un CUIT válido para Factura A');
+                }
+
                 afipData = await MOCK.generateAFIPInvoice({
                     amount: wo.total_price || 0,
-                    docType: 99,
-                    docNumber: 0,
-                    billType: 6 // Factura B
+                    docType: invoiceType === 'FACTURA_A' ? 80 : 99,
+                    docNumber: invoiceType === 'FACTURA_A' ? customerCuit : 0,
+                    billType: invoiceType === 'FACTURA_A' ? 1 : 6
                 });
             }
 
@@ -322,11 +334,24 @@ export const WorkOrdersPage = () => {
                                 <select className="form-select" value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
                                     <option value="INTERNAL">Ticket Interno (No Fiscal)</option>
                                     <option value="FACTURA_B">Factura Electrónica B (AFIP)</option>
+                                    <option value="FACTURA_A">Factura Electrónica A (AFIP)</option>
                                 </select>
                                 <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: 8 }}>
                                     Al confirmar, el monto se registrará como ingreso en la caja diaria.
                                 </small>
                             </FormField>
+
+                            {invoiceType === 'FACTURA_A' && (
+                                <FormField label="CUIT del Cliente" style={{ marginTop: 12 }}>
+                                    <input
+                                        className="form-input"
+                                        placeholder="20123456789"
+                                        value={customerCuit}
+                                        onChange={e => setCustomerCuit(e.target.value.replace(/\D/g, ''))}
+                                        maxLength={11}
+                                    />
+                                </FormField>
+                            )}
 
                             <FormRow style={{ marginTop: 24, justifyContent: 'flex-end' }}>
                                 <button className="btn btn-ghost" onClick={() => setFinalizeWO(null)} disabled={isFinalizing}>Cancelar</button>

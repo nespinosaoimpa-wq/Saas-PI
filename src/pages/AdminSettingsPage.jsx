@@ -15,6 +15,8 @@ export const AdminSettingsPage = () => {
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [testing, setTesting] = useState(false);
+    const [testResult, setTestResult] = useState(null);
 
     useEffect(() => {
         fetchConfig();
@@ -27,6 +29,35 @@ export const AdminSettingsPage = () => {
             setConfig(data);
         }
         setLoading(false);
+    };
+
+    const handleTest = async () => {
+        setTesting(true);
+        setTestResult(null);
+        try {
+            const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5173' : '';
+            const res = await fetch(`${baseUrl}/api/afip`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: 1,
+                    docType: 99,
+                    docNumber: 0,
+                    billType: config.environment === 'production' ? 6 : 6, // Factura B test
+                    isTest: true
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTestResult({ success: true, message: `Conexión exitosa. Último comprobante: ${data.receiptText}` });
+            } else {
+                setTestResult({ success: false, message: data.error || 'Error desconocido' });
+            }
+        } catch (e) {
+            setTestResult({ success: false, message: e.message });
+        } finally {
+            setTesting(false);
+        }
     };
 
     const handleSave = async () => {
@@ -141,15 +172,40 @@ export const AdminSettingsPage = () => {
 
                     <div style={{ marginTop: 30, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
                         <button
+                            className="btn btn-ghost"
+                            onClick={handleTest}
+                            disabled={testing || saving || !config.cuit}
+                        >
+                            <Icon name={testing ? "hourglass_empty" : "sync_alt"} size={20} />
+                            {testing ? 'Testeando...' : 'Probar Conexión'}
+                        </button>
+                        <button
                             className="btn btn-primary"
                             style={{ padding: '12px 24px' }}
                             onClick={handleSave}
-                            disabled={saving}
+                            disabled={saving || testing}
                         >
                             <Icon name={saving ? "hourglass_empty" : "save"} size={20} />
                             {saving ? 'Guardando...' : 'Guardar Configuración'}
                         </button>
                     </div>
+
+                    {testResult && (
+                        <div style={{
+                            marginTop: 16,
+                            padding: 12,
+                            borderRadius: 'var(--radius-sm)',
+                            background: testResult.success ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
+                            border: `1px solid ${testResult.success ? 'var(--success)' : 'var(--danger)'}`,
+                            color: testResult.success ? 'var(--success)' : 'var(--danger)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10
+                        }}>
+                            <Icon name={testResult.success ? "check_circle" : "error"} size={20} />
+                            <span style={{ fontSize: 13, fontWeight: 500 }}>{testResult.message}</span>
+                        </div>
+                    )}
                 </GlassCard>
 
                 <GlassCard>
