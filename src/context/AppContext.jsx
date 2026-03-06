@@ -354,7 +354,7 @@ export const AppProvider = ({ children }) => {
         if (error) { console.error("Error creating WO", error); throw error; }
     };
 
-    const updateWorkOrder = async (id, updates) => {
+    const updateWorkOrder = async (id, updates, afipData = null) => {
         const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
         if (!error) {
             // Si la orden se finaliza o cobra, intentar crear el pago automáticamente en caja
@@ -370,7 +370,10 @@ export const AppProvider = ({ children }) => {
                                 description: `Pago OT #${wo.order_number}`,
                                 type: 'INGRESO',
                                 reference: 'OT',
-                                work_order_id: wo.id
+                                work_order_id: wo.id,
+                                cae: afipData ? afipData.cae : null,
+                                cae_due_date: afipData ? afipData.caeDueDate : null,
+                                receipt_number: afipData ? afipData.receiptText : null
                             });
                         }
                     } catch (e) {
@@ -383,6 +386,26 @@ export const AppProvider = ({ children }) => {
                 ...prev,
                 workOrders: prev.workOrders.map(wo => wo.id === id ? { ...wo, ...updates } : wo)
             }));
+        }
+    };
+
+    // ==========================================
+    // Facturación AFIP
+    // ==========================================
+    const generateAFIPInvoice = async (invoiceData) => {
+        try {
+            const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5173' : '';
+            const res = await fetch(`${baseUrl}/api/afip`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(invoiceData)
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            return data;
+        } catch (error) {
+            console.error('Error generando Factura AFIP:', error);
+            throw error;
         }
     };
 
@@ -401,7 +424,10 @@ export const AppProvider = ({ children }) => {
                 work_order_id: paymentData.work_order_id || null,
                 description: paymentData.description || 'Ingreso',
                 type: paymentData.type || 'INGRESO',
-                employee_id: paymentData.employee_id || null
+                employee_id: paymentData.employee_id || null,
+                cae: paymentData.cae || null,
+                cae_due_date: paymentData.cae_due_date || null,
+                receipt_number: paymentData.receipt_number || null
             }])
             .select()
             .single();
@@ -525,7 +551,8 @@ export const AppProvider = ({ children }) => {
             processSale,
             getCommissions,
             addQuickService,
-            exportToExcel
+            exportToExcel,
+            generateAFIPInvoice
         }}>
             {children}
         </AppContext.Provider>

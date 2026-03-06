@@ -17,8 +17,10 @@ export const SalesPage = () => {
     const [manualCode, setManualCode] = useState('');
     const [showCamera, setShowCamera] = useState(false);
     const [payMethod, setPayMethod] = useState('EFECTIVO');
+    const [invoiceType, setInvoiceType] = useState('INTERNAL'); // INTERNAL, FACTURA_B
     const [lastSale, setLastSale] = useState(null);
     const [printSale, setPrintSale] = useState(null);
+    const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
     const codeInputRef = useRef(null);
 
     // Buscar producto por código o nombre
@@ -80,13 +82,46 @@ export const SalesPage = () => {
 
     const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (cart.length === 0) return alert('El carrito está vacío');
-        const saleTotal = processSale(cart, payMethod);
-        const saleData = { items: [...cart], total: saleTotal, method: payMethod, date: new Date() };
-        setLastSale(saleData);
-        setPrintSale(saleData);
-        setCart([]);
+
+        setIsCheckoutLoading(true);
+        let afipData = null;
+
+        try {
+            if (invoiceType === 'FACTURA_B') {
+                // Request Factura B (Consumidor Final, docType 99)
+                afipData = await MOCK.generateAFIPInvoice({
+                    amount: total,
+                    docType: 99,
+                    docNumber: 0,
+                    billType: 6 // Factura B
+                });
+            }
+
+            const saleTotal = await processSale(cart, payMethod, afipData ? {
+                cae: afipData.cae,
+                cae_due_date: afipData.caeDueDate,
+                receipt_number: afipData.receiptText
+            } : null);
+
+            const saleData = {
+                items: [...cart],
+                total: saleTotal,
+                method: payMethod,
+                date: new Date(),
+                afip: afipData
+            };
+
+            setLastSale(saleData);
+            setPrintSale(saleData);
+            setCart([]);
+            setInvoiceType('INTERNAL');
+        } catch (error) {
+            alert('Error en la transacción: ' + error.message);
+        } finally {
+            setIsCheckoutLoading(false);
+        }
     };
 
     const handleCancelSale = () => {
@@ -212,7 +247,7 @@ export const SalesPage = () => {
                             <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(total)}</span>
                         </div>
 
-                        <FormField label="Método de Pago">
+                        <FormField label="Método de Pago" style={{ marginTop: 12 }}>
                             <select className="form-select" value={payMethod} onChange={e => setPayMethod(e.target.value)}>
                                 <option value="EFECTIVO">💵 Efectivo</option>
                                 <option value="TARJETA">💳 Tarjeta</option>
@@ -220,14 +255,22 @@ export const SalesPage = () => {
                             </select>
                         </FormField>
 
+                        <FormField label="Tipo de Comprobante" style={{ marginTop: 12 }}>
+                            <select className="form-select" value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
+                                <option value="INTERNAL">📄 Ticket Interno (No Fiscal)</option>
+                                <option value="FACTURA_B">🧾 Factura B (Electrónica AFIP)</option>
+                            </select>
+                        </FormField>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
                             <button
                                 className="btn btn-primary"
-                                style={{ padding: '14px 20px', fontSize: 16, width: '100%' }}
+                                style={{ padding: '14px 20px', fontSize: 16, width: '100%', opacity: isCheckoutLoading ? 0.7 : 1 }}
                                 onClick={handleCheckout}
-                                disabled={cart.length === 0}
+                                disabled={cart.length === 0 || isCheckoutLoading}
                             >
-                                <Icon name="shopping_cart_checkout" size={20} /> COBRAR {formatCurrency(total)}
+                                <Icon name={isCheckoutLoading ? "hourglass_empty" : "shopping_cart_checkout"} size={20} />
+                                {isCheckoutLoading ? 'PROCESANDO...' : `COBRAR ${formatCurrency(total)}`}
                             </button>
                             <button
                                 className="btn btn-ghost"

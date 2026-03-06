@@ -26,10 +26,44 @@ export const WorkOrdersPage = () => {
     const [printWO, setPrintWO] = useState(null);
     const [vehicleSheet, setVehicleSheet] = useState(null);
 
-    const handleFinalize = (e, woId) => {
+    const [finalizeWO, setFinalizeWO] = useState(null); // woId to finalize
+    const [invoiceType, setInvoiceType] = useState('INTERNAL');
+    const [isFinalizing, setIsFinalizing] = useState(false);
+
+    const handleFinalizeClick = (e, woId) => {
         e.stopPropagation();
-        if (window.confirm('¿Confirmar finalización del trabajo? Se marcará como Finalizado y se ingresará el pago a la Caja automáticamente.')) {
-            updateWorkOrder(woId, { status: 'Finalizado', completed_at: new Date().toISOString() });
+        setFinalizeWO(woId);
+        setInvoiceType('INTERNAL');
+    };
+
+    const confirmFinalize = async () => {
+        if (!finalizeWO) return;
+        setIsFinalizing(true);
+        try {
+            const wo = MOCK.workOrders.find(w => w.id === finalizeWO);
+            if (!wo) throw new Error("OT no encontrada");
+
+            let afipData = null;
+            if (invoiceType === 'FACTURA_B') {
+                afipData = await MOCK.generateAFIPInvoice({
+                    amount: wo.total_price || 0,
+                    docType: 99,
+                    docNumber: 0,
+                    billType: 6 // Factura B
+                });
+            }
+
+            await updateWorkOrder(finalizeWO, {
+                status: 'Finalizado',
+                completed_at: new Date().toISOString()
+            }, afipData); // Pass afipData to track CAE in payment
+
+            setFinalizeWO(null);
+            setPrintWO(wo); // Optionally print right after finalizing
+        } catch (error) {
+            alert('Error al finalizar la OT: ' + error.message);
+        } finally {
+            setIsFinalizing(false);
         }
     };
 
@@ -125,7 +159,7 @@ export const WorkOrdersPage = () => {
                                     (wo.status === 'Pendiente' || wo.status === 'En Box') ? (
                                         <button
                                             className="btn btn-success btn-sm"
-                                            onClick={(e) => handleFinalize(e, wo.id)}
+                                            onClick={(e) => handleFinalizeClick(e, wo.id)}
                                             style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
                                         >
                                             FINALIZAR
@@ -274,6 +308,36 @@ export const WorkOrdersPage = () => {
                 {printWO && (
                     <PrintableTicket workOrder={printWO} onClose={() => setPrintWO(null)} />
                 )}
+
+                {finalizeWO && (() => {
+                    const wo = MOCK.workOrders.find(w => w.id === finalizeWO);
+                    return (
+                        <Modal title={`Finalizar OT #${wo?.order_number}`} onClose={() => setFinalizeWO(null)}>
+                            <div style={{ padding: 12, marginBottom: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                                <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>Monto a cobrar:</div>
+                                <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--primary)' }}>{formatCurrency(wo?.total_price || 0)}</div>
+                            </div>
+
+                            <FormField label="¿Emitir Factura AFIP para el Cierre de Caja?">
+                                <select className="form-select" value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
+                                    <option value="INTERNAL">Ticket Interno (No Fiscal)</option>
+                                    <option value="FACTURA_B">Factura Electrónica B (AFIP)</option>
+                                </select>
+                                <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: 8 }}>
+                                    Al confirmar, el monto se registrará como ingreso en la caja diaria.
+                                </small>
+                            </FormField>
+
+                            <FormRow style={{ marginTop: 24, justifyContent: 'flex-end' }}>
+                                <button className="btn btn-ghost" onClick={() => setFinalizeWO(null)} disabled={isFinalizing}>Cancelar</button>
+                                <button className="btn btn-success" onClick={confirmFinalize} disabled={isFinalizing}>
+                                    <Icon name={isFinalizing ? "hourglass_empty" : "check_circle"} size={20} />
+                                    {isFinalizing ? 'PROCESANDO...' : 'FINALIZAR'}
+                                </button>
+                            </FormRow>
+                        </Modal>
+                    );
+                })()}
 
                 {vehicleSheet && (
                     <Modal title="Ficha Histórica del Vehículo" width="800px" onClose={() => setVehicleSheet(null)}>
