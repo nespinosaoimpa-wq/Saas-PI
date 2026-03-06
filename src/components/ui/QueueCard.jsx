@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { StatusBadge } from './StatusBadge';
 import { Icon } from './Icon';
 
-export const QueueCard = ({ wo, onClick }) => {
+export const QueueCard = ({ wo, onClick, rightAction }) => {
     const { data: MOCK, getClient, getVehicle } = useApp();
     const client = getClient(wo.client_id);
     const vehicle = getVehicle(wo.vehicle_id);
@@ -24,7 +24,7 @@ export const QueueCard = ({ wo, onClick }) => {
             <div className="queue-card-right">
                 <div className="queue-meta"><label>Estado</label><StatusBadge status={wo.status} /></div>
                 {wo.total_price > 0 && <div className="queue-meta"><label>Total</label><span style={{ color: 'var(--primary)' }}>{formatCurrency(wo.total_price)}</span></div>}
-                <button className="btn btn-icon btn-ghost" style={{ width: 32, height: 32 }}><Icon name="more_vert" size={18} /></button>
+                {rightAction || <button className="btn btn-icon btn-ghost" style={{ width: 32, height: 32 }}><Icon name="more_vert" size={18} /></button>}
             </div>
         </div>
     );

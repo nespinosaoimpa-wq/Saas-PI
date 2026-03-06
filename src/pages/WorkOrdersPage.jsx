@@ -17,13 +17,20 @@ import {
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
-    const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel } = useApp();
+    const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel, updateWorkOrder } = useApp();
     const { employees } = useAuth();
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
     const [tab, setTab] = useState('active');
     const [showNew, setShowNew] = useState(false);
     const [printWO, setPrintWO] = useState(null);
+
+    const handleFinalize = (e, woId) => {
+        e.stopPropagation();
+        if (window.confirm('¿Confirmar finalización del trabajo? Se marcará como Finalizado y se ingresará el pago a la Caja automáticamente.')) {
+            updateWorkOrder(woId, { status: 'Finalizado', completed_at: new Date().toISOString() });
+        }
+    };
 
     const [newOrder, setNewOrder] = useState({
         client_id: '', vehicle_id: '', box_id: '', km_at_entry: '',
@@ -112,6 +119,17 @@ export const WorkOrdersPage = () => {
                                     mechanic: mechanicName,
                                     box: boxName
                                 }}
+                                rightAction={
+                                    (wo.status === 'Pendiente' || wo.status === 'En Box') ? (
+                                        <button
+                                            className="btn btn-success btn-sm"
+                                            onClick={(e) => handleFinalize(e, wo.id)}
+                                            style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
+                                        >
+                                            FINALIZAR
+                                        </button>
+                                    ) : null
+                                }
                                 onClick={() => {
                                     if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
                                         setPrintWO(wo);
