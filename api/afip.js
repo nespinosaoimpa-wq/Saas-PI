@@ -1,4 +1,5 @@
 import Afip from '@afipsdk/afip.js';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
     // Enable CORS for development
@@ -18,16 +19,36 @@ export default async function handler(req, res) {
     try {
         const { amount, docType = 99, docNumber = 0, billType = 6 } = req.body;
 
-        // Inicializar SDK en entorno de Pruebas (Homologación)
-        // Por defecto afip.js genera certificados de prueba propios.
-        const afip = new Afip({ CUIT: 20409378472, production: false });
+        // Fetch AFIP config from Supabase
+        const supabase = createClient(
+            process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+
+        const { data: config, error: configError } = await supabase
+            .from('afip_config')
+            .select('*')
+            .eq('is_active', true)
+            .single();
+
+        if (configError || !config) {
+            throw new Error('No se encontró una configuración de AFIP activa en la base de datos.');
+        }
+
+        // Inicializar SDK con credenciales dinámicas
+        const afip = new Afip({
+            CUIT: parseInt(config.cuit),
+            production: config.environment === 'production',
+            cert: config.cert_crt,
+            key: config.private_key
+        });
 
         const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
         const dateStr = date.replace(/-/g, '');
 
         // billType: 1 = Factura A, 6 = Factura B, 11 = Factura C
         const cbteTipo = parseInt(billType);
-        const ptoVta = 1; // Punto de venta 1
+        const ptoVta = parseInt(config.pto_vta) || 1;
 
         const lastVoucher = await afip.ElectronicBilling.getLastVoucher(ptoVta, cbteTipo);
         const nextVoucher = lastVoucher + 1;

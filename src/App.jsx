@@ -18,6 +18,7 @@ import { PromotionsPage } from './pages/PromotionsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SalesPage } from './pages/SalesPage';
+import { AdminSettingsPage } from './pages/AdminSettingsPage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -32,6 +33,7 @@ const PAGE_TITLES = {
     promotions: { title: 'Promociones', sub: 'Gestión de Ofertas y Descuentos' },
     reports: { title: 'Reportes & Estadísticas', sub: 'Análisis de Rentabilidad y Rendimiento' },
     users: { title: 'Gestión de Personal', sub: 'Control de Usuarios, Roles y Permisos' },
+    settings: { title: 'Configuración', sub: 'Ajustes del Sistema y Facturación AFIP' },
 };
 
 const PAGES = {
@@ -47,6 +49,7 @@ const PAGES = {
     promotions: PromotionsPage,
     reports: ReportsPage,
     users: UsersPage,
+    settings: AdminSettingsPage,
 };
 
 function App() {
@@ -120,6 +123,7 @@ function App() {
 
         { section: 'Configuración' },
         { key: 'users', label: 'Personal y Accesos', icon: 'admin_panel_settings' },
+        { key: 'settings', label: 'Sistema / AFIP', icon: 'settings' },
     ];
 
     const handleNavigate = (key) => {
@@ -133,6 +137,7 @@ function App() {
             case 'promotions':
             case 'reports':
             case 'users':
+            case 'settings':
                 return user.role === 'admin';
             case 'inventory':
                 return ['admin', 'cajero', 'mecanico'].includes(user.role);
