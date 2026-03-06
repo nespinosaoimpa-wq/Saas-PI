@@ -16,7 +16,10 @@ export const SuppliersPage = () => {
     const [showNew, setShowNew] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
     const [saving, setSaving] = useState(false);
-    const [newSupplier, setNewSupplier] = useState({ name: '', contact: '', phone: '', cuit: '' });
+    const [newSupplier, setNewSupplier] = useState({ name: '', contact: '', phone: '', cuit: '', category: '' });
+
+    // Extraer categorías únicas de los proveedores existentes
+    const categories = [...new Set((MOCK.suppliers || []).map(s => s.category).filter(Boolean))];
 
     const filtered = (MOCK.suppliers || []).filter(s =>
         (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -37,7 +40,7 @@ export const SuppliersPage = () => {
             }
             setShowNew(false);
             setEditingSupplier(null);
-            setNewSupplier({ name: '', contact: '', phone: '', cuit: '' });
+            setNewSupplier({ name: '', contact: '', phone: '', cuit: '', category: '' });
         } catch (err) {
             alert('Error al guardar proveedor: ' + (err.message || ''));
         }
@@ -46,7 +49,13 @@ export const SuppliersPage = () => {
 
     const handleEdit = (supplier) => {
         setEditingSupplier(supplier);
-        setNewSupplier({ name: supplier.name, contact: supplier.contact || '', phone: supplier.phone || '', cuit: supplier.cuit || '' });
+        setNewSupplier({
+            name: supplier.name,
+            contact: supplier.contact || '',
+            phone: supplier.phone || '',
+            cuit: supplier.cuit || '',
+            category: supplier.category || ''
+        });
         setShowNew(true);
     };
 
@@ -68,9 +77,9 @@ export const SuppliersPage = () => {
                 <DataTable
                     columns={[
                         { key: 'name', label: 'Proveedor', render: r => <strong>{r.name}</strong> },
+                        { key: 'category', label: 'Categoría', render: r => r.category ? <span className="badge badge-outline">{r.category}</span> : '—' },
                         { key: 'contact', label: 'Contacto' },
                         { key: 'phone', label: 'Teléfono' },
-                        { key: 'email', label: 'Email' },
                         { key: 'cuit', label: 'CUIT', render: r => r.cuit || '—' },
                         {
                             key: 'actions',
@@ -110,9 +119,17 @@ export const SuppliersPage = () => {
                                     <input className="form-input" value={newSupplier.cuit} onChange={e => setNewSupplier({ ...newSupplier, cuit: e.target.value })} placeholder="XX-XXXXXXXX-X" />
                                 </FormField>
                             </FormRow>
-                            <FormField label="Teléfono">
-                                <input className="form-input" value={newSupplier.phone} onChange={e => setNewSupplier({ ...newSupplier, phone: e.target.value })} placeholder="+54 223 ..." />
-                            </FormField>
+                            <FormRow>
+                                <FormField label="Teléfono">
+                                    <input className="form-input" value={newSupplier.phone} onChange={e => setNewSupplier({ ...newSupplier, phone: e.target.value })} placeholder="+54 223 ..." />
+                                </FormField>
+                                <FormField label="Categoría (Rubro)">
+                                    <input className="form-input" list="supplier-category-list" value={newSupplier.category} onChange={e => setNewSupplier({ ...newSupplier, category: e.target.value })} placeholder="Ej: Lubricantes, Filtros..." />
+                                    <datalist id="supplier-category-list">
+                                        {categories.map(c => <option key={c} value={c} />)}
+                                    </datalist>
+                                </FormField>
+                            </FormRow>
                         </div>
                     </Modal>
                 )}

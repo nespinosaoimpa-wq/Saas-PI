@@ -10,7 +10,7 @@ export const AppProvider = ({ children }) => {
         inventory: [], suppliers: [], boxes: [],
         payments: [], cashClosings: [], vehicleNotes: [],
         appointments: [], promotions: [],
-        activityLog: []
+        activityLog: [], assignments: []
     });
     const [loading, setLoading] = useState(true);
 
@@ -34,7 +34,8 @@ export const AppProvider = ({ children }) => {
                 supabase.from('payments').select('*').order('created_at', { ascending: false }),
                 supabase.from('cash_closings').select('*').order('created_at', { ascending: false }),
                 supabase.from('appointments').select('*').order('date', { ascending: true }),
-                supabase.from('promotions').select('*').order('created_at', { ascending: false })
+                supabase.from('promotions').select('*').order('created_at', { ascending: false }),
+                supabase.from('work_order_assignments').select('*')
             ]);
 
             setData({
@@ -49,7 +50,8 @@ export const AppProvider = ({ children }) => {
                 cashClosings: cashClosings || [],
                 appointments: appointments || [],
                 promotions: promotions || [],
-                activityLog: []
+                activityLog: [],
+                assignments: assignments || []
             });
         } catch (e) {
             console.error('Error loading data:', e);
@@ -302,7 +304,8 @@ export const AppProvider = ({ children }) => {
                 name: supplierData.name,
                 contact: supplierData.contact || '',
                 phone: supplierData.phone || '',
-                cuit: supplierData.cuit || ''
+                cuit: supplierData.cuit || '',
+                category: supplierData.category || ''
             }])
             .select()
             .single();
@@ -319,7 +322,8 @@ export const AppProvider = ({ children }) => {
                 name: updates.name,
                 contact: updates.contact || '',
                 phone: updates.phone || '',
-                cuit: updates.cuit || ''
+                cuit: updates.cuit || '',
+                category: updates.category || ''
             })
             .eq('id', id)
             .select()
@@ -338,17 +342,27 @@ export const AppProvider = ({ children }) => {
             client_id: woData.client_id,
             vehicle_id: woData.vehicle_id,
             box_id: woData.box_id || null,
-            mechanic_id: woData.mechanic_id || null,
             description: woData.description,
             km_at_entry: woData.km_at_entry || 0,
             labor_cost: woData.labor_cost,
             parts_cost: woData.parts_cost,
             total_price: woData.total_price,
-            applied_commission_rate: woData.applied_commission_rate,
+            labor_profit_percent: woData.labor_profit_percent || 100,
             status: woData.box_id ? 'En Box' : 'Pendiente'
         }]).select('*, clients(*), vehicles(*)').single();
+
         if (!error && newWo) {
-            setData(prev => ({ ...prev, workOrders: [newWo, ...prev.workOrders] }));
+            // Asignar mecánicos si existen
+            if (woData.mechanic_ids && woData.mechanic_ids.length > 0) {
+                const assignments = woData.mechanic_ids.map(mid => ({
+                    work_order_id: newWo.id,
+                    mechanic_id: mid,
+                    labor_commission_percent: woData.applied_commission_rate // Usamos la tasa global de la OT por ahora o individual si enviamos objeto
+                }));
+                await supabase.from('work_order_assignments').insert(assignments);
+            }
+
+            await loadData(); // Reload to get assignments
             return newWo;
         }
         if (error) { console.error("Error creating WO", error); throw error; }
@@ -522,8 +536,35 @@ export const AppProvider = ({ children }) => {
     // Comisiones
     // ==========================================
     const getCommissions = (technicianId) => {
-        const finished = (data.workOrders || []).filter(wo => wo && wo.mechanic_id === technicianId && (wo.status === 'Finalizado' || wo.status === 'Cobrado'));
-        return finished.reduce((sum, wo) => sum + ((parseFloat(wo.labor_cost) || 0) * ((parseFloat(wo.applied_commission_rate) || 0) / 100)), 0);
+        const assignments = (data.assignments || []).filter(a => a.mechanic_id === technicianId);
+        return assignments.reduce((sum, a) => {
+            const wo = data.workOrders?.find(w => w.id === a.work_order_id);
+            if (wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado')) {
+                const labor = parseFloat(wo.labor_cost) || 0;
+                const rate = parseFloat(a.labor_commission_percent) || 0;
+                return sum + (labor * (rate / 100));
+            }
+            return sum;
+        }, 0);
+    };
+
+    const getEmployeeProductivity = (employeeId) => {
+        const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
+        const finished = assignments.filter(a => {
+            const wo = data.workOrders?.find(w => w.id === a.work_order_id);
+            return wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado');
+        });
+
+        const totalGenerated = finished.reduce((sum, a) => {
+            const wo = data.workOrders?.find(w => w.id === a.work_order_id);
+            return sum + (parseFloat(wo.labor_cost) || 0);
+        }, 0);
+
+        return {
+            count: finished.length,
+            total_labor: totalGenerated,
+            commission: getCommissions(employeeId)
+        };
     };
 
     return (
@@ -550,6 +591,7 @@ export const AppProvider = ({ children }) => {
             performCashClose,
             processSale,
             getCommissions,
+            getEmployeeProductivity,
             addQuickService,
             exportToExcel,
             generateAFIPInvoice
