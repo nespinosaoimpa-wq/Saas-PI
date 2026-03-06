@@ -40,6 +40,7 @@ export const ReportsPage = () => {
                         tabs={[
                             { key: 'revenue', label: 'Ingresos' },
                             { key: 'services', label: 'Servicios' },
+                            { key: 'productivity', label: 'Productividad' },
                             { key: 'clients', label: 'Clientes Top' }
                         ]}
                         active={tab}
@@ -123,6 +124,52 @@ export const ReportsPage = () => {
                                 <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>De los clientes han vuelto en los últimos 6 meses.</p>
                             </GlassCard>
                         </div>
+                    </div>
+                )}
+
+                {tab === 'productivity' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <SectionHeader icon="engineering" title="Rendimiento del Personal" />
+                        <div className="grid-auto-cards-sm">
+                            {(MOCK.employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero').map(emp => {
+                                const prod = MOCK.getEmployeeProductivity(emp.id);
+                                return (
+                                    <GlassCard key={emp.id} style={{ padding: 16 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                            <strong style={{ fontSize: 14 }}>{emp.name}</strong>
+                                            <StatusBadge status="En Box" labelOverride={emp.role.toUpperCase()} />
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                                <span style={{ color: 'var(--text-muted)' }}>Trabajos:</span>
+                                                <strong>{prod.count}</strong>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                                <span style={{ color: 'var(--text-muted)' }}>Generado (MO):</span>
+                                                <strong>{formatCurrency(prod.total_labor)}</strong>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
+                                                <span style={{ fontWeight: 600, fontSize: 13 }}>Comisión:</span>
+                                                <strong style={{ color: 'var(--primary)', fontSize: 14 }}>{formatCurrency(prod.commission)}</strong>
+                                            </div>
+                                        </div>
+                                    </GlassCard>
+                                );
+                            })}
+                        </div>
+
+                        <GlassCard style={{ padding: 20 }}>
+                            <SectionHeader icon="list_alt" title="Detalle de Comisiones" />
+                            <DataTable
+                                columns={[
+                                    { key: 'name', label: 'Empleado', render: r => <strong>{r.name}</strong> },
+                                    { key: 'count', label: 'OTs', render: r => MOCK.getEmployeeProductivity(r.id).count },
+                                    { key: 'labor', label: 'Mano de Obra', render: r => formatCurrency(MOCK.getEmployeeProductivity(r.id).total_labor) },
+                                    { key: 'comm', label: 'A Pagar', render: r => <strong style={{ color: 'var(--success)' }}>{formatCurrency(MOCK.getEmployeeProductivity(r.id).commission)}</strong> }
+                                ]}
+                                data={(MOCK.employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero')}
+                            />
+                        </GlassCard>
                     </div>
                 )}
 

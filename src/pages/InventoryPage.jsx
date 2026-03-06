@@ -11,8 +11,8 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     const { data: MOCK, refreshData, exportToExcel } = useApp();
     const { user } = useAuth();
 
-    // Check access
-    const canEdit = user?.role === 'admin' || user?.role === 'mecanico' || user?.role === 'cajero';
+    // Check access: Solo administradores pueden modificar inventario y precios
+    const canEdit = user?.role === 'admin';
 
     const inventory = MOCK.inventory || [];
     const suppliers = MOCK.suppliers || [];

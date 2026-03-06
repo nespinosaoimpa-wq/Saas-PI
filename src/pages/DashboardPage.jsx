@@ -86,37 +86,39 @@ export const DashboardPage = () => {
                     {/* Right Sidebar */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                        {/* Revenue Chart */}
-                        <GlassCard style={{ padding: 22 }}>
-                            <SectionHeader icon="trending_up" title="Ingresos Semanal" />
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-                                <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
-                                    {formatCurrency(revenue.weekly_total)}
+                        {/* Revenue Chart - Solo Admins */}
+                        {user?.role === 'admin' && (
+                            <GlassCard style={{ padding: 22 }}>
+                                <SectionHeader icon="trending_up" title="Ingresos Semanal" />
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+                                    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
+                                        {formatCurrency(revenue.weekly_total)}
+                                    </div>
+                                    <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>+8.2%</span>
                                 </div>
-                                <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>+8.2%</span>
-                            </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                                Mes: {formatCurrency(revenue.monthly_total)}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
-                                {revenue.daily.map((d, i) => {
-                                    const max = Math.max(...revenue.daily.map(x => x.cash + x.transfer + x.card));
-                                    const total = d.cash + d.transfer + d.card;
-                                    const h = max > 0 ? (total / max) * 100 : (i === 4 ? 20 : 0);
-                                    return (
-                                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                                            <div style={{
-                                                width: '100%', borderRadius: '4px 4px 0 0',
-                                                background: `rgba(var(--primary-rgb), ${i === 4 ? '1' : '0.25'})`,
-                                                height: h + '%', minHeight: 4,
-                                                transition: 'height 0.6s ease'
-                                            }} />
-                                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{d.day}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </GlassCard>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+                                    Mes: {formatCurrency(revenue.monthly_total)}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
+                                    {revenue.daily.map((d, i) => {
+                                        const max = Math.max(...revenue.daily.map(x => x.cash + x.transfer + x.card));
+                                        const total = d.cash + d.transfer + d.card;
+                                        const h = max > 0 ? (total / max) * 100 : (i === 4 ? 20 : 0);
+                                        return (
+                                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                                                <div style={{
+                                                    width: '100%', borderRadius: '4px 4px 0 0',
+                                                    background: `rgba(var(--primary-rgb), ${i === 4 ? '1' : '0.25'})`,
+                                                    height: h + '%', minHeight: 4,
+                                                    transition: 'height 0.6s ease'
+                                                }} />
+                                                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{d.day}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </GlassCard>
+                        )}
 
                         {/* Inventory Alerts */}
                         <GlassCard style={{ padding: 22 }}>
