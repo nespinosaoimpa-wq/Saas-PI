@@ -22,7 +22,7 @@ export const AppProvider = ({ children }) => {
                 { data: clients }, { data: vehicles }, { data: workOrders },
                 { data: inventory }, { data: suppliers }, { data: boxes },
                 { data: vehicleNotes }, { data: payments }, { data: cashClosings },
-                { data: appointments }, { data: promotions }
+                { data: appointments }, { data: promotions }, { data: assignments }
             ] = await Promise.all([
                 supabase.from('clients').select('*'),
                 supabase.from('vehicles').select('*'),
