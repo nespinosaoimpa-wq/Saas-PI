@@ -17,7 +17,7 @@ import {
 
 export const CashRegisterPage = () => {
     const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
-    const { employees } = useAuth();
+    const { user, employees } = useAuth();
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
@@ -72,16 +72,19 @@ export const CashRegisterPage = () => {
         setClosingCash('');
     };
 
-    const todayPayments = MOCK.payments.filter(p => p.payment_date === new Date().toISOString().split('T')[0] || p.payment_date === '2026-02-27');
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayPayments = MOCK.payments.filter(p => (p.date || p.payment_date) === todayStr);
 
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
-    const cash = todayPayments.filter(p => p.payment_method === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
-    const transfer = todayPayments.filter(p => p.payment_method === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
-    const card = todayPayments.filter(p => p.payment_method === 'TARJETA').reduce((s, p) => s + p.amount, 0);
+    const cash = todayPayments.filter(p => (p.method || p.payment_method) === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
+    const transfer = todayPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
+    const card = todayPayments.filter(p => (p.method || p.payment_method) === 'TARJETA').reduce((s, p) => s + p.amount, 0);
 
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const monthStart = todayStr.slice(0, 7);
     const allPayments = period === 'daily' ? todayPayments
-        : period === 'weekly' ? MOCK.payments.filter(p => p.payment_date >= '2026-02-21')
-            : MOCK.payments;
+        : period === 'weekly' ? MOCK.payments.filter(p => (p.date || p.payment_date) >= weekAgo)
+            : MOCK.payments.filter(p => (p.date || p.payment_date)?.startsWith(monthStart));
 
     const totalPeriod = allPayments.reduce((s, p) => s + p.amount, 0);
 
@@ -108,7 +111,7 @@ export const CashRegisterPage = () => {
 
                 <DataTable
                     columns={[
-                        { key: 'date', label: 'Fecha', render: r => r.payment_date || r.date },
+                        { key: 'date', label: 'Fecha', render: r => r.date || r.payment_date },
                         {
                             key: 'amount', label: 'Monto', render: r => (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -117,7 +120,12 @@ export const CashRegisterPage = () => {
                                 </div>
                             )
                         },
-                        { key: 'method', label: 'Método', render: r => <StatusBadge status={r.payment_method === 'EFECTIVO' ? 'Pendiente' : r.payment_method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} /> },
+                        {
+                            key: 'method', label: 'Método', render: r => {
+                                const m = r.method || r.payment_method || 'EFECTIVO';
+                                return <StatusBadge status={m === 'EFECTIVO' ? 'Pendiente' : m === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} />;
+                            }
+                        },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
                     ]}

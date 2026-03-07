@@ -263,7 +263,7 @@ export const WorkOrdersPage = () => {
                                 <FormField label="Box asignado">
                                     <select className="form-select" value={newOrder.box_id} onChange={e => setNewOrder({ ...newOrder, box_id: e.target.value })}>
                                         <option value="">Sin asignar</option>
-                                        {MOCK.boxes.map(b => <option key={b.id} value={b.id}>{b.name} ({b.type})</option>)}
+                                        {MOCK.boxes.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                     </select>
                                 </FormField>
                                 <FormField label="Km al ingresar">
