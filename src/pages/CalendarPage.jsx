@@ -7,7 +7,6 @@ export const CalendarPage = () => {
     const { data: MOCK, refreshData, exportToExcel, addAppointment, deleteAppointment } = useApp();
     const appointments = MOCK.appointments || [];
 
-    // ... (rest of state setup)
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDay, setSelectedDay] = useState(new Date().getDate());
     const [showModal, setShowModal] = useState(false);
@@ -17,7 +16,54 @@ export const CalendarPage = () => {
         title: '', client: '', vehicle: '', date: '', time: '09:00', box: 'Box 1', color: '#3b82f6', notes: ''
     });
 
-    // ... (logic remains same)
+    // =========================================
+    // Calendar Logic
+    // =========================================
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+    const month = currentDate.getMonth();
+    const year = currentDate.getFullYear();
+
+    const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+    const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Monday = 0
+
+    const cells = useMemo(() => {
+        const c = [];
+        for (let i = 0; i < startOffset; i++) c.push(null);
+        for (let d = 1; d <= daysInMonth; d++) c.push(d);
+        return c;
+    }, [month, year, startOffset, daysInMonth]);
+
+    const todayDate = new Date();
+    const isToday = (d) => d === todayDate.getDate() && month === todayDate.getMonth() && year === todayDate.getFullYear();
+
+    const getDateStr = (d) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    const hasEvent = (d) => appointments.some(a => a.date === getDateStr(d));
+
+    const selectedAppointments = appointments.filter(a => a.date === getDateStr(selectedDay));
+
+    const upcomingAppointments = useMemo(() => {
+        const todayStr = getDateStr(todayDate.getDate());
+        return appointments
+            .filter(a => a.date > todayStr)
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(0, 5);
+    }, [appointments, month, year]);
+
+    const openNewAppointment = () => {
+        setForm({
+            title: '', client: '', vehicle: '',
+            date: getDateStr(selectedDay),
+            time: '09:00', box: 'Box 1', color: '#3b82f6', notes: ''
+        });
+        setShowModal(true);
+    };
 
     const handleSaveAppointment = async () => {
         if (!form.title || !form.date || !form.time) return alert('Título, fecha y hora son obligatorios');
