@@ -19,3 +19,10 @@ build/
 
 # Zip
 *.zip
+
+# Environment (secrets)
+.env.local
+.env.*.local
+
+# Debug artifacts
+build_error*.txt

@@ -13,7 +13,7 @@ import {
 
 export const DashboardPage = () => {
     const { data: MOCK, getLowStockItems } = useApp();
-    const { employees } = useAuth();
+    const { user, employees } = useAuth();
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
     const lowStock = getLowStockItems();
@@ -105,7 +105,7 @@ export const DashboardPage = () => {
                                     <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
                                         {formatCurrency(revenue.weekly_total)}
                                     </div>
-                                    <span>{user.role.toUpperCase()} • v2.7.1</span>
+                                    <span>Semanal</span>
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
                                     Mes: {formatCurrency(revenue.monthly_total)}
@@ -176,7 +176,7 @@ export const DashboardPage = () => {
                                             background: bStat.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.06)' : 'var(--bg-hover)',
                                             border: `1px solid ${bStat.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.15)' : 'var(--border)'}`
                                         }}>
-                                            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{box.name} ({box.type})</div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{box.name}</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 <div style={{
                                                     width: 7, height: 7, borderRadius: '50%',

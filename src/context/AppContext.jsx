@@ -4,7 +4,7 @@ import { MOCK } from '../data/data';
 
 const AppContext = createContext();
 
-const SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbws0wk38WAB86kurBgtLMAPvcyo8G7fQswaGUBMZEn2FVYD2kFa2UXcv07cpQTRA-o-/exec';
+const SHEETS_WEBHOOK_URL = import.meta.env.VITE_SHEETS_WEBHOOK_URL || '';
 
 export const AppProvider = ({ children }) => {
     const [data, setData] = useState({
@@ -116,16 +116,23 @@ export const AppProvider = ({ children }) => {
         // =========================================
         // Configuración de Realtime (Live Updates)
         // =========================================
-        const channel = supabase
-            .channel('db-changes')
-            .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-                console.log('🔄 Cambio detectado en DB:', payload);
-                loadData(); // Recarga simple para asegurar consistencia total en tiempo real
-            })
-            .subscribe();
+        if (!supabase) return; // Guard: sin Supabase no hay Realtime
+
+        let channel;
+        try {
+            channel = supabase
+                .channel('db-changes')
+                .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+                    console.log('🔄 Cambio detectado en DB:', payload);
+                    loadData();
+                })
+                .subscribe();
+        } catch (e) {
+            console.warn('⚠️ No se pudo iniciar Realtime:', e.message);
+        }
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) supabase.removeChannel(channel);
         };
     }, []);
 
@@ -320,6 +327,15 @@ export const AppProvider = ({ children }) => {
             .single();
 
         if (error) { console.error("Error creating client", error); throw error; }
+
+        // Respaldo en Sheets
+        syncToSheets({
+            type: 'CLIENTE_NUEVO',
+            name: `${clientData.first_name} ${clientData.last_name}`,
+            phone: clientData.phone,
+            dni: clientData.dni
+        });
+
         setData(prev => ({ ...prev, clients: [...prev.clients, newClient] }));
         return newClient;
     };
@@ -501,12 +517,21 @@ export const AppProvider = ({ children }) => {
                 const assignments = woData.mechanic_ids.map(mid => ({
                     work_order_id: newWo.id,
                     mechanic_id: mid,
-                    labor_commission_percent: woData.applied_commission_rate // Usamos la tasa global de la OT por ahora o individual si enviamos objeto
+                    labor_commission_percent: woData.applied_commission_rate
                 }));
                 await supabase.from('work_order_assignments').insert(assignments);
             }
 
-            await loadData(); // Reload to get assignments
+            // Respaldo en Sheets
+            syncToSheets({
+                type: 'ORDEN_NUEVA',
+                order_number: newWo.order_number,
+                description: woData.description,
+                total: woData.total_price,
+                status: newWo.status
+            });
+
+            await loadData();
             return newWo;
         }
         if (error) { console.error("Error creating WO", error); throw error; }
@@ -620,6 +645,15 @@ export const AppProvider = ({ children }) => {
             .single();
 
         if (error) { console.error("Error adding payment", error); throw error; }
+
+        // Respaldo en Sheets
+        syncToSheets({
+            type: 'CAJA_INGRESO',
+            amount: parseFloat(paymentData.amount),
+            method: paymentData.method || 'EFECTIVO',
+            description: paymentData.description || 'Ingreso'
+        });
+
         setData(prev => ({ ...prev, payments: [newPayment, ...prev.payments] }));
         return newPayment;
     };
@@ -672,6 +706,16 @@ export const AppProvider = ({ children }) => {
             .single();
 
         if (error) { console.error("Error performing cash close", error); throw error; }
+
+        // Respaldo en Sheets
+        syncToSheets({
+            type: 'CIERRE_CAJA',
+            cash: closeData.cash_expected || 0,
+            transfer: closeData.transfer_total || 0,
+            card: closeData.card_total || 0,
+            difference: closeData.difference || 0
+        });
+
         setData(prev => ({ ...prev, cashClosings: [closing, ...prev.cashClosings] }));
         return closing;
     };
