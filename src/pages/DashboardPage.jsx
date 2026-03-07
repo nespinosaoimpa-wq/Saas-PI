@@ -22,10 +22,10 @@ export const DashboardPage = () => {
 
     const getRevenueStats = () => {
         const todayStr = new Date().toISOString().split('T')[0];
-        const monthlyPayments = (data.payments || []).filter(p => p.date?.startsWith(todayStr.slice(0, 7)));
+        const monthlyPayments = (MOCK.payments || []).filter(p => p.date?.startsWith(todayStr.slice(0, 7)));
         const monthlyTotal = monthlyPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
-        const last7Days = (data.payments || []).filter(p => {
+        const last7Days = (MOCK.payments || []).filter(p => {
             const pDate = new Date(p.date || p.created_at);
             const diff = (new Date() - pDate) / (1000 * 3600 * 24);
             return diff <= 7;

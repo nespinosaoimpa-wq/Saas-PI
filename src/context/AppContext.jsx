@@ -26,6 +26,7 @@ export const AppProvider = ({ children }) => {
         dailyQuickServices: [],
         serviceHistory: [],
         employeeEarnings: [],
+        employees: [],
         activityLog: []
     });
     const [loading, setLoading] = useState(true);
@@ -71,7 +72,7 @@ export const AppProvider = ({ children }) => {
                 clients, vehicles, workOrders, inventory, suppliers, boxes,
                 vehicleNotes, payments, cashClosings, appointments, promotions,
                 assignments, vehicleHealth, brands, dailyWorkLog,
-                dailyQuickServices, serviceHistory, employeeEarnings
+                dailyQuickServices, serviceHistory, employeeEarnings, employees
             ] = await Promise.all([
                 fetchTable('clients'),
                 fetchTable('vehicles'),
@@ -90,7 +91,8 @@ export const AppProvider = ({ children }) => {
                 fetchTable('daily_work_log'),
                 fetchTable('daily_quick_services'),
                 fetchTable('service_history'),
-                fetchTable('employee_earnings')
+                fetchTable('employee_earnings'),
+                fetchTable('employees')
             ]);
 
             setData({
@@ -99,6 +101,7 @@ export const AppProvider = ({ children }) => {
                 vehicleNotes, payments, cashClosings, appointments,
                 promotions, assignments, vehicleHealth, brands,
                 dailyWorkLog, dailyQuickServices, serviceHistory, employeeEarnings,
+                employees,
                 activityLog: []
             });
         } catch (e) {
