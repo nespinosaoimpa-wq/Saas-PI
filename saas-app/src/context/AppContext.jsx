@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { MOCK } from '../data/data';
+import { backupToSheets } from '../lib/backupService';
 
 const AppContext = createContext();
 
@@ -299,6 +300,20 @@ export const AppProvider = ({ children }) => {
         }]).select('*, clients(*), vehicles(*)').single();
         if (!error && newWo) {
             setData(prev => ({ ...prev, workOrders: [newWo, ...prev.workOrders] }));
+
+            // --- DOUBLE REGISTRY BACKUP ---
+            const todayStr = new Date().toLocaleString();
+            backupToSheets('Ordenes', [{
+                Fecha: todayStr,
+                Cliente_ID: woData.client_id,
+                Vehiculo_ID: woData.vehicle_id,
+                Mecanico_ID: woData.mechanic_id || 'N/A',
+                Costo_Mano_Obra: woData.labor_cost,
+                Costo_Repuestos: woData.parts_cost,
+                Total: woData.total_price,
+                Estado: woData.box_id ? 'En Box' : 'Pendiente'
+            }]);
+
             return newWo;
         }
         if (error) { console.error("Error creating WO", error); throw error; }
@@ -336,6 +351,17 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error adding payment", error); throw error; }
         setData(prev => ({ ...prev, payments: [newPayment, ...prev.payments] }));
+
+        // --- DOUBLE REGISTRY BACKUP ---
+        const todayStr = new Date().toLocaleString();
+        backupToSheets('Caja', [{
+            Fecha: todayStr,
+            Tipo: 'INGRESO',
+            Monto: paymentData.amount,
+            Metodo: paymentData.method || 'EFECTIVO',
+            Descripcion: paymentData.description || 'Ingreso manual'
+        }]);
+
         return newPayment;
     };
 
@@ -357,6 +383,17 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error adding withdrawal", error); throw error; }
         setData(prev => ({ ...prev, payments: [newWithdrawal, ...prev.payments] }));
+
+        // --- DOUBLE REGISTRY BACKUP ---
+        const todayStr = new Date().toLocaleString();
+        backupToSheets('Caja', [{
+            Fecha: todayStr,
+            Tipo: 'EGRESO',
+            Monto: -Math.abs(parseFloat(withdrawalData.amount)),
+            Metodo: 'EFECTIVO',
+            Descripcion: withdrawalData.description || 'Retiro de caja'
+        }]);
+
         return newWithdrawal;
     };
 
@@ -379,6 +416,17 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error performing cash close", error); throw error; }
         setData(prev => ({ ...prev, cashClosings: [closing, ...prev.cashClosings] }));
+
+        // --- DOUBLE REGISTRY BACKUP ---
+        const todayStr = new Date().toLocaleString();
+        backupToSheets('Caja', [{
+            Fecha: todayStr,
+            Tipo: 'CIERRE',
+            Monto: closeData.cash_real || 0,
+            Metodo: 'N/A',
+            Descripcion: `Cierre Caja (Esp: $${closeData.cash_expected} | Diferencia: $${closeData.difference})`
+        }]);
+
         return closing;
     };
 
@@ -417,6 +465,19 @@ export const AppProvider = ({ children }) => {
 
         // 3. Refresh data
         await loadData();
+
+        // --- DOUBLE REGISTRY BACKUP ---
+        const todayStr = new Date().toLocaleString();
+        backupToSheets('Ventas', cart.map(ci => ({
+            Fecha: todayStr,
+            Tipo: 'POS',
+            Producto: ci.name,
+            Cantidad: ci.qty,
+            Precio_Unitario: ci.sell_price,
+            Total: ci.sell_price * ci.qty,
+            Metodo_Pago: payMethod
+        })));
+
         return total;
     };
 

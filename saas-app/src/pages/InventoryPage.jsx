@@ -3,6 +3,7 @@ import { formatCurrency, formatML } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { backupToSheets } from '../lib/backupService';
 import {
     SearchBar, Tabs, DataTable, Modal, FormRow, FormField, Icon, SectionHeader, GlassCard, LiquidGauge
 } from '../components/ui';
@@ -87,6 +88,21 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                 if (error) throw error;
             }
             await refreshData();
+
+            // --- DOUBLE REGISTRY BACKUP ---
+            backupToSheets('Inventario', [{
+                Fecha: new Date().toLocaleString(),
+                Accion: editingItem ? 'EDICIÓN' : 'ALTA',
+                Producto: payload.name,
+                Categoria: payload.category || 'N/A',
+                Marca: payload.brand || 'N/A',
+                Tipo: payload.stock_type,
+                Costo: payload.cost_price,
+                Precio_Venta: payload.sell_price,
+                Stock_Cant: payload.stock_quantity,
+                Stock_ML: payload.stock_ml
+            }]);
+
             setShowModal(false);
         } catch (e) {
             console.error(e);
