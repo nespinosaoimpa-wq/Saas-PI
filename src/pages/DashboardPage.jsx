@@ -22,20 +22,31 @@ export const DashboardPage = () => {
 
     const getRevenueStats = () => {
         const todayStr = new Date().toISOString().split('T')[0];
-        const monthlyTotal = MOCK.payments.filter(p => p.date?.startsWith(todayStr.slice(0, 7))).reduce((s, p) => s + p.amount, 0);
-        const weeklyTotal = MOCK.payments.filter(p => {
-            const date = new Date(p.date);
-            return (Date.now() - date.getTime()) / (1000 * 3600 * 24) <= 7;
-        }).reduce((s, p) => s + p.amount, 0);
+        const monthlyPayments = (data.payments || []).filter(p => p.date?.startsWith(todayStr.slice(0, 7)));
+        const monthlyTotal = monthlyPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
-        const daily = [
-            { day: 'Lun', cash: 0, transfer: 0, card: 0 },
-            { day: 'Mar', cash: 0, transfer: 0, card: 0 },
-            { day: 'Mié', cash: 0, transfer: 0, card: 0 },
-            { day: 'Jue', cash: 0, transfer: 0, card: 0 },
-            { day: 'Vie', cash: todayTotal, transfer: 0, card: 0 },
-        ];
-        return { daily, weekly_total: weeklyTotal, monthly_total: monthlyTotal };
+        const last7Days = (data.payments || []).filter(p => {
+            const pDate = new Date(p.date || p.created_at);
+            const diff = (new Date() - pDate) / (1000 * 3600 * 24);
+            return diff <= 7;
+        });
+        const weeklyTotal = last7Days.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+
+        // Agrupar por día para el gráfico (últimos 5 días hábiles aprox)
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const dailyStats = [0, 1, 2, 3, 4, 5, 6].map(dIdx => {
+            const dayName = days[dIdx];
+            const amount = (data.payments || [])
+                .filter(p => new Date(p.date || p.created_at).getDay() === dIdx)
+                .reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+            return { day: dayName, total: amount };
+        }).filter(d => d.day !== 'Dom' && d.day !== 'Sáb'); // Solo lunes a viernes para el mini-gráfico
+
+        return {
+            daily: dailyStats.map(d => ({ ...d, cash: d.total })),
+            weekly_total: weeklyTotal,
+            monthly_total: monthlyTotal
+        };
     };
     const revenue = getRevenueStats();
 

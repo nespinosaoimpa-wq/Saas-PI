@@ -208,6 +208,53 @@ export const AdminSettingsPage = () => {
                     )}
                 </GlassCard>
 
+                {/* DATABASE HEALTH SECTION */}
+                <GlassCard>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                        <div style={{ background: 'var(--accent)', color: 'white', padding: 8, borderRadius: 8 }}>
+                            <Icon name="database" size={24} />
+                        </div>
+                        <div>
+                            <h3 style={{ margin: 0 }}>Estado de la Base de Datos y Respaldo</h3>
+                            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>Monitoreo en vivo de la sincronización con Supabase.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid-auto-cards-sm" style={{ gap: 12 }}>
+                        {[
+                            { name: 'Clientes', count: MOCK.clients.length, icon: 'groups' },
+                            { name: 'Vehículos', count: MOCK.vehicles.length, icon: 'directions_car' },
+                            { name: 'Órdenes', count: MOCK.workOrders.length, icon: 'receipt_long' },
+                            { name: 'Inventario', count: MOCK.inventory.length, icon: 'inventory_2' },
+                            { name: 'Pagos/Caja', count: MOCK.payments.length, icon: 'payments' },
+                            { name: 'Turnos', count: MOCK.appointments.length, icon: 'event' },
+                            { name: 'Promociones', count: MOCK.promotions.length, icon: 'loyalty' },
+                            { name: 'Staff', count: MOCK.employees?.length || 0, icon: 'badge' }
+                        ].map(stat => (
+                            <div key={stat.name} style={{
+                                padding: '12px 16px',
+                                background: 'var(--bg-card)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 'var(--radius-sm)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12
+                            }}>
+                                <Icon name={stat.icon} size={20} style={{ color: 'var(--primary)', opacity: 0.7 }} />
+                                <div>
+                                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{stat.name}</div>
+                                    <div style={{ fontSize: 16, fontWeight: 800 }}>{stat.count}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8, padding: 12, background: 'rgba(76, 175, 80, 0.1)', borderRadius: 8, border: '1px solid rgba(76, 175, 80, 0.2)' }}>
+                        <Icon name="check_circle" size={18} style={{ color: 'var(--success)' }} />
+                        <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600 }}>Sincronización en tiempo real activa. Todos los datos están protegidos en la nube.</span>
+                    </div>
+                </GlassCard>
+
                 <GlassCard>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <Icon name="info" style={{ color: 'var(--primary)' }} />

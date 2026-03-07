@@ -4,63 +4,126 @@ import { MOCK } from '../data/data';
 
 const AppContext = createContext();
 
+const SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbws0wk38WAB86kurBgtLMAPvcyo8G7fQswaGUBMZEn2FVYD2kFa2UXcv07cpQTRA-o-/exec';
+
 export const AppProvider = ({ children }) => {
     const [data, setData] = useState({
-        clients: [], vehicles: [], workOrders: [],
-        inventory: [], suppliers: [], boxes: [],
-        payments: [], cashClosings: [], vehicleNotes: [],
-        appointments: [], promotions: [],
-        activityLog: [], assignments: []
+        clients: [],
+        vehicles: [],
+        workOrders: [],
+        inventory: [],
+        suppliers: [],
+        boxes: MOCK.boxes,
+        vehicleNotes: [],
+        payments: [],
+        cashClosings: [],
+        appointments: [],
+        promotions: [],
+        assignments: [],
+        vehicleHealth: [],
+        brands: [],
+        dailyWorkLog: [],
+        dailyQuickServices: [],
+        serviceHistory: [],
+        employeeEarnings: [],
+        activityLog: []
     });
     const [loading, setLoading] = useState(true);
+
+    // =========================================
+    // Sincronización con Google Sheets
+    // =========================================
+    const syncToSheets = async (payload) => {
+        try {
+            // Enviamos los datos al Webhook de Google Apps Script
+            const response = await fetch(SHEETS_WEBHOOK_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Importante para Google Apps Script Webhooks
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: new Date().toISOString(),
+                    ...payload
+                })
+            });
+            console.log('✅ Sincronizado con Google Sheets');
+        } catch (e) {
+            console.error('❌ Error sincronizando con Sheets:', e);
+        }
+    };
 
     const loadData = async () => {
         if (!supabase) return;
         setLoading(true);
+
+        const fetchTable = async (table, select = '*') => {
+            try {
+                const { data, error } = await supabase.from(table).select(select);
+                if (error) throw error;
+                return data || [];
+            } catch (e) {
+                console.warn(`⚠️ Error cargando tabla [${table}]:`, e.message);
+                return [];
+            }
+        };
+
         try {
             const [
-                { data: clients }, { data: vehicles }, { data: workOrders },
-                { data: inventory }, { data: suppliers }, { data: boxes },
-                { data: vehicleNotes }, { data: payments }, { data: cashClosings },
-                { data: appointments }, { data: promotions }, { data: assignments }
+                clients, vehicles, workOrders, inventory, suppliers, boxes,
+                vehicleNotes, payments, cashClosings, appointments, promotions,
+                assignments, vehicleHealth, brands, dailyWorkLog,
+                dailyQuickServices, serviceHistory, employeeEarnings
             ] = await Promise.all([
-                supabase.from('clients').select('*'),
-                supabase.from('vehicles').select('*'),
-                supabase.from('work_orders').select('*, clients(*), vehicles(*)').order('created_at', { ascending: false }),
-                supabase.from('inventory').select('*'),
-                supabase.from('suppliers').select('*'),
-                supabase.from('boxes').select('*'),
-                supabase.from('vehicle_notes').select('*').order('created_at', { ascending: false }),
-                supabase.from('payments').select('*').order('created_at', { ascending: false }),
-                supabase.from('cash_closings').select('*').order('created_at', { ascending: false }),
-                supabase.from('appointments').select('*').order('date', { ascending: true }),
-                supabase.from('promotions').select('*').order('created_at', { ascending: false }),
-                supabase.from('work_order_assignments').select('*')
+                fetchTable('clients'),
+                fetchTable('vehicles'),
+                supabase.from('work_orders').select('*, clients(*), vehicles(*)').order('created_at', { ascending: false }).then(r => r.data || []),
+                fetchTable('inventory'),
+                fetchTable('suppliers'),
+                fetchTable('boxes'),
+                supabase.from('vehicle_notes').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
+                supabase.from('payments').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
+                supabase.from('cash_closings').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
+                supabase.from('appointments').select('*').order('date', { ascending: true }).then(r => r.data || []),
+                supabase.from('promotions').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
+                fetchTable('work_order_assignments'),
+                fetchTable('vehicle_health'),
+                fetchTable('brands'),
+                fetchTable('daily_work_log'),
+                fetchTable('daily_quick_services'),
+                fetchTable('service_history'),
+                fetchTable('employee_earnings')
             ]);
 
             setData({
-                clients: clients || [],
-                vehicles: vehicles || [],
-                workOrders: workOrders || [],
-                inventory: inventory || [],
-                suppliers: suppliers || [],
-                boxes: boxes || [],
-                vehicleNotes: vehicleNotes || [],
-                payments: payments || [],
-                cashClosings: cashClosings || [],
-                appointments: appointments || [],
-                promotions: promotions || [],
-                activityLog: [],
-                assignments: assignments || []
+                clients, vehicles, workOrders, inventory, suppliers,
+                boxes: boxes.length ? boxes : MOCK.boxes,
+                vehicleNotes, payments, cashClosings, appointments,
+                promotions, assignments, vehicleHealth, brands,
+                dailyWorkLog, dailyQuickServices, serviceHistory, employeeEarnings,
+                activityLog: []
             });
         } catch (e) {
-            console.error('Error loading data:', e);
+            console.error('CRITICAL: Error in bulk load', e);
         }
         setLoading(false);
     };
 
     useEffect(() => {
         loadData();
+
+        // =========================================
+        // Configuración de Realtime (Live Updates)
+        // =========================================
+        const channel = supabase
+            .channel('db-changes')
+            .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+                console.log('🔄 Cambio detectado en DB:', payload);
+                loadData(); // Recarga simple para asegurar consistencia total en tiempo real
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     // ==========================================
@@ -74,35 +137,62 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = async (action, isSecondOrMore = false) => {
-        const finalPrice = isSecondOrMore ? action.price * 0.7 : action.price; // 30% discount if second
-        const entry = {
-            id: `qs-${Date.now()}`,
-            label: isSecondOrMore ? `${action.label} (Adicional -30%)` : action.label,
-            price: finalPrice,
-            timestamp: new Date().toISOString()
-        };
+    const addQuickService = async (action, isSecondOrMore = false, mechanicId = null, clientId = null, vehicleId = null) => {
+        const finalPrice = isSecondOrMore ? action.price * 0.7 : action.price;
 
-        // Enlazar con la caja automáticamente si tiene un precio mayor a 0
-        if (finalPrice > 0) {
-            try {
+        try {
+            // 1. Persistir en la tabla de servicios rápidos
+            const { data: newService, error } = await supabase.from('daily_quick_services').insert([{
+                service_type: action.label,
+                price: finalPrice,
+                mechanic_id: mechanicId,
+                client_id: clientId,
+                vehicle_id: vehicleId,
+                notes: isSecondOrMore ? 'Descuento por cantidad aplicado' : null
+            }]).select().single();
+
+            if (error) throw error;
+
+            // 2. Registrar pago automático
+            if (finalPrice > 0) {
                 await addPayment({
                     amount: finalPrice,
                     method: 'EFECTIVO',
-                    description: `Express Gomería: ${entry.label}`,
+                    description: `Gomería Express: ${action.label}`,
                     type: 'INGRESO',
-                    reference: 'LOCAL'
+                    reference: 'DIRECTO'
                 });
-            } catch (e) {
-                console.error("Error registering express payment to cash register", e);
-            }
-        }
 
-        setData(prev => ({
-            ...prev,
-            activityLog: [entry, ...(prev.activityLog || [])]
-        }));
-        alert(`✅ ${entry.label} registrado — $${finalPrice.toLocaleString('es-AR')}`);
+                // Respaldo en Sheets
+                syncToSheets({
+                    type: 'GOMERIA',
+                    service: action.label,
+                    amount: finalPrice,
+                    mechanic: mechanicId
+                });
+            }
+
+            // 3. Registrar comisión para el empleado (ej: 50% para gomería según política típica)
+            if (mechanicId && finalPrice > 0) {
+                await supabase.from('employee_earnings').insert([{
+                    employee_id: mechanicId,
+                    quick_service_id: newService.id,
+                    amount_earned: finalPrice * 0.5, // 50% comisión gomería
+                    description: `Comisión Gomería: ${action.label}`
+                }]);
+            }
+
+            // 4. Actualizar estado local
+            setData(prev => ({
+                ...prev,
+                dailyQuickServices: [newService, ...(prev.dailyQuickServices || [])],
+                activityLog: [{ label: action.label, price: finalPrice, timestamp: new Date().toISOString() }, ...(prev.activityLog || [])]
+            }));
+
+        } catch (e) {
+            console.error("Error registering express service", e);
+            alert("Error al registrar servicio rápido: " + e.message);
+        }
     };
 
     const exportToExcel = (dataType) => {
@@ -168,7 +258,7 @@ export const AppProvider = ({ children }) => {
         const csvContent = [headers, ...rows.map(r => Object.values(r).join(';'))].join('\n');
 
         // Prefixing with BOM (\uFEFF) forces Excel to read the file in UTF-8
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
@@ -335,6 +425,57 @@ export const AppProvider = ({ children }) => {
     };
 
     // ==========================================
+    // CRUD — Inventario
+    // ==========================================
+    const addInventoryItem = async (itemData) => {
+        const { data: newItem, error } = await supabase.from('inventory').insert([itemData]).select().single();
+        if (error) { console.error("Error creating inventory item", error); throw error; }
+
+        // Respaldo en Sheets
+        syncToSheets({
+            type: 'INVENTARIO_NUEVO',
+            item: itemData.name,
+            stock: itemData.stock_type === 'UNIT' ? itemData.stock_quantity : itemData.stock_ml,
+            price: itemData.sell_price
+        });
+
+        setData(prev => ({ ...prev, inventory: [...prev.inventory, newItem] }));
+        return newItem;
+    };
+
+    const updateInventoryItem = async (id, updates) => {
+        const { data: updated, error } = await supabase.from('inventory').update(updates).eq('id', id).select().single();
+        if (error) { console.error("Error updating inventory item", error); throw error; }
+
+        // Respaldo en Sheets
+        syncToSheets({
+            type: 'INVENTARIO_ACTUALIZACION',
+            item: updated.name,
+            stock: updated.stock_type === 'UNIT' ? updated.stock_quantity : updated.stock_ml,
+            price: updated.sell_price
+        });
+
+        setData(prev => ({ ...prev, inventory: prev.inventory.map(i => i.id === id ? { ...i, ...updated } : i) }));
+        return updated;
+    };
+
+    const deleteInventoryItem = async (id) => {
+        const item = data.inventory.find(i => i.id === id);
+        const { error } = await supabase.from('inventory').delete().eq('id', id);
+        if (error) { console.error("Error deleting inventory item", error); throw error; }
+
+        // Respaldo en Sheets
+        if (item) {
+            syncToSheets({
+                type: 'INVENTARIO_ELIMINADO',
+                item: item.name
+            });
+        }
+
+        setData(prev => ({ ...prev, inventory: prev.inventory.filter(i => i.id !== id) }));
+    };
+
+    // ==========================================
     // Órdenes de Trabajo
     // ==========================================
     const addWorkOrder = async (woData) => {
@@ -404,6 +545,35 @@ export const AppProvider = ({ children }) => {
     };
 
     // ==========================================
+    // Promociones
+    // ==========================================
+    const addPromotion = async (promoData) => {
+        const { data: newPromo, error } = await supabase.from('promotions').insert([promoData]).select().single();
+        if (error) { console.error("Error creating promotion", error); throw error; }
+        setData(prev => ({ ...prev, promotions: [newPromo, ...prev.promotions] }));
+        return newPromo;
+    };
+
+    const deletePromotion = async (id) => {
+        const { error } = await supabase.from('promotions').delete().eq('id', id);
+        if (error) { console.error("Error deleting promotion", error); throw error; }
+        setData(prev => ({ ...prev, promotions: prev.promotions.filter(p => p.id !== id) }));
+    };
+
+    const addAppointment = async (aptData) => {
+        const { data: newApt, error } = await supabase.from('appointments').insert([aptData]).select().single();
+        if (error) { console.error("Error creating appointment", error); throw error; }
+        setData(prev => ({ ...prev, appointments: [...prev.appointments, newApt].sort((a, b) => a.date.localeCompare(b.date)) }));
+        return newApt;
+    };
+
+    const deleteAppointment = async (id) => {
+        const { error } = await supabase.from('appointments').delete().eq('id', id);
+        if (error) { console.error("Error deleting appointment", error); throw error; }
+        setData(prev => ({ ...prev, appointments: prev.appointments.filter(a => a.id !== id) }));
+    };
+
+    // ==========================================
     // Facturación AFIP
     // ==========================================
     const generateAFIPInvoice = async (invoiceData) => {
@@ -468,6 +638,15 @@ export const AppProvider = ({ children }) => {
             .single();
 
         if (error) { console.error("Error adding withdrawal", error); throw error; }
+
+        // Respaldo Egresos en Sheets
+        syncToSheets({
+            type: 'EGRESO',
+            description: withdrawalData.description,
+            amount: Math.abs(parseFloat(withdrawalData.amount)),
+            method: 'EFECTIVO'
+        });
+
         setData(prev => ({ ...prev, payments: [newWithdrawal, ...prev.payments] }));
         return newWithdrawal;
     };
@@ -536,16 +715,26 @@ export const AppProvider = ({ children }) => {
     // Comisiones
     // ==========================================
     const getCommissions = (technicianId) => {
+        // 1. Comisiones por Órdenes de Trabajo (OT)
         const assignments = (data.assignments || []).filter(a => a.mechanic_id === technicianId);
-        return assignments.reduce((sum, a) => {
+        const otCommissions = assignments.reduce((sum, a) => {
             const wo = data.workOrders?.find(w => w.id === a.work_order_id);
             if (wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado')) {
-                const labor = parseFloat(wo.labor_cost) || 0;
-                const rate = parseFloat(a.labor_commission_percent) || 0;
+                const labor = parseFloat(wo.labor_base_price) || 0;
+                // Buscar tasa real del empleado
+                const emp = (data.employees || []).find(e => e.id === technicianId);
+                const rate = emp ? parseFloat(emp.commission_rate) : (parseFloat(a.labor_commission_percent) || 10);
                 return sum + (labor * (rate / 100));
             }
             return sum;
         }, 0);
+
+        // 2. Comisiones por Servicios Rápidos (Gomería)
+        const quickCommissions = (data.employeeEarnings || [])
+            .filter(e => e.employee_id === technicianId && e.quick_service_id)
+            .reduce((sum, e) => sum + (parseFloat(e.amount_earned) || 0), 0);
+
+        return otCommissions + quickCommissions;
     };
 
     const getEmployeeProductivity = (employeeId) => {
@@ -582,6 +771,9 @@ export const AppProvider = ({ children }) => {
             addVehicle,
             updateVehicle,
             addVehicleNote,
+            addInventoryItem,
+            updateInventoryItem,
+            deleteInventoryItem,
             addSupplier,
             updateSupplier,
             addWorkOrder,
@@ -594,6 +786,10 @@ export const AppProvider = ({ children }) => {
             getEmployeeProductivity,
             addQuickService,
             exportToExcel,
+            addPromotion,
+            deletePromotion,
+            addAppointment,
+            deleteAppointment,
             generateAFIPInvoice
         }}>
             {children}

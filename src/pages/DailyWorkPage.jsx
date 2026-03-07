@@ -69,7 +69,13 @@ export const DailyWorkPage = () => {
     const handleQuickAction = (action) => {
         const isSecond = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
 
-        addQuickService(action, isSecond);
+        addQuickService(
+            action,
+            isSecond,
+            user?.id,
+            selectedQueueClient?.client_id || null,
+            selectedQueueClient?.vehicle_id || null
+        );
 
         if (selectedQueueClient) {
             setGomeriaQueue(prev => prev.map(q => {

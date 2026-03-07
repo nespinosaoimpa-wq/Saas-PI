@@ -11,11 +11,11 @@ export default defineConfig({
       manifest: {
         name: 'PIRIPI PRO — Gestión de Lubricentro',
         short_name: 'PIRIPI PRO',
-        description: 'Sistema de gestión integral para lubricentro, gomería y mecánica ligera. Control de stock, órdenes de trabajo, caja y clientes.',
+        description: 'Sistema profesional de gestión integral para lubricentro, gomería y mecánica ligera.',
         theme_color: '#0c1222',
         background_color: '#0c1222',
         display: 'standalone',
-        orientation: 'any',
+        orientation: 'portrait',
         start_url: '/',
         scope: '/',
         icons: [

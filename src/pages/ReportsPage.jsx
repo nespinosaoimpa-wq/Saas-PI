@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import {
@@ -14,21 +14,52 @@ export const ReportsPage = () => {
     const { data: MOCK } = useApp();
     const [tab, setTab] = useState('revenue');
 
-    // MOCK logic for reports (since we don't have a real backend yet)
-    const REVENUE_BY_MONTH = [
-        { month: 'Ene', value: 450000, color: 'var(--primary)' },
-        { month: 'Feb', value: 620000, color: 'var(--primary)' },
-        { month: 'Mar', value: 580000, color: 'var(--primary)' },
-        { month: 'Abr', value: 710000, color: 'var(--primary)' },
-        { month: 'May', value: 590000, color: 'var(--accent)' },
-    ];
+    // Lógica REAL para reportes basada en los datos cargados
+    const payments = MOCK.payments || [];
+    const workOrders = MOCK.workOrders || [];
 
-    const SERVICES_BY_TYPE = [
-        { label: 'Cambio de Aceite', count: 45, value: 540000, color: 'var(--primary)' },
-        { label: 'Frenos', count: 28, value: 310000, color: 'var(--success)' },
-        { label: 'Gomería Express', count: 112, value: 280000, color: 'var(--warning)' },
-        { label: 'Mecánica Gral', count: 15, value: 420000, color: 'var(--accent)' },
-    ];
+    // Calcular ingresos de los últimos 5 meses
+    const REVENUE_BY_MONTH = useMemo(() => {
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const last5 = [];
+        const now = new Date();
+
+        for (let i = 4; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const mIdx = d.getMonth();
+            const mName = months[mIdx];
+            const mYear = d.getFullYear();
+
+            const total = payments
+                .filter(p => {
+                    const pDate = new Date(p.date);
+                    return p.type === 'INGRESO' && pDate.getMonth() === mIdx && pDate.getFullYear() === mYear;
+                })
+                .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+            last5.push({ month: mName, value: total, color: 'var(--primary)' });
+        }
+        return last5;
+    }, [payments]);
+
+    // Calcular distribución de servicios por descripción (top 4)
+    const SERVICES_BY_TYPE = useMemo(() => {
+        const counts = {};
+        workOrders.forEach(wo => {
+            const desc = wo.description?.split(' ')[0] || 'General';
+            counts[desc] = (counts[desc] || { count: 0, value: 0 });
+            counts[desc].count++;
+            counts[desc].value += (parseFloat(wo.total_price) || 0);
+        });
+
+        return Object.entries(counts)
+            .map(([label, data]) => ({ label, ...data, color: 'var(--primary)' }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 4);
+    }, [workOrders]);
+
+    const totalRevenue = REVENUE_BY_MONTH.reduce((sum, m) => sum + m.value, 0);
+    const avgTicket = workOrders.length > 0 ? (totalRevenue / workOrders.length) : 0;
 
     const maxVal = Math.max(...REVENUE_BY_MONTH.map(m => m.value));
 
@@ -54,9 +85,9 @@ export const ReportsPage = () => {
                 {tab === 'revenue' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                         <div className="grid-auto-cards">
-                            <StatCard icon="trending_up" label="Ingreso Mensual" value={formatCurrency(590000)} sub="+15.2% vs mes anterior" barPercent={85} />
-                            <StatCard icon="attach_money" label="Ticket Promedio" value={formatCurrency(18500)} sub="Basado en 32 servicios" barPercent={60} />
-                            <StatCard icon="savings" label="Ganancia Estimada" value={formatCurrency(210000)} sub="Margen bruto: 35.6%" barPercent={40} barAlert />
+                            <StatCard icon="trending_up" label="Ingreso Periodo" value={formatCurrency(totalRevenue)} sub="Total últimos 5 meses" barPercent={100} />
+                            <StatCard icon="attach_money" label="Ticket Promedio" value={formatCurrency(avgTicket)} sub={`Basado en ${workOrders.length} OTs`} barPercent={60} />
+                            <StatCard icon="savings" label="Ganancia Estimada (Bruta)" value={formatCurrency(totalRevenue * 0.4)} sub="Margen estimado: 40%" barPercent={40} barAlert />
                         </div>
 
                         <GlassCard style={{ padding: 24 }}>
@@ -177,11 +208,26 @@ export const ReportsPage = () => {
                     <DataTable
                         columns={[
                             { key: 'name', label: 'Cliente', render: r => <strong>{r.first_name} {r.last_name}</strong> },
-                            { key: 'vehicles', label: 'Vehículos', render: r => <span>{r.vehicles.length} unidades</span> },
-                            { key: 'total_spent', label: 'Total Invertido', render: r => <strong style={{ color: 'var(--primary)' }}>{formatCurrency(Math.floor(Math.random() * 150000) + 50000)}</strong> },
-                            { key: 'last_visit', label: 'Última Visita', render: r => 'Hace 12 días' },
+                            { key: 'vehicles', label: 'Vehículos', render: r => <span>{MOCK.getClientVehicles(r.id)?.length || 0} unidades</span> },
+                            {
+                                key: 'total_spent', label: 'Total Invertido', render: r => {
+                                    const spent = (MOCK.payments || [])
+                                        .filter(p => {
+                                            const wo = MOCK.workOrders?.find(w => w.id === p.work_order_id);
+                                            return wo && wo.client_id === r.id;
+                                        })
+                                        .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                                    return <strong style={{ color: 'var(--primary)' }}>{formatCurrency(spent)}</strong>;
+                                }
+                            },
+                            {
+                                key: 'last_visit', label: 'Última Visita', render: r => {
+                                    const lastWo = MOCK.workOrders?.filter(w => w.client_id === r.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                                    return lastWo ? new Date(lastWo.created_at).toLocaleDateString('es-AR') : 'N/A';
+                                }
+                            },
                         ]}
-                        data={MOCK.clients.slice(0, 5)}
+                        data={MOCK.clients.slice(0, 10)}
                     />
                 )}
             </div>
