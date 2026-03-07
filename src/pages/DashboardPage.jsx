@@ -36,9 +36,9 @@ export const DashboardPage = () => {
         const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         const dailyStats = [0, 1, 2, 3, 4, 5, 6].map(dIdx => {
             const dayName = days[dIdx];
-            const amount = (data.payments || [])
+            const amount = (MOCK.payments || [])
                 .filter(p => new Date(p.date || p.created_at).getDay() === dIdx)
-                .reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+                .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
             return { day: dayName, total: amount };
         }).filter(d => d.day !== 'Dom' && d.day !== 'Sáb'); // Solo lunes a viernes para el mini-gráfico
 
@@ -105,15 +105,15 @@ export const DashboardPage = () => {
                                     <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
                                         {formatCurrency(revenue.weekly_total)}
                                     </div>
-                                    <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>+8.2%</span>
+                                    <span>{user.role.toUpperCase()} • v2.7.1</span>
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
                                     Mes: {formatCurrency(revenue.monthly_total)}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
                                     {revenue.daily.map((d, i) => {
-                                        const max = Math.max(...revenue.daily.map(x => x.cash + x.transfer + x.card));
-                                        const total = d.cash + d.transfer + d.card;
+                                        const max = Math.max(...revenue.daily.map(x => x.cash || 0));
+                                        const total = d.cash || 0;
                                         const h = max > 0 ? (total / max) * 100 : (i === 4 ? 20 : 0);
                                         return (
                                             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
