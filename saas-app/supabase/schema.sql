@@ -1,19 +1,8 @@
 -- ==============================================================================
 -- SCHEMA SUPABASE PARA SISTEMA PIRIPI PRO (V2 - Lógica de Negocio Refinada)
 -- Incluye separación de caja (mano obra vs repuestos) y boxes específicos
+-- ADVERTENCIA: NUNCA AGREGAR 'DROP TABLE' A ESTE ARCHIVO PARA EVITAR PERDIDA DE DATOS
 -- ==============================================================================
-
--- LIMPIEZA DE TABLAS EXISTENTES PARA EVITAR ERRORES
-DROP TABLE IF EXISTS cash_closings CASCADE;
-DROP TABLE IF EXISTS payments CASCADE;
-DROP TABLE IF EXISTS vehicle_notes CASCADE;
-DROP TABLE IF EXISTS work_orders CASCADE;
-DROP TABLE IF EXISTS boxes CASCADE;
-DROP TABLE IF EXISTS suppliers CASCADE;
-DROP TABLE IF EXISTS inventory CASCADE;
-DROP TABLE IF EXISTS vehicles CASCADE;
-DROP TABLE IF EXISTS clients CASCADE;
-DROP TABLE IF EXISTS employees CASCADE;
 
 -- 1. TABLA DE EMPLEADOS (Usuarios del sistema)
 CREATE TABLE employees (
