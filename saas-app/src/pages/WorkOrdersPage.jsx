@@ -17,9 +17,10 @@ import {
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
-    const { data: MOCK, getClientVehicles, addWorkOrder } = useApp();
-    const { employees } = useAuth();
+    const { data: MOCK, getClientVehicles, addWorkOrder, deleteWorkOrder } = useApp();
+    const { employees, user } = useAuth();
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
+    const isAdmin = user?.role === 'admin';
 
     const [tab, setTab] = useState('active');
     const [showNew, setShowNew] = useState(false);
@@ -96,21 +97,31 @@ export const WorkOrdersPage = () => {
                         const boxName = MOCK.boxes.find(b => b.id === wo.box_id)?.name || 'Sin Box';
 
                         return (
-                            <QueueCard
-                                key={wo.id}
-                                wo={{
-                                    ...wo,
-                                    client: clientName,
-                                    vehicle: vehicleName,
-                                    mechanic: mechanicName,
-                                    box: boxName
-                                }}
-                                onClick={() => {
-                                    if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
-                                        setPrintWO(wo);
-                                    }
-                                }}
-                            />
+                            <div key={wo.id} style={{ position: 'relative' }}>
+                                <QueueCard
+                                    wo={{
+                                        ...wo,
+                                        client: clientName,
+                                        vehicle: vehicleName,
+                                        mechanic: mechanicName,
+                                        box: boxName
+                                    }}
+                                    onClick={() => {
+                                        if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
+                                            setPrintWO(wo);
+                                        }
+                                    }}
+                                />
+                                {isAdmin && (
+                                    <button
+                                        className="btn btn-sm btn-ghost"
+                                        style={{ position: 'absolute', right: 12, bottom: 12, color: 'var(--danger)', opacity: 0.6 }}
+                                        onClick={() => window.confirm('¿Borrar esta OT permanentemente?') && deleteWorkOrder(wo.id)}
+                                    >
+                                        <Icon name="delete" size={16} />
+                                    </button>
+                                )}
+                            </div>
                         );
                     })}
                     {filtered.length === 0 && <EmptyState icon="assignment" title="Sin órdenes" sub="No hay órdenes para este filtro" />}

@@ -73,19 +73,38 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = (action, isSecondOrMore = false) => {
-        const finalPrice = isSecondOrMore ? action.price * 0.7 : action.price; // 30% discount if second
-        const entry = {
-            id: `qs-${Date.now()}`,
-            label: isSecondOrMore ? `${action.label} (Adicional -30%)` : action.label,
-            price: finalPrice,
-            timestamp: new Date().toISOString()
-        };
-        setData(prev => ({
-            ...prev,
-            activityLog: [entry, ...(prev.activityLog || [])]
-        }));
-        alert(`✅ ${entry.label} registrado — $${finalPrice.toLocaleString('es-AR')}`);
+    const addQuickService = async (action, referenceName = 'Cliente Rápido') => {
+        if (!supabase) return;
+
+        try {
+            // Creamos una OT de tipo express/pendiente
+            const { data: newWo, error } = await supabase.from('work_orders').insert([{
+                description: `Servicio Rápido: ${action.label}`,
+                labor_cost: action.price,
+                parts_cost: 0,
+                total_price: action.price,
+                status: 'Pendiente',
+                notes: `Referencia: ${referenceName}`
+            }]).select().single();
+
+            if (error) throw error;
+
+            await refreshData();
+
+            // Backup
+            backupToSheets('Ordenes', [{
+                Fecha: new Date().toLocaleString(),
+                Cliente: referenceName,
+                Servicio: action.label,
+                Total: action.price,
+                Estado: 'Pendiente (Rápido)'
+            }]);
+
+            return newWo;
+        } catch (e) {
+            console.error("Error en addQuickService:", e);
+            alert("Error al registrar servicio rápido");
+        }
     };
 
     const exportToExcel = (dataType) => {
@@ -322,11 +341,27 @@ export const AppProvider = ({ children }) => {
     const updateWorkOrder = async (id, updates) => {
         const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
         if (!error) {
-            setData(prev => ({
-                ...prev,
-                workOrders: prev.workOrders.map(wo => wo.id === id ? { ...wo, ...updates } : wo)
-            }));
+            // Si la estamos pasando a "Cobrado" o "Finalizado", impactamos en caja si no estaba ya
+            if (updates.status === 'Cobrado' || updates.status === 'Finalizado') {
+                const wo = data.workOrders.find(w => w.id === id);
+                if (wo && wo.status !== 'Cobrado' && wo.status !== 'Finalizado') {
+                    await addPayment({
+                        amount: wo.total_price,
+                        method: 'EFECTIVO',
+                        work_order_id: id,
+                        description: `Cobro OT #${wo.order_number || id.slice(0, 5)}`,
+                        type: 'INGRESO'
+                    });
+                }
+            }
+            await refreshData();
         }
+    };
+
+    const deleteWorkOrder = async (id) => {
+        const { error } = await supabase.from('work_orders').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData();
     };
 
     // ==========================================
@@ -430,6 +465,12 @@ export const AppProvider = ({ children }) => {
         return closing;
     };
 
+    const deletePayment = async (id) => {
+        const { error } = await supabase.from('payments').delete().eq('id', id);
+        if (error) throw error;
+        await refreshData();
+    };
+
     // ==========================================
     // Punto de Venta — processSale
     // ==========================================
@@ -514,6 +555,8 @@ export const AppProvider = ({ children }) => {
             processSale,
             getCommissions,
             addQuickService,
+            deleteWorkOrder,
+            deletePayment,
             exportToExcel
         }}>
             {children}

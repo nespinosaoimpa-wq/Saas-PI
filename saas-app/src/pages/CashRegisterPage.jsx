@@ -16,8 +16,9 @@ import {
 } from '../components/ui';
 
 export const CashRegisterPage = () => {
-    const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
-    const { employees } = useAuth();
+    const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel, deletePayment } = useApp();
+    const { employees, user } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
@@ -120,6 +121,7 @@ export const CashRegisterPage = () => {
                         { key: 'method', label: 'Método', render: r => <StatusBadge status={r.payment_method === 'EFECTIVO' ? 'Pendiente' : r.payment_method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} /> },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
+                        { key: 'actions', label: '', render: r => isAdmin ? <button className="btn btn-sm btn-ghost" style={{ color: 'var(--danger)', opacity: 0.6 }} onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Borrar este movimiento?')) deletePayment(r.id); }}><Icon name="delete" size={16} /></button> : null },
                     ]}
                     data={allPayments}
                 />

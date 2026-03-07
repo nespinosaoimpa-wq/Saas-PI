@@ -49,8 +49,8 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
     };
 
     const handleSaveNew = async () => {
-        if (!newClient.first_name || !newClient.last_name || !newVehicle.license_plate) {
-            alert('Por favor completá los campos obligatorios (Nombre, Apellido y Patente).');
+        if (!newClient.first_name || !newVehicle.license_plate) {
+            alert('Por favor completá al menos el Nombre y la Patente.');
             return;
         }
         try {
@@ -66,7 +66,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
     };
 
     const handleSaveEditClient = async () => {
-        if (!newClient.first_name || !newClient.last_name) return alert('Nombre y Apellido son obligatorios.');
+        if (!newClient.first_name) return alert('El nombre es obligatorio.');
         try {
             await updateClient(selectedClient.id, newClient);
             alert('✅ Cliente actualizado con éxito.');

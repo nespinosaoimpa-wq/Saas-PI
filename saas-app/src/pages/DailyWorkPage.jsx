@@ -5,18 +5,19 @@ import { useAuth } from '../context/AuthContext';
 import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormField } from '../components/ui';
 
 export const DailyWorkPage = () => {
-    const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions } = useApp();
+    const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions, refreshData, deleteWorkOrder } = useApp();
     const { user } = useAuth();
 
-    const myOrders = MOCK.workOrders.filter(wo => wo.status === 'En Box');
-    // Using user.id as per the user's latest update in saas-app
+    const myOrders = MOCK.workOrders.filter(wo => wo.status === 'En Box' && wo.mechanic_id === user?.id);
+    // Persist queue using workOrders with status 'Pendiente'
+    const gomeriaQueue = MOCK.workOrders.filter(wo => wo.status === 'Pendiente');
+
     const commissions = user ? getCommissions(user.id) : 0;
 
     const [editingAction, setEditingAction] = useState(null);
     const [editPrice, setEditPrice] = useState('');
     const [showTicketModal, setShowTicketModal] = useState(false);
     const [lastTicket, setLastTicket] = useState(null);
-    const [gomeriaQueue, setGomeriaQueue] = useState([]);
     const [selectedQueueClient, setSelectedQueueClient] = useState(null);
     const [newQueueName, setNewQueueName] = useState('');
 
@@ -43,41 +44,50 @@ export const DailyWorkPage = () => {
         } catch { return DEFAULT_QUICK_ACTIONS; }
     });
 
-    const handleQuickAction = (action) => {
-        const isSecond = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
+    const handleQuickAction = async (action) => {
+        let reference = selectedQueueClient ? (selectedQueueClient.notes || selectedQueueClient.description) : '';
 
-        addQuickService(action, isSecond);
-
-        if (selectedQueueClient) {
-            setGomeriaQueue(prev => prev.map(q => {
-                if (q.id === selectedQueueClient.id) {
-                    return { ...q, services: [...q.services, action] };
-                }
-                return q;
-            }));
-            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, action] }));
+        if (!selectedQueueClient) {
+            const name = window.prompt("Ingresá un nombre o referencia para este servicio:", "Cliente Gomería");
+            if (!name) return;
+            reference = name;
         }
 
-        setLastTicket({
-            id: `T-${Date.now()}`,
-            label: isSecond ? `${action.label} (Adicional)` : action.label,
-            price: isSecond ? action.price * 0.7 : action.price,
-            timestamp: new Date().toLocaleString('es-AR')
-        });
-        setShowTicketModal(true);
+        const newWo = await addQuickService(action, reference);
+
+        if (newWo) {
+            setLastTicket({
+                id: `T-${newWo.id.slice(0, 6).toUpperCase()}`,
+                label: action.label,
+                price: action.price,
+                timestamp: new Date().toLocaleString('es-AR')
+            });
+            setShowTicketModal(true);
+        }
     };
 
-    const addToQueue = () => {
+    const addToQueue = async () => {
         if (!newQueueName.trim()) return;
-        const newItem = { id: Date.now(), name: newQueueName, services: [] };
-        setGomeriaQueue(prev => [...prev, newItem]);
-        setNewQueueName('');
-        if (!selectedQueueClient) setSelectedQueueClient(newItem);
+        try {
+            // Acceso directo a supabase para simplificar este flujo rápido
+            const { supabase } = await import('../lib/supabase');
+            await supabase.from('work_orders').insert([{
+                description: 'En espera: ' + newQueueName,
+                status: 'Pendiente',
+                notes: newQueueName
+            }]);
+            refreshData();
+            setNewQueueName('');
+        } catch (e) {
+            console.error(e);
+        }
     };
 
-    const removeFromQueue = (id) => {
-        setGomeriaQueue(prev => prev.filter(q => q.id !== id));
-        if (selectedQueueClient?.id === id) setSelectedQueueClient(null);
+    const removeFromQueue = async (id) => {
+        if (window.confirm('¿Quitar de la cola?')) {
+            await deleteWorkOrder(id);
+            if (selectedQueueClient?.id === id) setSelectedQueueClient(null);
+        }
     };
 
     const openEditPrice = (action) => {
@@ -210,9 +220,8 @@ export const DailyWorkPage = () => {
                                         display: 'flex', alignItems: 'center', gap: 8,
                                         border: selectedQueueClient?.id === q.id ? '2px solid var(--primary)' : '1px solid var(--border)'
                                     }}>
-                                    <span>{q.name}</span>
-                                    {q.services.length > 0 && <span className="nav-badge">{q.services.length}</span>}
-                                    <button onClick={(e) => { e.stopPropagation(); removeFromQueue(q.id); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: 0 }}>&times;</button>
+                                    <span>{q.notes || q.description}</span>
+                                    <button onClick={(e) => { e.stopPropagation(); removeFromQueue(q.id); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: 0, fontSize: 18, marginLeft: 4 }}>&times;</button>
                                 </div>
                             ))}
                             {gomeriaQueue.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No hay clientes en espera</div>}
