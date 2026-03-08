@@ -113,6 +113,22 @@ export const CashRegisterPage = () => {
                     columns={[
                         { key: 'date', label: 'Fecha', render: r => r.date || r.payment_date },
                         {
+                            key: 'type', label: 'Tipo', render: r => {
+                                const t = r.type || (r.amount < 0 ? 'EGRESO' : 'INGRESO');
+                                const typeColors = {
+                                    'INGRESO': { bg: 'rgba(46,204,113,0.15)', color: '#2ecc71', icon: 'arrow_downward', label: 'Ingreso' },
+                                    'EGRESO': { bg: 'rgba(231,76,60,0.15)', color: '#e74c3c', icon: 'arrow_upward', label: 'Egreso' },
+                                    'VENTA': { bg: 'rgba(52,152,219,0.15)', color: '#3498db', icon: 'shopping_cart', label: 'Venta POS' },
+                                };
+                                const cfg = typeColors[t] || typeColors['INGRESO'];
+                                return (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color }}>
+                                        <Icon name={cfg.icon} size={13} /> {cfg.label}
+                                    </span>
+                                );
+                            }
+                        },
+                        {
                             key: 'amount', label: 'Monto', render: r => (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     {r.amount < 0 && <Icon name="trending_down" size={14} style={{ color: 'var(--danger)' }} />}
@@ -123,7 +139,17 @@ export const CashRegisterPage = () => {
                         {
                             key: 'method', label: 'Método', render: r => {
                                 const m = r.method || r.payment_method || 'EFECTIVO';
-                                return <StatusBadge status={m === 'EFECTIVO' ? 'Pendiente' : m === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} />;
+                                const methodMap = {
+                                    'EFECTIVO': { label: '💵 Efectivo', color: '#27ae60' },
+                                    'TRANSFERENCIA': { label: '📲 Transferencia', color: '#2980b9' },
+                                    'TARJETA': { label: '💳 Tarjeta', color: '#8e44ad' },
+                                };
+                                const cfg = methodMap[m] || { label: m, color: 'var(--text-muted)' };
+                                return (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `${cfg.color}22`, color: cfg.color }}>
+                                        {cfg.label}
+                                    </span>
+                                );
                             }
                         },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
