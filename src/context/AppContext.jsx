@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { MOCK } from '../data/data';
+import * as XLSX from 'xlsx';
 
 const AppContext = createContext();
 
@@ -195,76 +196,77 @@ export const AppProvider = ({ children }) => {
 
     const exportToExcel = (dataType) => {
         let rows = [];
-        let filename = 'export.csv';
+        let filename = 'export.xlsx';
 
         if (dataType === 'payments') {
-            rows = data.payments.map(p => ({
+            rows = (data.payments || []).map(p => ({
                 Fecha: p.date ? new Date(p.date).toLocaleString('es-AR') : '',
                 Monto: p.amount,
-                Metodo: p.method,
-                Tipo: p.type,
-                Descripcion: p.description
+                Metodo: p.method || p.payment_method || 'EFECTIVO',
+                Tipo: p.type || (p.amount < 0 ? 'EGRESO' : 'INGRESO'),
+                Descripcion: p.description || ''
             }));
-            filename = `movimientos_caja_${new Date().toISOString().split('T')[0]}.csv`;
+            filename = `movimientos_caja_${new Date().toISOString().split('T')[0]}.xlsx`;
         } else if (dataType === 'inventory') {
-            rows = data.inventory.map(i => ({
-                Producto: i.name,
-                Marca: i.brand,
-                Precio_Venta: i.sell_price,
-                Stock: i.stock_type === 'UNIT' ? i.stock_quantity : i.stock_ml,
-                Tipo: i.stock_type
+            rows = (data.inventory || []).map(i => ({
+                Producto: i.name || '',
+                Marca: i.brand || '',
+                Precio_Venta: i.sell_price || 0,
+                Stock: i.stock_type === 'UNIT' ? (i.stock_quantity || 0) : (i.stock_ml || 0),
+                Tipo: i.stock_type || 'UNIT'
             }));
-            filename = `inventario_${new Date().toISOString().split('T')[0]}.csv`;
+            filename = `inventario_${new Date().toISOString().split('T')[0]}.xlsx`;
         } else if (dataType === 'sales') {
-            rows = data.payments.filter(p => p.type === 'INGRESO' && p.description?.includes('Venta Libre')).map(s => ({
+            rows = (data.payments || []).filter(p => p.type === 'INGRESO' && p.description?.includes('Venta')).map(s => ({
                 Fecha: s.date ? new Date(s.date).toLocaleString('es-AR') : '',
                 Monto_Total: s.amount,
-                Metodo_Pago: s.method,
+                Metodo_Pago: s.method || s.payment_method || '',
                 Cajero: s.cashier_id || 'LOCAL',
-                Detalle: s.description
+                Detalle: s.description || ''
             }));
-            filename = `punto_de_venta_${new Date().toISOString().split('T')[0]}.csv`;
+            filename = `punto_de_venta_${new Date().toISOString().split('T')[0]}.xlsx`;
         } else if (dataType === 'work_orders') {
-            rows = data.workOrders.map(wo => {
+            rows = (data.workOrders || []).map(wo => {
                 const client = data.clients?.find(c => c.id === wo.client_id);
                 return {
-                    Nro_Orden: wo.order_number,
+                    Nro_Orden: wo.order_number || '',
                     Fecha_Ingreso: wo.created_at ? new Date(wo.created_at).toLocaleDateString('es-AR') : '',
                     Cliente: client ? `${client.first_name} ${client.last_name}` : 'N/A',
-                    Descripcion: wo.description,
-                    Estado: wo.status,
+                    Vehiculo: wo.vehicle_id || '',
+                    Descripcion: wo.description || '',
+                    Estado: wo.status || '',
                     Total: wo.total_price || 0
                 };
             });
-            filename = `ordenes_trabajo_${new Date().toISOString().split('T')[0]}.csv`;
+            filename = `ordenes_trabajo_${new Date().toISOString().split('T')[0]}.xlsx`;
         } else if (dataType === 'appointments') {
-            rows = data.appointments.map(a => ({
-                Fecha: a.date,
-                Hora: a.time,
-                Motivo: a.title,
-                Cliente: a.client,
-                Vehiculo: a.vehicle,
-                Box: a.box,
-                Estado: a.status
+            rows = (data.appointments || []).map(a => ({
+                Fecha: a.date || '',
+                Hora: a.time || '',
+                Motivo: a.title || '',
+                Cliente: a.client || '',
+                Vehiculo: a.vehicle || '',
+                Box: a.box || '',
+                Estado: a.status || ''
             }));
-            filename = `turnos_${new Date().toISOString().split('T')[0]}.csv`;
+            filename = `turnos_${new Date().toISOString().split('T')[0]}.xlsx`;
         }
 
         if (rows.length === 0) return alert('No hay datos para exportar');
 
-        const headers = Object.keys(rows[0]).join(';');
-        const csvContent = [headers, ...rows.map(r => Object.values(r).join(';'))].join('\n');
+        // Create workbook and worksheet
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
 
-        // Prefixing with BOM (\uFEFF) forces Excel to read the file in UTF-8
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Set column widths automatically
+        const colWidths = Object.keys(rows[0]).map(key => ({
+            wch: Math.max(key.length, ...rows.map(row => row[key] ? row[key].toString().length : 0)) + 2
+        }));
+        worksheet['!cols'] = colWidths;
+
+        // Export to file
+        XLSX.writeFile(workbook, filename);
     };
 
     // Historial unificado: OTs finalizadas + notas manuales
