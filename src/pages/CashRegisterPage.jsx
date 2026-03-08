@@ -73,7 +73,8 @@ export const CashRegisterPage = () => {
     };
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayPayments = MOCK.payments.filter(p => (p.date || p.payment_date) === todayStr);
+    // Only show UNCLOSED payments for the current shift (no cash_closing_id)
+    const todayPayments = MOCK.payments.filter(p => (p.date || p.payment_date) === todayStr && !p.cash_closing_id);
 
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
     const cash = todayPayments.filter(p => (p.method || p.payment_method) === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
@@ -82,6 +83,7 @@ export const CashRegisterPage = () => {
 
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
     const monthStart = todayStr.slice(0, 7);
+    // Daily: only unclosed (current shift). Weekly/Monthly: ALL payments for full reporting.
     const allPayments = period === 'daily' ? todayPayments
         : period === 'weekly' ? MOCK.payments.filter(p => (p.date || p.payment_date) >= weekAgo)
             : MOCK.payments.filter(p => (p.date || p.payment_date)?.startsWith(monthStart));

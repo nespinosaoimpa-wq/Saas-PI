@@ -697,6 +697,18 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error performing cash close", error); throw error; }
 
+        // Mark all of today's unclosed payments with this closing ID so next shift starts at $0
+        const todayUnclosed = data.payments.filter(p =>
+            (p.date || p.payment_date) === today && !p.cash_closing_id
+        ).map(p => p.id);
+
+        if (todayUnclosed.length > 0 && closing?.id) {
+            await supabase
+                .from('payments')
+                .update({ cash_closing_id: closing.id })
+                .in('id', todayUnclosed);
+        }
+
         // Respaldo en Sheets
         syncToSheets({
             type: 'CIERRE_CAJA',
@@ -706,7 +718,8 @@ export const AppProvider = ({ children }) => {
             difference: closeData.difference || 0
         });
 
-        setData(prev => ({ ...prev, cashClosings: [closing, ...prev.cashClosings] }));
+        // Reload all data so the view refreshes with the marked payments
+        await loadData();
         return closing;
     };
 
