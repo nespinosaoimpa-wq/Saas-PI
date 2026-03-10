@@ -17,7 +17,7 @@ import {
 
 export const CashRegisterPage = () => {
     const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
-    const { employees } = useAuth();
+    const { employees, user } = useAuth();
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
@@ -72,16 +72,21 @@ export const CashRegisterPage = () => {
         setClosingCash('');
     };
 
-    const todayPayments = MOCK.payments.filter(p => p.payment_date === new Date().toISOString().split('T')[0] || p.payment_date === '2026-02-27');
+    const today = new Date().toISOString().split('T')[0];
+    const todayPayments = MOCK.payments.filter(p => p.date === today);
 
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
-    const cash = todayPayments.filter(p => p.payment_method === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
-    const transfer = todayPayments.filter(p => p.payment_method === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
-    const card = todayPayments.filter(p => p.payment_method === 'TARJETA').reduce((s, p) => s + p.amount, 0);
+    const cash = todayPayments.filter(p => p.method === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
+    const transfer = todayPayments.filter(p => p.method === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
+    const card = todayPayments.filter(p => p.method === 'TARJETA').reduce((s, p) => s + p.amount, 0);
 
+    // Weekly: last 7 days; Monthly: same month
     const allPayments = period === 'daily' ? todayPayments
-        : period === 'weekly' ? MOCK.payments.filter(p => p.payment_date >= '2026-02-21')
-            : MOCK.payments;
+        : period === 'weekly' ? MOCK.payments.filter(p => {
+            const d = new Date(p.date);
+            return (Date.now() - d.getTime()) / (1000 * 3600 * 24) <= 7;
+        })
+            : MOCK.payments.filter(p => p.date?.startsWith(today.slice(0, 7)));
 
     const totalPeriod = allPayments.reduce((s, p) => s + p.amount, 0);
 
@@ -108,7 +113,7 @@ export const CashRegisterPage = () => {
 
                 <DataTable
                     columns={[
-                        { key: 'date', label: 'Fecha', render: r => r.payment_date || r.date },
+                        { key: 'date', label: 'Fecha', render: r => r.date },
                         {
                             key: 'amount', label: 'Monto', render: r => (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -117,7 +122,7 @@ export const CashRegisterPage = () => {
                                 </div>
                             )
                         },
-                        { key: 'method', label: 'Método', render: r => <StatusBadge status={r.payment_method === 'EFECTIVO' ? 'Pendiente' : r.payment_method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} /> },
+                        { key: 'method', label: 'Método', render: r => <StatusBadge status={r.method === 'EFECTIVO' ? 'Pendiente' : r.method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} labelOverride={r.method} /> },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
                     ]}
@@ -197,24 +202,27 @@ export const CashRegisterPage = () => {
                 <div style={{ marginTop: 24 }}>
                     <SectionHeader icon="engineering" title="Comisiones de Técnicos — Historial Detallado" />
                     {technicians.map(tech => {
-                        // Buscar OTs por mechanic_id (nuevo sistema)
-                        const relevantWOs = MOCK.workOrders.filter(wo =>
-                            wo.mechanic_id === tech.id && (wo.status === 'Finalizado' || wo.status === 'Cobrado')
-                        );
-
-                        const allEntries = [
-                            ...relevantWOs.map(wo => {
-                                const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
-                                return {
-                                    wo_number: wo.order_number,
-                                    date: wo.completed_at?.split('T')[0] || wo.created_at?.split('T')[0] || '—',
-                                    vehicle: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : '—',
-                                    work_total: wo.labor_cost || 0,
-                                    percent: wo.applied_commission_rate || tech.commission_rate || 0,
-                                    amount: (wo.labor_cost || 0) * ((wo.applied_commission_rate || tech.commission_rate || 0) / 100)
-                                };
+                        // Buscar OTs por assignments (sistema correcto)
+                        const techAssignments = (MOCK.assignments || []).filter(a => a.mechanic_id === tech.id);
+                        const relevantWOs = techAssignments
+                            .map(a => {
+                                const wo = MOCK.workOrders.find(w => w.id === a.work_order_id);
+                                return wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado') ? { ...wo, _assignment: a } : null;
                             })
-                        ];
+                            .filter(Boolean);
+
+                        const allEntries = relevantWOs.map(wo => {
+                            const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
+                            const commRate = wo._assignment?.labor_commission_percent || wo.applied_commission_rate || tech.commission_rate || 0;
+                            return {
+                                wo_number: wo.order_number,
+                                date: wo.completed_at?.split('T')[0] || wo.created_at?.split('T')[0] || '—',
+                                vehicle: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : '—',
+                                work_total: wo.labor_cost || 0,
+                                percent: commRate,
+                                amount: (wo.labor_cost || 0) * (commRate / 100)
+                            };
+                        });
 
                         const totalComm = allEntries.reduce((s, e) => s + e.amount, 0);
 

@@ -21,6 +21,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
     const [showNewModal, setShowNewModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showNoteModal, setShowNoteModal] = useState(false);
+    const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
 
     const [newClient, setNewClient] = useState({ first_name: '', last_name: '', phone: '', dni: '', email: '' });
@@ -184,7 +185,8 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                             </div>
                                         </div>
                                     ))}
-                                    <button className="btn btn-ghost btn-sm" style={{ borderStyle: 'dashed', justifyContent: 'center' }}>
+                                    <button className="btn btn-ghost btn-sm" style={{ borderStyle: 'dashed', justifyContent: 'center' }}
+                                        onClick={() => { setNewVehicle({ license_plate: '', brand: '', model: '', year: '' }); setShowAddVehicleModal(true); }}>
                                         <Icon name="add" size={16} /> Agregar Vehículo
                                     </button>
                                 </div>
@@ -275,6 +277,30 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
 
             {showCamera && (
                 <CameraScanner onScan={handleScanResult} onClose={() => setShowCamera(false)} defaultMode="plate" />
+            )}
+
+            {showAddVehicleModal && selectedClient && (
+                <Modal title={`Agregar Vehículo a ${selectedClient.first_name} ${selectedClient.last_name}`} onClose={() => setShowAddVehicleModal(false)}
+                    footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowAddVehicleModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={async () => {
+                        if (!newVehicle.license_plate || !newVehicle.brand || !newVehicle.model) { alert('Patente, Marca y Modelo son obligatorios.'); return; }
+                        try {
+                            await addVehicle({ ...newVehicle, client_id: selectedClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
+                            alert('✅ Vehículo agregado con éxito.');
+                            setShowAddVehicleModal(false);
+                            setNewVehicle({ license_plate: '', brand: '', model: '', year: '' });
+                        } catch (e) { alert('Error: ' + e.message); }
+                    }}>Guardar Vehículo</button></Fragment>}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormRow>
+                            <FormField label="Patente *"><input className="form-input" placeholder="AA 123 BB" value={newVehicle.license_plate} onChange={e => setNewVehicle({ ...newVehicle, license_plate: e.target.value })} /></FormField>
+                            <FormField label="Marca *"><input className="form-input" placeholder="Ej: Toyota" value={newVehicle.brand} onChange={e => setNewVehicle({ ...newVehicle, brand: e.target.value })} /></FormField>
+                        </FormRow>
+                        <FormRow>
+                            <FormField label="Modelo *"><input className="form-input" placeholder="Ej: Corolla" value={newVehicle.model} onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })} /></FormField>
+                            <FormField label="Año"><input className="form-input" type="number" placeholder="2024" value={newVehicle.year} onChange={e => setNewVehicle({ ...newVehicle, year: e.target.value })} /></FormField>
+                        </FormRow>
+                    </div>
+                </Modal>
             )}
 
             {showEditModal && (

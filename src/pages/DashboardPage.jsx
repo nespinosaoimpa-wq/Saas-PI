@@ -13,11 +13,11 @@ import {
 
 export const DashboardPage = () => {
     const { data: MOCK, getLowStockItems } = useApp();
-    const { employees } = useAuth();
+    const { employees, user } = useAuth();
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
     const lowStock = getLowStockItems();
-    const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0]);
+    const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0] && p.amount > 0);
     const todayTotal = todayPayments.reduce((s, p) => s + p.amount, 0);
 
     const getRevenueStats = () => {
@@ -42,7 +42,12 @@ export const DashboardPage = () => {
     const getBoxStatus = (boxId) => {
         const order = activeOrders.find(wo => wo.box_id === boxId && wo.status === 'En Box');
         if (order) {
-            return { status: 'Ocupado', mechanic: employees.find(e => e.id === order.mechanic_id)?.name || 'Asignado' };
+            // Buscar mecánico por assignments (sistema actual) o fallback a mechanic_id (legacy)
+            const assignment = (MOCK.assignments || []).find(a => a.work_order_id === order.id);
+            const mechanicName = assignment
+                ? employees.find(e => e.id === assignment.mechanic_id)?.name
+                : employees.find(e => e.id === order.mechanic_id)?.name;
+            return { status: 'Ocupado', mechanic: mechanicName || 'Asignado' };
         }
         return { status: 'Libre', mechanic: null };
     };
@@ -75,7 +80,10 @@ export const DashboardPage = () => {
                             {activeOrders.slice(0, 5).map(wo => {
                                 const clientName = wo.clients ? `${wo.clients.first_name} ${wo.clients.last_name}` : 'Cliente';
                                 const vehicleName = wo.vehicles ? `${wo.vehicles.license_plate} - ${wo.vehicles.brand}` : 'Vehículo';
-                                const mechanicName = employees.find(e => e.id === wo.mechanic_id)?.name || 'Sin Asignar';
+                                const assignment = (MOCK.assignments || []).find(a => a.work_order_id === wo.id);
+                                const mechanicName = assignment
+                                    ? employees.find(e => e.id === assignment.mechanic_id)?.name
+                                    : employees.find(e => e.id === wo.mechanic_id)?.name || 'Sin Asignar';
                                 const boxName = MOCK.boxes.find(b => b.id === wo.box_id)?.name || 'Sin Box';
 
                                 return <QueueCard key={wo.id} wo={{ ...wo, client: clientName, vehicle: vehicleName, mechanic: mechanicName, box: boxName }} />;

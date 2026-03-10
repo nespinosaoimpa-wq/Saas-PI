@@ -34,9 +34,17 @@ export const AppProvider = ({ children }) => {
                 supabase.from('payments').select('*').order('created_at', { ascending: false }),
                 supabase.from('cash_closings').select('*').order('created_at', { ascending: false }),
                 supabase.from('appointments').select('*').order('date', { ascending: true }),
-                supabase.from('promotions').select('*').order('created_at', { ascending: false }),
-                supabase.from('work_order_assignments').select('*')
+                supabase.from('promotions').select('*').order('created_at', { ascending: false })
             ]);
+
+            // Assignments table may not exist yet — query separately with fallback
+            let assignments = [];
+            try {
+                const { data: assignData } = await supabase.from('work_order_assignments').select('*');
+                assignments = assignData || [];
+            } catch (e) {
+                console.warn('work_order_assignments table not available:', e.message);
+            }
 
             setData({
                 clients: clients || [],
@@ -51,7 +59,7 @@ export const AppProvider = ({ children }) => {
                 appointments: appointments || [],
                 promotions: promotions || [],
                 activityLog: [],
-                assignments: assignments || []
+                assignments
             });
         } catch (e) {
             console.error('Error loading data:', e);
@@ -497,7 +505,7 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Punto de Venta — processSale
     // ==========================================
-    const processSale = async (cart, payMethod) => {
+    const processSale = async (cart, payMethod, afipData = null) => {
         const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
         const today = new Date().toISOString().split('T')[0];
 
@@ -510,7 +518,10 @@ export const AppProvider = ({ children }) => {
                 date: today,
                 description: `Venta POS: ${cart.map(ci => `${ci.qty}x ${ci.name}`).join(', ')}`,
                 type: 'VENTA',
-                reference: null
+                reference: null,
+                cae: afipData?.cae || null,
+                cae_due_date: afipData?.cae_due_date || null,
+                receipt_number: afipData?.receipt_number || null
             }])
             .select()
             .single();

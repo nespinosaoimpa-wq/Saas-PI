@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import {
     SectionHeader,
     GlassCard,
@@ -11,7 +12,8 @@ import {
 } from '../components/ui';
 
 export const ReportsPage = () => {
-    const { data: MOCK } = useApp();
+    const { data: MOCK, getEmployeeProductivity, getClientVehicles } = useApp();
+    const { employees } = useAuth();
     const [tab, setTab] = useState('revenue');
 
     // MOCK logic for reports (since we don't have a real backend yet)
@@ -131,8 +133,8 @@ export const ReportsPage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                         <SectionHeader icon="engineering" title="Rendimiento del Personal" />
                         <div className="grid-auto-cards-sm">
-                            {(MOCK.employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero').map(emp => {
-                                const prod = MOCK.getEmployeeProductivity(emp.id);
+                            {(employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero').map(emp => {
+                                const prod = getEmployeeProductivity(emp.id);
                                 return (
                                     <GlassCard key={emp.id} style={{ padding: 16 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -163,11 +165,11 @@ export const ReportsPage = () => {
                             <DataTable
                                 columns={[
                                     { key: 'name', label: 'Empleado', render: r => <strong>{r.name}</strong> },
-                                    { key: 'count', label: 'OTs', render: r => MOCK.getEmployeeProductivity(r.id).count },
-                                    { key: 'labor', label: 'Mano de Obra', render: r => formatCurrency(MOCK.getEmployeeProductivity(r.id).total_labor) },
-                                    { key: 'comm', label: 'A Pagar', render: r => <strong style={{ color: 'var(--success)' }}>{formatCurrency(MOCK.getEmployeeProductivity(r.id).commission)}</strong> }
+                                    { key: 'count', label: 'OTs', render: r => getEmployeeProductivity(r.id).count },
+                                    { key: 'labor', label: 'Mano de Obra', render: r => formatCurrency(getEmployeeProductivity(r.id).total_labor) },
+                                    { key: 'comm', label: 'A Pagar', render: r => <strong style={{ color: 'var(--success)' }}>{formatCurrency(getEmployeeProductivity(r.id).commission)}</strong> }
                                 ]}
-                                data={(MOCK.employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero')}
+                                data={(employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero')}
                             />
                         </GlassCard>
                     </div>
@@ -177,7 +179,7 @@ export const ReportsPage = () => {
                     <DataTable
                         columns={[
                             { key: 'name', label: 'Cliente', render: r => <strong>{r.first_name} {r.last_name}</strong> },
-                            { key: 'vehicles', label: 'Vehículos', render: r => <span>{r.vehicles.length} unidades</span> },
+                            { key: 'vehicles', label: 'Vehículos', render: r => <span>{(getClientVehicles(r.id) || []).length} unidades</span> },
                             { key: 'total_spent', label: 'Total Invertido', render: r => <strong style={{ color: 'var(--primary)' }}>{formatCurrency(Math.floor(Math.random() * 150000) + 50000)}</strong> },
                             { key: 'last_visit', label: 'Última Visita', render: r => 'Hace 12 días' },
                         ]}
