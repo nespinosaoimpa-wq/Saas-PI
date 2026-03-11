@@ -1,0 +1,81 @@
+-- ============================================================
+-- PIRIPI PRO — ESQUEMA CONSOLIDADO DE PRODUCCIÓN
+-- Versión: 3.0.0 (Auditoría Completa)
+-- Fecha: 2026-03-07
+-- ============================================================
+-- Este archivo refleja el estado REAL de la base de datos en 
+-- producción, fusionando todos los scripts de migración parciales.
+-- Tabla de referencia:  supabase_schema.sql (original)
+--                       + fix_rls_and_appointments.sql
+--                       + master_fix.sql
+--                       + multi_mechanic_setup.sql
+--                       + supabase_v2_features.sql
+--                       + afip_columns.sql
+--                       + fix_missing_columns.sql
+--                       + fix_inventory_rls.sql
+--                       + add_supplier_category.sql
+-- ============================================================
+
+-- NOTA: La DB de producción usa la clave anon con RLS deshabilitado
+-- para funcionar como MVP interno. Las tablas usan nombres simplificados
+-- (ej: 'inventory' en vez de 'inventory_items', 'employees' en vez de 'user_profiles').
+
+-- ============================================================
+-- TABLAS ACTIVAS EN PRODUCCIÓN
+-- ============================================================
+-- 1.  employees            — Usuarios/empleados con PIN y roles
+-- 2.  clients              — Clientes del taller
+-- 3.  vehicles             — Vehículos asociados a clientes
+-- 4.  vehicle_health       — Score de salud del vehículo
+-- 5.  vehicle_notes        — Notas manuales sobre vehículos
+-- 6.  boxes                — Boxes físicos del taller
+-- 7.  suppliers            — Proveedores (con columna category)
+-- 8.  brands               — Marcas de productos
+-- 9.  inventory            — Stock (UNIT/VOLUME)
+-- 10. work_orders          — Órdenes de trabajo (con labor_profit_percent)
+-- 11. work_order_assignments — Asignación multi-mecánico por OT
+-- 12. payments             — Pagos/caja (con type, cae, receipt_number)
+-- 13. cash_closings        — Cierres de caja diarios
+-- 14. appointments         — Turnos/citas (schema simplificado)
+-- 15. promotions           — Promociones y descuentos
+-- 16. daily_work_log       — Log de trabajo diario del mecánico
+-- 17. daily_quick_services — Servicios rápidos de gomería
+-- 18. service_history      — Historial de servicios por vehículo
+-- 19. employee_earnings    — Comisiones de empleados
+
+-- ============================================================
+-- PERMISOS (MVP — RLS deshabilitado)
+-- ============================================================
+-- ALTER TABLE <tabla> DISABLE ROW LEVEL SECURITY;
+-- GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
+-- GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
+-- GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+-- GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- ============================================================
+-- COLUMNAS EXTRA AGREGADAS POR MIGRACIONES
+-- ============================================================
+-- payments.type            TEXT   — 'INGRESO', 'EGRESO', 'VENTA'
+-- payments.cae             TEXT   — CAE de factura AFIP
+-- payments.cae_due_date    TEXT   — Fecha vencimiento CAE
+-- payments.receipt_number  TEXT   — Número de comprobante
+-- payments.date            DATE   — Fecha del pago (alias de payment_date)
+-- payments.employee_id     UUID   — Empleado que registró
+-- work_orders.labor_profit_percent  NUMERIC — % rentabilidad mano de obra
+-- suppliers.category       TEXT   — Categoría del proveedor
+
+-- ============================================================
+-- REALTIME
+-- ============================================================
+-- Las siguientes tablas están en la publicación supabase_realtime:
+-- payments, cash_closings (y todas las que se hayan agregado manualmente)
+
+-- ============================================================
+-- Para recrear la DB desde cero, ejecutar en orden:
+-- 1. supabase_schema.sql (base)
+-- 2. fix_rls_and_appointments.sql (crear appointments simplificado, deshabilitar RLS)
+-- 3. master_fix.sql (multi-mecánico, categoría proveedor)
+-- 4. supabase_v2_features.sql (caja real, cash_closings)
+-- 5. afip_columns.sql (columnas AFIP en payments)
+-- 6. fix_missing_columns.sql (payment_date)
+-- ============================================================

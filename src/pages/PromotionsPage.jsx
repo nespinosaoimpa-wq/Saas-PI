@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿import React, { useState, Fragment } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
@@ -46,18 +47,71 @@ export const PromotionsPage = () => {
     const toggleActive = async (p) => {
         await supabase.from('promotions').update({ is_active: !p.is_active }).eq('id', p.id);
         await refreshData();
+=======
+﻿import React, { useState } from 'react';
+import { formatCurrency } from '../data/data';
+import { useApp } from '../context/AppContext';
+import { SectionHeader, GlassCard, Icon, Modal, FormField, FormRow } from '../components/ui';
+
+export const PromotionsPage = () => {
+    const { data: MOCK, addPromotion, deletePromotion } = useApp();
+    const [showModal, setShowModal] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '', description: '', discount_type: 'PERCENTAGE', discount_value: '',
+        category: '', is_active: true
+    });
+
+    const handleSave = async () => {
+        if (!formData.name || !formData.discount_value) return alert('Nombre y valor son obligatorios');
+        setLoading(true);
+        try {
+            await addPromotion({
+                ...formData,
+                discount_value: parseFloat(formData.discount_value)
+            });
+            setShowModal(false);
+            setFormData({ name: '', description: '', discount_type: 'PERCENTAGE', discount_value: '', category: '', is_active: true });
+        } catch (e) {
+            alert("Error al guardar promo: " + e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("¿Eliminar esta promoción?")) return;
+        try {
+            await deletePromotion(id);
+        } catch (e) {
+            alert("Error al eliminar: " + e.message);
+        }
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
     };
 
     return (
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <SectionHeader icon="loyalty" title="Gestión de Promociones" right={
+<<<<<<< HEAD
                     <button className="btn btn-primary btn-sm" onClick={openNew}><Icon name="add" size={16} /> Nueva Promo</button>
+=======
+                    <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>
+                        <Icon name="add" size={16} /> Nueva Promo
+                    </button>
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
                 } />
                 <div className="grid-auto-cards">
                     {MOCK.promotions?.map(p => (
-                        <GlassCard key={p.id} style={{ padding: 20, borderLeft: `3px solid ${p.is_active ? 'var(--success)' : 'var(--text-muted)'}` }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 8 }}>
+                        <GlassCard key={p.id} style={{ padding: 20, position: 'relative', borderLeft: `3px solid ${p.is_active ? 'var(--success)' : 'var(--text-muted)'}` }}>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                style={{ position: 'absolute', top: 10, right: 10, color: 'var(--danger)' }}
+                                onClick={() => handleDelete(p.id)}
+                            >
+                                <Icon name="delete" size={16} />
+                            </button>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 8, paddingRight: 30 }}>
                                 <h4 style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</h4>
                                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                                     {p.is_active ? <span className="badge badge-done">Activa</span> : <span className="badge badge-canceled">Inactiva</span>}
@@ -84,6 +138,7 @@ export const PromotionsPage = () => {
             </div>
 
             {showModal && (
+<<<<<<< HEAD
                 <Modal title={editing ? "Editar Promoción" : "Nueva Promoción"} onClose={() => setShowModal(false)}
                     footer={<Fragment><button className="btn btn-ghost" disabled={saving} onClick={() => setShowModal(false)}>Cancelar</button><button className="btn btn-primary" disabled={saving} onClick={handleSave}>{saving ? 'Guardando...' : 'Guardar'}</button></Fragment>}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -96,10 +151,25 @@ export const PromotionsPage = () => {
                         <FormRow>
                             <FormField label="Tipo de Descuento">
                                 <select className="form-select" value={form.discount_type} onChange={e => setForm({ ...form, discount_type: e.target.value })}>
+=======
+                <Modal title="Nueva Promoción" onClose={() => setShowModal(false)} width="500px"
+                    footer={<><button className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSave} disabled={loading}>{loading ? 'Guardando...' : 'Crear Promo'}</button></>}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormField label="Nombre de la Promo *">
+                            <input className="form-input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ej: Especial Lunes de Aceite" />
+                        </FormField>
+                        <FormField label="Descripción">
+                            <textarea className="form-textarea" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Detalles de la promo..." />
+                        </FormField>
+                        <FormRow>
+                            <FormField label="Tipo de Descuento">
+                                <select className="form-select" value={formData.discount_type} onChange={e => setFormData({ ...formData, discount_type: e.target.value })}>
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
                                     <option value="PERCENTAGE">Porcentaje (%)</option>
                                     <option value="FIXED">Monto Fijo ($)</option>
                                 </select>
                             </FormField>
+<<<<<<< HEAD
                             <FormField label="Valor del Descuento *">
                                 <input className="form-input" type="number" value={form.discount_value} onChange={e => setForm({ ...form, discount_value: e.target.value })} placeholder={form.discount_type === 'PERCENTAGE' ? 'Ej: 10' : 'Ej: 5000'} />
                             </FormField>
@@ -115,6 +185,15 @@ export const PromotionsPage = () => {
                                 </select>
                             </FormField>
                         </FormRow>
+=======
+                            <FormField label="Valor Descuento *">
+                                <input type="number" className="form-input" value={formData.discount_value} onChange={e => setFormData({ ...formData, discount_value: e.target.value })} placeholder="Ej: 10 o 500" />
+                            </FormField>
+                        </FormRow>
+                        <FormField label="Categoría (Opcional)">
+                            <input className="form-input" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} placeholder="Ej: Aceites, Filtros..." />
+                        </FormField>
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
                     </div>
                 </Modal>
             )}

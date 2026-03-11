@@ -1,6 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
-console.log("%c>>> DEPLOY V2.2 - EMERGENCY RESET ACTIVE <<<", "color: #ff00ff; font-weight: bold; font-size: 20px;");
+console.log("%c>>> PIRIPI PRO v3.0.0 — Auditoría Completa <<<", "color: #00ff00; font-weight: bold; font-size: 20px;");
 import { useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { Icon, Modal, FormField, CameraScanner } from './components/ui';
@@ -215,7 +215,7 @@ function App() {
                                 {user.name}
                             </div>
                             <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>{user.role.toUpperCase()} • v2.2 – EMERGENCY RESET</span>
+                                <span>{user.role.toUpperCase()} • v3.0.0</span>
                                 <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 10, padding: 0 }}>Salir</button>
                             </div>
                         </div>

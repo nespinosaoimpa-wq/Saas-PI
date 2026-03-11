@@ -8,7 +8,14 @@ import {
 } from '../components/ui';
 
 export const InventoryPage = ({ initialScannedCode = '' }) => {
-    const { data: MOCK, refreshData, exportToExcel } = useApp();
+    const {
+        data: MOCK,
+        refreshData,
+        exportToExcel,
+        addInventoryItem,
+        updateInventoryItem,
+        deleteInventoryItem
+    } = useApp();
     const { user } = useAuth();
 
     // Check access: Solo administradores pueden modificar inventario y precios
@@ -80,13 +87,10 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
 
         try {
             if (editingItem) {
-                const { error } = await supabase.from('inventory').update(payload).eq('id', editingItem.id);
-                if (error) throw error;
+                await updateInventoryItem(editingItem.id, payload);
             } else {
-                const { error } = await supabase.from('inventory').insert([payload]);
-                if (error) throw error;
+                await addInventoryItem(payload);
             }
-            await refreshData();
             setShowModal(false);
         } catch (e) {
             console.error(e);
@@ -99,8 +103,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     const handleDelete = async (id) => {
         if (window.confirm('¿Eliminar producto del inventario? Esta acción no se puede deshacer.')) {
             try {
-                await supabase.from('inventory').delete().eq('id', id);
-                await refreshData();
+                await deleteInventoryItem(id);
             } catch (e) {
                 console.error(e);
             }

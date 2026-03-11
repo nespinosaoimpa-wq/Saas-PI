@@ -4,10 +4,9 @@ import { supabase } from '../lib/supabase';
 import { SectionHeader, GlassCard, StatusBadge, Icon, Modal, FormRow, FormField } from '../components/ui';
 
 export const CalendarPage = () => {
-    const { data: MOCK, refreshData, exportToExcel } = useApp();
+    const { data: MOCK, refreshData, exportToExcel, addAppointment, deleteAppointment } = useApp();
     const appointments = MOCK.appointments || [];
 
-    // Dynamic date
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDay, setSelectedDay] = useState(new Date().getDate());
     const [showModal, setShowModal] = useState(false);
@@ -17,43 +16,50 @@ export const CalendarPage = () => {
         title: '', client: '', vehicle: '', date: '', time: '09:00', box: 'Box 1', color: '#3b82f6', notes: ''
     });
 
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    // =========================================
+    // Calendar Logic
+    // =========================================
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDayOfWeek = new Date(year, month, 1).getDay();
-
-    const cells = [];
-    for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-    const todayStr = useMemo(() => {
-        const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    }, []);
-
-    const selectedDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
-    const isToday = (d) => {
-        const s = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        return s === todayStr;
-    };
-
-    const hasEvent = (d) => {
-        const s = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        return appointments.some(a => a.date === s);
-    };
-
-    const selectedAppointments = appointments.filter(a => a.date === selectedDateStr);
-    const upcomingAppointments = appointments.filter(a => a.date > selectedDateStr).slice(0, 5);
+    const month = currentDate.getMonth();
+    const year = currentDate.getFullYear();
 
     const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
     const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Monday = 0
+
+    const cells = useMemo(() => {
+        const c = [];
+        for (let i = 0; i < startOffset; i++) c.push(null);
+        for (let d = 1; d <= daysInMonth; d++) c.push(d);
+        return c;
+    }, [month, year, startOffset, daysInMonth]);
+
+    const todayDate = new Date();
+    const isToday = (d) => d === todayDate.getDate() && month === todayDate.getMonth() && year === todayDate.getFullYear();
+
+    const getDateStr = (d) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    const hasEvent = (d) => appointments.some(a => a.date === getDateStr(d));
+
+    const selectedAppointments = appointments.filter(a => a.date === getDateStr(selectedDay));
+
+    const upcomingAppointments = useMemo(() => {
+        const todayStr = getDateStr(todayDate.getDate());
+        return appointments
+            .filter(a => a.date > todayStr)
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(0, 5);
+    }, [appointments, month, year]);
+
     const openNewAppointment = () => {
         setForm({
-            title: '', client: '', vehicle: '', date: selectedDateStr,
+            title: '', client: '', vehicle: '',
+            date: getDateStr(selectedDay),
             time: '09:00', box: 'Box 1', color: '#3b82f6', notes: ''
         });
         setShowModal(true);
@@ -63,7 +69,7 @@ export const CalendarPage = () => {
         if (!form.title || !form.date || !form.time) return alert('Título, fecha y hora son obligatorios');
         setLoading(true);
         try {
-            const payload = {
+            await addAppointment({
                 title: form.title,
                 client: form.client,
                 vehicle: form.vehicle,
@@ -73,13 +79,9 @@ export const CalendarPage = () => {
                 color: form.color,
                 notes: form.notes,
                 status: 'Pendiente'
-            };
-            const { error } = await supabase.from('appointments').insert([payload]);
-            if (error) throw error;
-            await refreshData();
+            });
             setShowModal(false);
         } catch (e) {
-            console.error(e);
             alert('Error al guardar turno: ' + e.message);
         } finally {
             setLoading(false);
@@ -89,10 +91,10 @@ export const CalendarPage = () => {
     const handleDeleteAppointment = async (id) => {
         if (!window.confirm('¿Eliminar este turno?')) return;
         try {
-            await supabase.from('appointments').delete().eq('id', id);
-            await refreshData();
+            await deleteAppointment(id);
         } catch (e) {
             console.error(e);
+            alert('Error al eliminar: ' + e.message);
         }
     };
 

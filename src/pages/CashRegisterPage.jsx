@@ -17,7 +17,11 @@ import {
 
 export const CashRegisterPage = () => {
     const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
+<<<<<<< HEAD
     const { employees, user } = useAuth();
+=======
+    const { user, employees } = useAuth();
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
@@ -72,6 +76,7 @@ export const CashRegisterPage = () => {
         setClosingCash('');
     };
 
+<<<<<<< HEAD
     const today = new Date().toISOString().split('T')[0];
     const todayPayments = MOCK.payments.filter(p => p.date === today);
 
@@ -87,6 +92,23 @@ export const CashRegisterPage = () => {
             return (Date.now() - d.getTime()) / (1000 * 3600 * 24) <= 7;
         })
             : MOCK.payments.filter(p => p.date?.startsWith(today.slice(0, 7)));
+=======
+    const todayStr = new Date().toISOString().split('T')[0];
+    // Only show UNCLOSED payments for the current shift (no cash_closing_id)
+    const todayPayments = MOCK.payments.filter(p => (p.date || p.payment_date) === todayStr && !p.cash_closing_id);
+
+    // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
+    const cash = todayPayments.filter(p => (p.method || p.payment_method) === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
+    const transfer = todayPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
+    const card = todayPayments.filter(p => (p.method || p.payment_method) === 'TARJETA').reduce((s, p) => s + p.amount, 0);
+
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const monthStart = todayStr.slice(0, 7);
+    // Daily: only unclosed (current shift). Weekly/Monthly: ALL payments for full reporting.
+    const allPayments = period === 'daily' ? todayPayments
+        : period === 'weekly' ? MOCK.payments.filter(p => (p.date || p.payment_date) >= weekAgo)
+            : MOCK.payments.filter(p => (p.date || p.payment_date)?.startsWith(monthStart));
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
 
     const totalPeriod = allPayments.reduce((s, p) => s + p.amount, 0);
 
@@ -113,7 +135,27 @@ export const CashRegisterPage = () => {
 
                 <DataTable
                     columns={[
+<<<<<<< HEAD
                         { key: 'date', label: 'Fecha', render: r => r.date },
+=======
+                        { key: 'date', label: 'Fecha', render: r => r.date || r.payment_date },
+                        {
+                            key: 'type', label: 'Tipo', render: r => {
+                                const t = r.type || (r.amount < 0 ? 'EGRESO' : 'INGRESO');
+                                const typeColors = {
+                                    'INGRESO': { bg: 'rgba(46,204,113,0.15)', color: '#2ecc71', icon: 'arrow_downward', label: 'Ingreso' },
+                                    'EGRESO': { bg: 'rgba(231,76,60,0.15)', color: '#e74c3c', icon: 'arrow_upward', label: 'Egreso' },
+                                    'VENTA': { bg: 'rgba(52,152,219,0.15)', color: '#3498db', icon: 'shopping_cart', label: 'Venta POS' },
+                                };
+                                const cfg = typeColors[t] || typeColors['INGRESO'];
+                                return (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color }}>
+                                        <Icon name={cfg.icon} size={13} /> {cfg.label}
+                                    </span>
+                                );
+                            }
+                        },
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
                         {
                             key: 'amount', label: 'Monto', render: r => (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -122,7 +164,26 @@ export const CashRegisterPage = () => {
                                 </div>
                             )
                         },
+<<<<<<< HEAD
                         { key: 'method', label: 'Método', render: r => <StatusBadge status={r.method === 'EFECTIVO' ? 'Pendiente' : r.method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} labelOverride={r.method} /> },
+=======
+                        {
+                            key: 'method', label: 'Método', render: r => {
+                                const m = r.method || r.payment_method || 'EFECTIVO';
+                                const methodMap = {
+                                    'EFECTIVO': { label: '💵 Efectivo', color: '#27ae60' },
+                                    'TRANSFERENCIA': { label: '📲 Transferencia', color: '#2980b9' },
+                                    'TARJETA': { label: '💳 Tarjeta', color: '#8e44ad' },
+                                };
+                                const cfg = methodMap[m] || { label: m, color: 'var(--text-muted)' };
+                                return (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `${cfg.color}22`, color: cfg.color }}>
+                                        {cfg.label}
+                                    </span>
+                                );
+                            }
+                        },
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
                     ]}

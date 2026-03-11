@@ -263,7 +263,7 @@ export const WorkOrdersPage = () => {
                                 <FormField label="Box asignado">
                                     <select className="form-select" value={newOrder.box_id} onChange={e => setNewOrder({ ...newOrder, box_id: e.target.value })}>
                                         <option value="">Sin asignar</option>
-                                        {MOCK.boxes.map(b => <option key={b.id} value={b.id}>{b.name} ({b.type})</option>)}
+                                        {MOCK.boxes.map(b => <option key={b.id} value={b.id}>{b.name} {b.type ? `(${b.type})` : ''}</option>)}
                                     </select>
                                 </FormField>
                                 <FormField label="Km al ingresar">
@@ -297,18 +297,26 @@ export const WorkOrdersPage = () => {
 
                             <SectionHeader icon="engineering" title="Mecánicos o Gomeros" />
                             <FormField label="Asignar Profesionales (Se puede elegir varios)">
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
-                                    {mechanics.map(m => (
-                                        <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: newOrder.mechanic_ids.includes(m.id) ? 'var(--primary-light)' : 'var(--bg-hover)', borderRadius: 20, cursor: 'pointer', fontSize: 12 }}>
-                                            <input type="checkbox" checked={newOrder.mechanic_ids.includes(m.id)} onChange={e => {
-                                                const ids = e.target.checked
-                                                    ? [...newOrder.mechanic_ids, m.id]
-                                                    : newOrder.mechanic_ids.filter(id => id !== m.id);
-                                                setNewOrder({ ...newOrder, mechanic_ids: ids });
-                                            }} />
-                                            {m.name}
-                                        </label>
-                                    ))}
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', minHeight: 60, alignItems: 'center', justifyContent: 'center' }}>
+                                    {mechanics.length === 0 ? (
+                                        <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
+                                            No hay mecánicos registrados o activos aún.
+                                            <br />
+                                            <small>(Podés crearlos en el menú "Personal y Accesos")</small>
+                                        </div>
+                                    ) : (
+                                        mechanics.map(m => (
+                                            <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: newOrder.mechanic_ids.includes(m.id) ? 'var(--primary-light)' : 'var(--bg-hover)', borderRadius: 20, cursor: 'pointer', fontSize: 12 }}>
+                                                <input type="checkbox" checked={newOrder.mechanic_ids.includes(m.id)} onChange={e => {
+                                                    const ids = e.target.checked
+                                                        ? [...newOrder.mechanic_ids, m.id]
+                                                        : newOrder.mechanic_ids.filter(id => id !== m.id);
+                                                    setNewOrder({ ...newOrder, mechanic_ids: ids });
+                                                }} />
+                                                {m.name}
+                                            </label>
+                                        ))
+                                    )}
                                 </div>
                             </FormField>
                             {selectedMechanics.length > 0 && laborCost > 0 && (

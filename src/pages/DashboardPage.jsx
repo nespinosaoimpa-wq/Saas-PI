@@ -13,7 +13,11 @@ import {
 
 export const DashboardPage = () => {
     const { data: MOCK, getLowStockItems } = useApp();
+<<<<<<< HEAD
     const { employees, user } = useAuth();
+=======
+    const { user, employees } = useAuth();
+>>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
     const lowStock = getLowStockItems();
@@ -22,20 +26,31 @@ export const DashboardPage = () => {
 
     const getRevenueStats = () => {
         const todayStr = new Date().toISOString().split('T')[0];
-        const monthlyTotal = MOCK.payments.filter(p => p.date?.startsWith(todayStr.slice(0, 7))).reduce((s, p) => s + p.amount, 0);
-        const weeklyTotal = MOCK.payments.filter(p => {
-            const date = new Date(p.date);
-            return (Date.now() - date.getTime()) / (1000 * 3600 * 24) <= 7;
-        }).reduce((s, p) => s + p.amount, 0);
+        const monthlyPayments = (MOCK.payments || []).filter(p => p.date?.startsWith(todayStr.slice(0, 7)));
+        const monthlyTotal = monthlyPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
-        const daily = [
-            { day: 'Lun', cash: 0, transfer: 0, card: 0 },
-            { day: 'Mar', cash: 0, transfer: 0, card: 0 },
-            { day: 'Mié', cash: 0, transfer: 0, card: 0 },
-            { day: 'Jue', cash: 0, transfer: 0, card: 0 },
-            { day: 'Vie', cash: todayTotal, transfer: 0, card: 0 },
-        ];
-        return { daily, weekly_total: weeklyTotal, monthly_total: monthlyTotal };
+        const last7Days = (MOCK.payments || []).filter(p => {
+            const pDate = new Date(p.date || p.created_at);
+            const diff = (new Date() - pDate) / (1000 * 3600 * 24);
+            return diff <= 7;
+        });
+        const weeklyTotal = last7Days.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+
+        // Agrupar por día para el gráfico (últimos 5 días hábiles aprox)
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const dailyStats = [0, 1, 2, 3, 4, 5, 6].map(dIdx => {
+            const dayName = days[dIdx];
+            const amount = (MOCK.payments || [])
+                .filter(p => new Date(p.date || p.created_at).getDay() === dIdx)
+                .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+            return { day: dayName, total: amount };
+        }).filter(d => d.day !== 'Dom' && d.day !== 'Sáb'); // Solo lunes a viernes para el mini-gráfico
+
+        return {
+            daily: dailyStats.map(d => ({ ...d, cash: d.total })),
+            weekly_total: weeklyTotal,
+            monthly_total: monthlyTotal
+        };
     };
     const revenue = getRevenueStats();
 
@@ -102,15 +117,15 @@ export const DashboardPage = () => {
                                     <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
                                         {formatCurrency(revenue.weekly_total)}
                                     </div>
-                                    <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>+8.2%</span>
+                                    <span>Semanal</span>
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
                                     Mes: {formatCurrency(revenue.monthly_total)}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
                                     {revenue.daily.map((d, i) => {
-                                        const max = Math.max(...revenue.daily.map(x => x.cash + x.transfer + x.card));
-                                        const total = d.cash + d.transfer + d.card;
+                                        const max = Math.max(...revenue.daily.map(x => x.cash || 0));
+                                        const total = d.cash || 0;
                                         const h = max > 0 ? (total / max) * 100 : (i === 4 ? 20 : 0);
                                         return (
                                             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
@@ -173,7 +188,7 @@ export const DashboardPage = () => {
                                             background: bStat.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.06)' : 'var(--bg-hover)',
                                             border: `1px solid ${bStat.status === 'Ocupado' ? 'rgba(var(--primary-rgb), 0.15)' : 'var(--border)'}`
                                         }}>
-                                            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{box.name} ({box.type})</div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{box.name}</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 <div style={{
                                                     width: 7, height: 7, borderRadius: '50%',

@@ -1,6 +1,6 @@
 {
   "name": "saas-app",
-  "version": "2.4.0",
+  "version": "3.0.0",
   "description": "",
   "type": "module",
   "main": "index.js",
@@ -18,7 +18,8 @@
     "dotenv": "^17.3.1",
     "html5-qrcode": "^2.3.8",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",

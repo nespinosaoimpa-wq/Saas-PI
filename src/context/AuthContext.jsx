@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
             return;
         }
-        const { data, error } = await supabase.from('employees').select('*').eq('is_active', true);
+        const { data, error } = await supabase.from('employees').select('*').or('is_active.eq.true,is_active.is.null');
         if (error) {
             console.error('Error loading employees:', error);
         } else {
