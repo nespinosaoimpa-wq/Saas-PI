@@ -13,11 +13,7 @@ import {
 
 export const DashboardPage = () => {
     const { data: MOCK, getLowStockItems } = useApp();
-<<<<<<< HEAD
     const { employees, user } = useAuth();
-=======
-    const { user, employees } = useAuth();
->>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
     const lowStock = getLowStockItems();

@@ -89,14 +89,6 @@ export const AppProvider = ({ children }) => {
                 fetchTable('employees')
             ]);
 
-            // Assignments table may not exist yet — query separately with fallback
-            let assignments = [];
-            try {
-                const { data: assignData } = await supabase.from('work_order_assignments').select('*');
-                assignments = assignData || [];
-            } catch (e) {
-                console.warn('work_order_assignments table not available:', e.message);
-            }
 
             setData({
                 clients, vehicles, workOrders, inventory, suppliers,
@@ -151,7 +143,7 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = async (action, isSecondOrMore = false, mechanicId = null, clientId = null, vehicleId = null) => {
+    const addQuickService = async (action, isSecondOrMore = false, mechanicId = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }) => {
         const finalPrice = isSecondOrMore ? action.price * 0.7 : action.price;
 
         try {
@@ -173,13 +165,28 @@ export const AppProvider = ({ children }) => {
 
             // 2. Registrar pago automático en caja (siempre funciona)
             if (finalPrice > 0) {
-                await addPayment({
-                    amount: finalPrice,
-                    method: 'EFECTIVO',
-                    description: `Gomería Express: ${action.label}`,
-                    type: 'INGRESO',
-                    reference: 'DIRECTO'
-                });
+                if (paymentOptions.method === 'COMBINADO' && paymentOptions.combinedAmounts) {
+                    for (const [method, amount] of Object.entries(paymentOptions.combinedAmounts)) {
+                        const amt = parseFloat(amount);
+                        if (amt > 0) {
+                            await addPayment({
+                                amount: amt,
+                                method: method,
+                                description: `Gomería Express (${method}): ${action.label}`,
+                                type: 'INGRESO',
+                                reference: 'DIRECTO'
+                            });
+                        }
+                    }
+                } else {
+                    await addPayment({
+                        amount: finalPrice,
+                        method: paymentOptions.method,
+                        description: `Gomería Express: ${action.label}`,
+                        type: 'INGRESO',
+                        reference: 'DIRECTO'
+                    });
+                }
 
                 // Respaldo en Sheets
                 syncToSheets({

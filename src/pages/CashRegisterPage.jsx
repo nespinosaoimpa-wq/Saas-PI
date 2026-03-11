@@ -17,11 +17,7 @@ import {
 
 export const CashRegisterPage = () => {
     const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
-<<<<<<< HEAD
-    const { employees, user } = useAuth();
-=======
     const { user, employees } = useAuth();
->>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
@@ -76,23 +72,6 @@ export const CashRegisterPage = () => {
         setClosingCash('');
     };
 
-<<<<<<< HEAD
-    const today = new Date().toISOString().split('T')[0];
-    const todayPayments = MOCK.payments.filter(p => p.date === today);
-
-    // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
-    const cash = todayPayments.filter(p => p.method === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
-    const transfer = todayPayments.filter(p => p.method === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
-    const card = todayPayments.filter(p => p.method === 'TARJETA').reduce((s, p) => s + p.amount, 0);
-
-    // Weekly: last 7 days; Monthly: same month
-    const allPayments = period === 'daily' ? todayPayments
-        : period === 'weekly' ? MOCK.payments.filter(p => {
-            const d = new Date(p.date);
-            return (Date.now() - d.getTime()) / (1000 * 3600 * 24) <= 7;
-        })
-            : MOCK.payments.filter(p => p.date?.startsWith(today.slice(0, 7)));
-=======
     const todayStr = new Date().toISOString().split('T')[0];
     // Only show UNCLOSED payments for the current shift (no cash_closing_id)
     const todayPayments = MOCK.payments.filter(p => (p.date || p.payment_date) === todayStr && !p.cash_closing_id);
@@ -108,7 +87,6 @@ export const CashRegisterPage = () => {
     const allPayments = period === 'daily' ? todayPayments
         : period === 'weekly' ? MOCK.payments.filter(p => (p.date || p.payment_date) >= weekAgo)
             : MOCK.payments.filter(p => (p.date || p.payment_date)?.startsWith(monthStart));
->>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
 
     const totalPeriod = allPayments.reduce((s, p) => s + p.amount, 0);
 
@@ -135,9 +113,6 @@ export const CashRegisterPage = () => {
 
                 <DataTable
                     columns={[
-<<<<<<< HEAD
-                        { key: 'date', label: 'Fecha', render: r => r.date },
-=======
                         { key: 'date', label: 'Fecha', render: r => r.date || r.payment_date },
                         {
                             key: 'type', label: 'Tipo', render: r => {
@@ -155,7 +130,6 @@ export const CashRegisterPage = () => {
                                 );
                             }
                         },
->>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
                         {
                             key: 'amount', label: 'Monto', render: r => (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -164,9 +138,6 @@ export const CashRegisterPage = () => {
                                 </div>
                             )
                         },
-<<<<<<< HEAD
-                        { key: 'method', label: 'Método', render: r => <StatusBadge status={r.method === 'EFECTIVO' ? 'Pendiente' : r.method === 'TRANSFERENCIA' ? 'En Box' : 'Finalizado'} labelOverride={r.method} /> },
-=======
                         {
                             key: 'method', label: 'Método', render: r => {
                                 const m = r.method || r.payment_method || 'EFECTIVO';
@@ -183,7 +154,6 @@ export const CashRegisterPage = () => {
                                 );
                             }
                         },
->>>>>>> ec079cf17d7864e2b7e79c69ea2b09de8660b2d7
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
                     ]}

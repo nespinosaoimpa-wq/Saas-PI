@@ -1,0 +1,1 @@
+import fs from 'fs'; const file = 'd:/Nico/Saas PI/src/pages/PromotionsPage.jsx'; let content = fs.readFileSync(file, 'utf8'); content = content.replace(/<<<<<<< HEAD\r?\n([\s\S]*?)=======\r?\n[\s\S]*?>>>>>>> [a-f0-9]{40}\r?\n/g, '\'); fs.writeFileSync(file, content);

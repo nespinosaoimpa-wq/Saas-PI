@@ -66,15 +66,39 @@ export const DailyWorkPage = () => {
         } catch { return DEFAULT_QUICK_ACTIONS; }
     });
 
-    const handleQuickAction = (action) => {
+    const [pendingAction, setPendingAction] = useState(null);
+    const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
+    const [combinedAmounts, setCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
+
+    const initiateQuickAction = (action) => {
+        setPendingAction(action);
+        setPaymentMethod('EFECTIVO');
+        setCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
+    };
+
+    const confirmQuickAction = () => {
+        if (!pendingAction) return;
+        const action = pendingAction;
         const isSecond = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
+        const finalPrice = isSecond ? action.price * 0.7 : action.price;
+
+        if (finalPrice > 0 && paymentMethod === 'COMBINADO') {
+            const tEfectivo = parseFloat(combinedAmounts.EFECTIVO) || 0;
+            const tTransf = parseFloat(combinedAmounts.TRANSFERENCIA) || 0;
+            const tTarjeta = parseFloat(combinedAmounts.TARJETA) || 0;
+            if (tEfectivo + tTransf + tTarjeta !== finalPrice) {
+                alert(`La suma de los montos combinados debe ser igual al total (${formatCurrency(finalPrice)}).`);
+                return;
+            }
+        }
 
         addQuickService(
             action,
             isSecond,
             user?.id,
             selectedQueueClient?.client_id || null,
-            selectedQueueClient?.vehicle_id || null
+            selectedQueueClient?.vehicle_id || null,
+            { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null }
         );
 
         if (selectedQueueClient) {
@@ -90,10 +114,16 @@ export const DailyWorkPage = () => {
         setLastTicket({
             id: `T-${Date.now()}`,
             label: isSecond ? `${action.label} (Adicional)` : action.label,
-            price: isSecond ? action.price * 0.7 : action.price,
+            price: finalPrice,
             timestamp: new Date().toLocaleString('es-AR')
         });
+
+        setPendingAction(null);
         setShowTicketModal(true);
+    };
+
+    const handleQuickAction = (action) => {
+        initiateQuickAction(action);
     };
 
     const addToQueue = () => {
@@ -362,6 +392,49 @@ export const DailyWorkPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Pago Express */}
+            {pendingAction && (
+                <Modal title={`Cobrar Servicio: ${pendingAction.label}`} onClose={() => setPendingAction(null)} footer={
+                    <React.Fragment>
+                        <button className="btn btn-ghost" onClick={() => setPendingAction(null)}>Cancelar</button>
+                        <button className="btn btn-success" onClick={confirmQuickAction}>Confirmar y Ticket</button>
+                    </React.Fragment>
+                }>
+                    <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', marginBottom: 16 }}>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total a Pagar</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}>
+                            {formatCurrency(
+                                (selectedQueueClient && selectedQueueClient.services.some(s => s.id === pendingAction.id))
+                                    ? pendingAction.price * 0.7
+                                    : pendingAction.price
+                            )}
+                        </div>
+                    </div>
+                    <FormField label="Forma de Pago">
+                        <select className="form-select" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                            <option value="EFECTIVO">Efectivo 💵</option>
+                            <option value="TRANSFERENCIA">Transferencia 📱</option>
+                            <option value="TARJETA">Tarjeta (Débito/Crédito) 💳</option>
+                            <option value="COMBINADO">Combinado (Varias Formas) 🔀</option>
+                        </select>
+                    </FormField>
+                    {paymentMethod === 'COMBINADO' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16, padding: 16, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Ingresá los montos de cada método:</div>
+                            <FormField label="Monto en Efectivo">
+                                <input type="number" className="form-input" placeholder="0" value={combinedAmounts.EFECTIVO} onChange={e => setCombinedAmounts(prev => ({ ...prev, EFECTIVO: e.target.value }))} />
+                            </FormField>
+                            <FormField label="Monto en Transferencia">
+                                <input type="number" className="form-input" placeholder="0" value={combinedAmounts.TRANSFERENCIA} onChange={e => setCombinedAmounts(prev => ({ ...prev, TRANSFERENCIA: e.target.value }))} />
+                            </FormField>
+                            <FormField label="Monto en Tarjeta">
+                                <input type="number" className="form-input" placeholder="0" value={combinedAmounts.TARJETA} onChange={e => setCombinedAmounts(prev => ({ ...prev, TARJETA: e.target.value }))} />
+                            </FormField>
+                        </div>
+                    )}
+                </Modal>
+            )}
 
             {/* Modal de Edición de Precios Rápidos */}
             {editingAction && (
