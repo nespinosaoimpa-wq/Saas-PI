@@ -26,6 +26,7 @@ export const DailyWorkPage = () => {
 
     // OT Interactivity States
     const [checklistState, setChecklistState] = useState({});
+    const [observationsState, setObservationsState] = useState({});
 
     const toggleCheck = (woId, itemKey) => {
         setChecklistState(prev => {
@@ -45,7 +46,14 @@ export const DailyWorkPage = () => {
 
     const handleFinishOrder = (id) => {
         if (window.confirm('¿Confirmar finalización del trabajo?')) {
-            updateWorkOrder(id, { status: 'Finalizado', completed_at: new Date().toISOString() });
+            const updates = {
+                status: 'Finalizado',
+                completed_at: new Date().toISOString()
+            };
+            if (observationsState[id]) {
+                updates.mechanic_notes = observationsState[id];
+            }
+            updateWorkOrder(id, updates);
         }
     };
 
@@ -241,6 +249,15 @@ export const DailyWorkPage = () => {
                                                 onChange={() => toggleCheck(wo.id, item.key)}
                                             />
                                         ))}
+                                    </div>
+                                    <div style={{ marginBottom: 20 }}>
+                                        <textarea
+                                            className="form-input"
+                                            placeholder="Observaciones del mecánico (opcional)..."
+                                            style={{ minHeight: 60, fontSize: 13 }}
+                                            value={observationsState[wo.id] || ''}
+                                            onChange={(e) => setObservationsState(prev => ({ ...prev, [wo.id]: e.target.value }))}
+                                        />
                                     </div>
 
                                     <div style={{ display: 'flex', gap: 10 }}>

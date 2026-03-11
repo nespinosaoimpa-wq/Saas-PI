@@ -32,7 +32,13 @@ export const QueueCard = ({ wo, onClick, rightAction, onViewVehicle }) => {
                 </div>
                 <div className="queue-info">
                     <h4>{vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Vehículo'} — {wo.description}</h4>
-                    <p style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+                    {wo.mechanic_notes && (
+                        <div style={{ marginTop: 8, padding: '6px 10px', background: 'var(--bg-hover)', borderLeft: '3px solid var(--warning)', borderRadius: 4, fontSize: 12, color: 'var(--text-primary)' }}>
+                            <strong style={{ color: 'var(--warning)', marginRight: 6 }}><Icon name="comment" size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />Nota del Mecánico:</strong>
+                            {wo.mechanic_notes}
+                        </div>
+                    )}
+                    <p style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
                         <span>OT #{wo.order_number}</span>
                         <span>•</span>
                         <span>{client ? `${client.first_name} ${client.last_name}` : ''}</span>
