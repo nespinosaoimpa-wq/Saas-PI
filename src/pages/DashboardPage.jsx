@@ -1,4 +1,4 @@
-﻿import React, { Fragment } from 'react';
+import React, { Fragment } from 'react';
 import { formatCurrency, formatML } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ import {
 } from '../components/ui';
 
 export const DashboardPage = () => {
-    const { data: MOCK, getLowStockItems } = useApp();
+    const { data: MOCK, getLowStockItems, getActiveEmployees } = useApp();
     const { employees, user } = useAuth();
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
@@ -135,6 +135,29 @@ export const DashboardPage = () => {
                                             </div>
                                         );
                                     })}
+                                </div>
+                            </GlassCard>
+                        )}
+
+                        {/* Personal Activo - Solo Admins */}
+                        {user?.role === 'admin' && (
+                            <GlassCard style={{ padding: 22 }}>
+                                <SectionHeader icon="badge" title="Personal Activo" right={
+                                    <span className="nav-badge" style={{ background: 'var(--success)', color: 'white' }}>LIVE</span>
+                                } />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {getActiveEmployees().map(emp => (
+                                        <div key={emp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--bg-hover)', borderRadius: 8 }}>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 700 }}>{emp.name}</div>
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Desde: {emp.since}</div>
+                                            </div>
+                                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }} />
+                                        </div>
+                                    ))}
+                                    {getActiveEmployees().length === 0 && (
+                                        <div style={{ textAlign: 'center', padding: 12, fontSize: 12, color: 'var(--text-muted)' }}>No hay personal fichado actualmente.</div>
+                                    )}
                                 </div>
                             </GlassCard>
                         )}

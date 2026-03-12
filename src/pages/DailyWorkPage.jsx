@@ -28,6 +28,10 @@ export const DailyWorkPage = () => {
     const [checklistState, setChecklistState] = useState({});
     const [observationsState, setObservationsState] = useState({});
 
+    // Carrito de Servicios Gomería
+    const [cart, setCart] = useState([]);
+    const [manualDiscount, setManualDiscount] = useState(0);
+
     const toggleCheck = (woId, itemKey) => {
         setChecklistState(prev => {
             const current = prev[woId] || [];
@@ -77,67 +81,81 @@ export const DailyWorkPage = () => {
     const [pendingAction, setPendingAction] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
     const [combinedAmounts, setCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
-    const [quantity, setQuantity] = useState(1);
 
     const initiateQuickAction = (action) => {
-        setPendingAction(action);
+        if (!selectedQueueClient) {
+            alert('Primero seleccioná un cliente de la cola o agregá uno nuevo.');
+            return;
+        }
+        
+        // Add to cart instead of paying immediately
+        const alreadyHas = selectedQueueClient.services.some(s => s.id === action.id) || cart.some(s => s.id === action.id);
+        const finalPrice = alreadyHas ? action.price * 0.5 : action.price;
+        
+        setCart(prev => [...prev, { ...action, currentPrice: finalPrice, isDiscounted: alreadyHas }]);
+    };
+
+    const removeFromCart = (index) => {
+        setCart(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const openPaymentModal = () => {
+        if (cart.length === 0) return;
+        setPendingAction({ label: 'Carrito de Servicios', price: cart.reduce((s, item) => s + item.currentPrice, 0) });
         setPaymentMethod('EFECTIVO');
         setCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
-        setQuantity(1);
+        setManualDiscount(0);
     };
 
     const confirmQuickAction = () => {
-        if (!pendingAction) return;
-        const action = pendingAction;
-        const alreadyHas = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
+        if (cart.length === 0) return;
         
-        // Logic: 1st is 100%, 2nd onwards 50%. 
-        // If they already have one from a previous registration, all in this batch are 50%
-        let finalPrice = 0;
-        if (alreadyHas) {
-            finalPrice = action.price * 0.5 * quantity;
-        } else {
-            finalPrice = action.price + (action.price * 0.5 * (quantity - 1));
-        }
+        const subtotal = cart.reduce((s, item) => s + item.currentPrice, 0);
+        const discountAmount = subtotal * (manualDiscount / 100);
+        const finalTotal = subtotal - discountAmount;
 
-        if (finalPrice > 0 && paymentMethod === 'COMBINADO') {
+        if (finalTotal > 0 && paymentMethod === 'COMBINADO') {
             const tEfectivo = parseFloat(combinedAmounts.EFECTIVO) || 0;
             const tTransf = parseFloat(combinedAmounts.TRANSFERENCIA) || 0;
             const tTarjeta = parseFloat(combinedAmounts.TARJETA) || 0;
-            if (tEfectivo + tTransf + tTarjeta !== finalPrice) {
-                alert(`La suma de los montos combinados debe ser igual al total (${formatCurrency(finalPrice)}).`);
+            if (Math.abs((tEfectivo + tTransf + tTarjeta) - finalTotal) > 1) {
+                alert(`La suma de los montos combinados debe ser igual al total (${formatCurrency(finalTotal)}).`);
                 return;
             }
         }
 
+        // Registrar cada servicio del carrito (o uno consolidado, según prefieras)
+        // Por simplicidad para el historial, registramos uno consolidado con el detalle
+        const labels = cart.map(c => c.label).join(', ');
+        
         addQuickService(
-            { ...action, label: quantity > 1 ? `${quantity}x ${action.label}` : action.label, price: action.price }, // Original price for record, total handled below
-            alreadyHas || quantity > 1, 
+            { id: 'cart', label: labels, price: subtotal }, 
+            false, 
             user?.id,
             selectedQueueClient?.client_id || null,
             selectedQueueClient?.vehicle_id || null,
             { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null },
-            finalPrice // Pass pre-calculated total
+            finalTotal 
         );
 
         if (selectedQueueClient) {
-            const newServices = Array(quantity).fill(action);
             setGomeriaQueue(prev => prev.map(q => {
                 if (q.id === selectedQueueClient.id) {
-                    return { ...q, services: [...q.services, ...newServices] };
+                    return { ...q, services: [...q.services, ...cart] };
                 }
                 return q;
             }));
-            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, ...newServices] }));
+            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, ...cart] }));
         }
 
         setLastTicket({
             id: `T-${Date.now()}`,
-            label: quantity > 1 ? `${quantity}x ${action.label}` : (alreadyHas ? `${action.label} (Adicional)` : action.label),
-            price: finalPrice,
+            label: labels,
+            price: finalTotal,
             timestamp: new Date().toLocaleString('es-AR')
         });
 
+        setCart([]);
         setPendingAction(null);
         setShowTicketModal(true);
     };
@@ -156,7 +174,10 @@ export const DailyWorkPage = () => {
 
     const removeFromQueue = (id) => {
         setGomeriaQueue(prev => prev.filter(q => q.id !== id));
-        if (selectedQueueClient?.id === id) setSelectedQueueClient(null);
+        if (selectedQueueClient?.id === id) {
+            setSelectedQueueClient(null);
+            setCart([]);
+        }
     };
 
     const openEditPrice = (action) => {
@@ -337,11 +358,33 @@ export const DailyWorkPage = () => {
                     <div className="glass-card" style={{ padding: 20 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
                             {selectedQueueClient ? (
-                                <span>Registrando servicios para: <strong>{selectedQueueClient.name}</strong>. A partir del 2do parche de igual tipo, descuento del 50%.</span>
+                                <span>Servicios de: <strong>{selectedQueueClient.name}</strong>. Parches adicionales al 50%.</span>
                             ) : (
-                                <span>Seleccioná un cliente de la cola para aplicar lógica de parches adicionales.</span>
+                                <span>Seleccioná un cliente para empezar a sumar servicios.</span>
                             )}
                         </p>
+
+                        {/* Cart View */}
+                        {selectedQueueClient && cart.length > 0 && (
+                            <div style={{ background: 'rgba(var(--primary-rgb), 0.05)', padding: 12, borderRadius: 8, border: '1px solid rgba(var(--primary-rgb), 0.1)', marginBottom: 16 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', marginBottom: 8, textTransform: 'uppercase' }}>CARRITO ACTUAL</div>
+                                {cart.map((item, idx) => (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, marginBottom: 4 }}>
+                                        <span>{item.label} {item.isDiscounted && <small style={{ color: 'var(--success)', fontWeight: 700 }}>(50% desc)</small>}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <strong>{formatCurrency(item.currentPrice)}</strong>
+                                            <button onClick={() => removeFromCart(idx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 0 }}>
+                                                <Icon name="delete" size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ fontSize: 16, fontWeight: 800 }}>Total: {formatCurrency(cart.reduce((s, i) => s + i.currentPrice, 0))}</div>
+                                    <button className="btn btn-primary btn-sm" onClick={openPaymentModal}>COBRAR TODO</button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="quick-action-grid">
                             {quickActions.map(action => (
@@ -433,24 +476,33 @@ export const DailyWorkPage = () => {
                     <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', marginBottom: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
-                                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total a Pagar</div>
-                                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}>
+                                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Monto a Cobrar</div>
+                                <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--primary)' }}>
                                     {formatCurrency(
                                         (() => {
-                                            const alreadyHas = selectedQueueClient && selectedQueueClient.services.some(s => s.id === pendingAction.id);
-                                            if (alreadyHas) return pendingAction.price * 0.5 * quantity;
-                                            return pendingAction.price + (pendingAction.price * 0.5 * (quantity - 1));
+                                            const sub = cart.reduce((s, i) => s + i.currentPrice, 0);
+                                            return sub - (sub * (manualDiscount / 100));
                                         })()
                                     )}
                                 </div>
+                                {manualDiscount > 0 && (
+                                    <div style={{ fontSize: 11, color: 'var(--success)', fontWeight: 700 }}>
+                                        -{manualDiscount}% descuento aplicado
+                                    </div>
+                                )}
                             </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Cantidad</div>
-                                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 8, padding: 4 }}>
-                                    <button className="btn btn-ghost btn-sm" style={{ padding: '0 8px' }} onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
-                                    <div style={{ width: 30, textAlign: 'center', fontWeight: 700 }}>{quantity}</div>
-                                    <button className="btn btn-ghost btn-sm" style={{ padding: '0 8px' }} onClick={() => setQuantity(quantity + 1)}>+</button>
-                                </div>
+                            <div style={{ textAlign: 'right', width: 100 }}>
+                                <FormField label="Desc. Extra (%)">
+                                    <input 
+                                        type="number" 
+                                        className="form-input" 
+                                        min="0" 
+                                        max="100" 
+                                        value={manualDiscount} 
+                                        onChange={e => setManualDiscount(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                        style={{ textAlign: 'center' }}
+                                    />
+                                </FormField>
                             </div>
                         </div>
                     </div>

@@ -43,17 +43,39 @@ export const AppProvider = ({ children }) => {
         const emp = (data.employees || []).find(e => e.pin === pin);
         if (!emp) throw new Error('PIN incorrecto. Empleado no encontrado.');
         
+        const now = new Date();
         const newLog = {
             id: Date.now().toString(),
             employee_id: emp.id,
             employee_name: emp.name,
             type: type, // 'IN' or 'OUT'
-            timestamp: new Date().toISOString()
+            timestamp: now.toISOString(),
+            time_display: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         };
+        
+        // Update local state without affecting 'data'
         const updated = [newLog, ...timeTrackingLogs];
         setTimeTrackingLogs(updated);
         localStorage.setItem('piripi_time_tracking', JSON.stringify(updated));
-        return { log: newLog, emp };
+        
+        return { log: newLog, emp, time: newLog.time_display };
+    };
+
+    const getActiveEmployees = () => {
+        const active = [];
+        const employees = data.employees || [];
+        
+        employees.forEach(emp => {
+            const lastLog = timeTrackingLogs.find(l => l.employee_id === emp.id);
+            if (lastLog && lastLog.type === 'IN') {
+                active.push({
+                    ...emp,
+                    since: new Date(lastLog.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                    logged_at: lastLog.timestamp
+                });
+            }
+        });
+        return active.sort((a,b) => new Date(b.logged_at) - new Date(a.logged_at));
     };
 
     // =========================================
@@ -880,6 +902,7 @@ export const AppProvider = ({ children }) => {
             getCommissions,
             getEmployeeProductivity,
             addQuickService,
+            getActiveEmployees,
             exportToExcel,
             addPromotion,
             deletePromotion,
