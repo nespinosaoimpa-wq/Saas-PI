@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 import {
     SectionHeader,
     DataTable,
@@ -14,7 +15,9 @@ import {
 
 export const UsersPage = () => {
     const { employees: contextEmployees, refreshEmployees, user } = useAuth();
+    const { timeTrackingLogs } = useApp();
     const [employees, setEmployees] = useState(contextEmployees);
+    const [showLogs, setShowLogs] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [newUser, setNewUser] = useState({ name: '', pin: '', role: 'mecanico', commission_rate: 0 });
@@ -114,42 +117,69 @@ export const UsersPage = () => {
                     </button>
                 </div>
 
-                <DataTable
-                    columns={[
-                        { key: 'name', label: 'Nombre', render: r => <strong>{r.name}</strong> },
-                        { key: 'pin', label: 'PIN', render: r => <span style={{ fontFamily: 'monospace', letterSpacing: 2 }}>{r.pin}</span> },
-                        {
-                            key: 'role',
-                            label: 'Rol',
-                            render: r => (
-                                <StatusBadge
-                                    status={r.role === 'admin' ? 'En Box' : r.role === 'mecanico' ? 'Pendiente' : 'Finalizado'}
-                                    labelOverride={r.role.toUpperCase()}
-                                />
-                            )
-                        },
-                        {
-                            key: 'commission_rate',
-                            label: 'Comisión Base (%)',
-                            render: r => <span>{parseFloat(r.commission_rate).toFixed(1)}%</span>
-                        },
-                        {
-                            key: 'actions',
-                            label: '',
-                            render: r => (
-                                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                    <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(r)}>
-                                        <Icon name="edit" size={16} />
-                                    </button>
-                                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(r.id)}>
-                                        <Icon name="delete" size={16} />
-                                    </button>
-                                </div>
-                            )
-                        }
-                    ]}
-                    data={employees}
-                />
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
+                    <button className={`nav-item ${!showLogs ? 'active' : ''}`} onClick={() => setShowLogs(false)} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: !showLogs ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Cuentas de Acceso</button>
+                    <button className={`nav-item ${showLogs ? 'active' : ''}`} onClick={() => setShowLogs(true)} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: showLogs ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Reloj de Asistencia</button>
+                </div>
+
+                {!showLogs ? (
+                    <DataTable
+                        columns={[
+                            { key: 'name', label: 'Nombre', render: r => <strong>{r.name}</strong> },
+                            { key: 'pin', label: 'PIN', render: r => <span style={{ fontFamily: 'monospace', letterSpacing: 2 }}>{r.pin}</span> },
+                            {
+                                key: 'role',
+                                label: 'Rol',
+                                render: r => (
+                                    <StatusBadge
+                                        status={r.role === 'admin' ? 'En Box' : r.role === 'mecanico' ? 'Pendiente' : 'Finalizado'}
+                                        labelOverride={r.role.toUpperCase()}
+                                    />
+                                )
+                            },
+                            {
+                                key: 'commission_rate',
+                                label: 'Comisión Base (%)',
+                                render: r => <span>{parseFloat(r.commission_rate).toFixed(1)}%</span>
+                            },
+                            {
+                                key: 'actions',
+                                label: '',
+                                render: r => (
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                        <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(r)}>
+                                            <Icon name="edit" size={16} />
+                                        </button>
+                                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(r.id)}>
+                                            <Icon name="delete" size={16} />
+                                        </button>
+                                    </div>
+                                )
+                            }
+                        ]}
+                        data={employees}
+                    />
+                ) : (
+                    <DataTable
+                        columns={[
+                            { key: 'employee_name', label: 'Empleado', render: r => <strong>{r.employee_name}</strong> },
+                            { key: 'type', label: 'Evento', render: r => (
+                                <span style={{ 
+                                    padding: '4px 10px', 
+                                    borderRadius: 12, 
+                                    fontSize: 11, 
+                                    fontWeight: 700,
+                                    background: r.type === 'IN' ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--danger-rgb), 0.1)',
+                                    color: r.type === 'IN' ? 'var(--success)' : 'var(--danger)'
+                                }}>
+                                    {r.type === 'IN' ? 'ENTRADA' : 'SALIDA'}
+                                </span>
+                            )},
+                            { key: 'timestamp', label: 'Fecha y Hora', render: r => new Date(r.timestamp).toLocaleString('es-AR') }
+                        ]}
+                        data={timeTrackingLogs.slice(0, 50)}
+                    />
+                )}
 
                 {showNew && (
                     <Modal

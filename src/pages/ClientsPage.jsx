@@ -1,4 +1,4 @@
-﻿import React, { useState, Fragment } from 'react';
+import React, { useState, Fragment } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import {
@@ -214,20 +214,52 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                             </div>
                                         </div>
 
-                                        <div className="timeline">
+                                        <div className="timeline" style={{ paddingLeft: 8 }}>
                                             {getVehicleHistory(selectedVehicle.id).length > 0 ? (
-                                                getVehicleHistory(selectedVehicle.id).map(h => (
-                                                    <div key={h.id} className="timeline-item">
-                                                        <div className="timeline-date">{h.date} • {(h.km || 0).toLocaleString()} km</div>
-                                                        <div className="timeline-content">
-                                                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{h.description}</div>
-                                                            <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-                                                                <span>Técnico: {h.technician}</span>
-                                                                <strong style={{ color: 'var(--primary)' }}>{formatCurrency(h.price)}</strong>
+                                                getVehicleHistory(selectedVehicle.id).map(h => {
+                                                    const isOT = h.source === 'OT';
+                                                    return (
+                                                        <div key={h.id} className="timeline-item" style={{ 
+                                                            padding: '16px', 
+                                                            background: isOT ? 'var(--bg-base)' : 'rgba(var(--warning-rgb), 0.05)', 
+                                                            border: '1px solid var(--border)', 
+                                                            borderRadius: 'var(--radius)', 
+                                                            marginBottom: 12,
+                                                            borderLeft: isOT ? '4px solid var(--primary)' : '4px solid var(--warning)',
+                                                            position: 'relative',
+                                                            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                                                        }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: isOT ? 'var(--primary)' : 'var(--warning)', letterSpacing: 0.5 }}>
+                                                                    <Icon name={isOT ? 'construction' : 'sticky_note_2'} size={14} />
+                                                                    {isOT ? `ORDEN DE TRABAJO ${h.order_number ? '#' + h.order_number : ''}` : 'NOTA / RECORDATORIO'}
+                                                                </div>
+                                                                <div className="timeline-date" style={{ margin: 0, padding: '2px 8px', background: 'var(--bg-hover)', borderRadius: 12, fontSize: 11 }}>
+                                                                    <Icon name="calendar_today" size={12} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} /> {h.date}
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="timeline-content" style={{ margin: 0, paddingLeft: 0, border: 'none' }}>
+                                                                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.4 }}>{h.description}</div>
+                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
+                                                                    {h.km > 0 && (
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                            <Icon name="speed" size={14} /> {(h.km || 0).toLocaleString()} km
+                                                                        </div>
+                                                                    )}
+                                                                    {h.technician && h.technician !== 'N/A' && (
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                            <Icon name="person" size={14} /> {h.technician}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border)', textAlign: 'right' }}>
+                                                                    <strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>{formatCurrency(h.price)}</strong>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))
+                                                    )
+                                                })
                                             ) : (
                                                 <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
                                                     <Icon name="history_toggle_off" size={40} style={{ opacity: 0.2, marginBottom: 12 }} />

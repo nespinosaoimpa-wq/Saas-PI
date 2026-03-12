@@ -32,6 +32,30 @@ export const AppProvider = ({ children }) => {
     });
     const [loading, setLoading] = useState(true);
 
+    // ==========================================
+    // Fichaje Personal (Time Tracking)
+    // ==========================================
+    const [timeTrackingLogs, setTimeTrackingLogs] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('piripi_time_tracking')) || []; } catch { return []; }
+    });
+
+    const addTimeLog = (pin, type) => {
+        const emp = (data.employees || []).find(e => e.pin === pin);
+        if (!emp) throw new Error('PIN incorrecto. Empleado no encontrado.');
+        
+        const newLog = {
+            id: Date.now().toString(),
+            employee_id: emp.id,
+            employee_name: emp.name,
+            type: type, // 'IN' or 'OUT'
+            timestamp: new Date().toISOString()
+        };
+        const updated = [newLog, ...timeTrackingLogs];
+        setTimeTrackingLogs(updated);
+        localStorage.setItem('piripi_time_tracking', JSON.stringify(updated));
+        return { log: newLog, emp };
+    };
+
     // =========================================
     // Sincronización con Google Sheets
     // =========================================
@@ -144,7 +168,7 @@ export const AppProvider = ({ children }) => {
     );
 
     const addQuickService = async (action, isSecondOrMore = false, mechanicId = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }) => {
-        const finalPrice = isSecondOrMore ? action.price * 0.7 : action.price;
+        const finalPrice = isSecondOrMore ? action.price * 0.5 : action.price;
 
         try {
             // 1. Intentar persistir en tabla de servicios rápidos (puede no existir)
@@ -828,8 +852,10 @@ export const AppProvider = ({ children }) => {
     return (
         <AppContext.Provider value={{
             data,
+            timeTrackingLogs,
             loading,
             refreshData: loadData,
+            addTimeLog,
             getClient,
             getVehicle,
             getClientVehicles,

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
 console.log("%c>>> PIRIPI PRO v3.0.0 — Auditoría Completa <<<", "color: #00ff00; font-weight: bold; font-size: 20px;");
 import { useAuth } from './context/AuthContext';
@@ -61,6 +61,10 @@ function App() {
     const [scannedQuantity, setScannedQuantity] = useState(1);
     const [showCameraScanner, setShowCameraScanner] = useState(false);
     const [scannedUnknownCode, setScannedUnknownCode] = useState(null);
+
+    const { addTimeLog } = useApp();
+    const [showTimeModal, setShowTimeModal] = useState(false);
+    const [timePin, setTimePin] = useState('');
 
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
@@ -250,6 +254,10 @@ function App() {
                             <Icon name="notifications" size={20} />
                             <span className="notif-dot" />
                         </button>
+                        <button className="header-btn" onClick={() => setShowTimeModal(true)}>
+                            <Icon name="schedule" size={16} />
+                            Fichar Ingreso/Salida
+                        </button>
                         <button className="header-btn" onClick={() => setShowCameraScanner(true)}>
                             <Icon name="photo_camera" size={16} />
                             Cámara (Móvil)
@@ -314,6 +322,59 @@ function App() {
                                 style={{ textAlign: 'center', fontSize: 18 }}
                             />
                         </FormField>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal Fichaje (Reloj) */}
+            {showTimeModal && (
+                <Modal title="Fichaje de Personal" onClose={() => { setShowTimeModal(false); setTimePin(''); }} footer={
+                    <React.Fragment>
+                        <button className="btn btn-ghost" onClick={() => { setShowTimeModal(false); setTimePin(''); }}>Cancelar</button>
+                    </React.Fragment>
+                }>
+                    <div style={{ padding: '0 20px', textAlign: 'center' }}>
+                        <Icon name="alarm_on" size={56} style={{ color: 'var(--primary)', marginBottom: 16 }} />
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: 20 }}>Reloj de Asistencia</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>Ingresá tu PIN numérico personal para registrar tu entrada o salida.</p>
+                        
+                        <div style={{ maxWidth: 300, margin: '0 auto' }}>
+                            <FormField label="PIN de Acceso (4 dígitos)">
+                                <input
+                                    type="password"
+                                    className="form-input"
+                                    maxLength={4}
+                                    style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8, padding: 16 }}
+                                    value={timePin}
+                                    onChange={e => setTimePin(e.target.value.replace(/\D/g, ''))}
+                                    autoFocus
+                                />
+                            </FormField>
+                            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                                <button className="btn btn-success" style={{ flex: 1, padding: '16px 0', fontSize: 16, fontWeight: 700 }} onClick={() => {
+                                    if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
+                                    try {
+                                        const res = addTimeLog(timePin, 'IN');
+                                        alert(`✅ ¡Entrada registrada!\nBienvenido/a ${res.emp.name}.`);
+                                        setShowTimeModal(false);
+                                        setTimePin('');
+                                    } catch (e) { alert(e.message); }
+                                }}>
+                                    ENTRADA
+                                </button>
+                                <button className="btn btn-danger" style={{ flex: 1, padding: '16px 0', fontSize: 16, fontWeight: 700 }} onClick={() => {
+                                    if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
+                                    try {
+                                        const res = addTimeLog(timePin, 'OUT');
+                                        alert(`👋 ¡Salida registrada!\nHasta luego ${res.emp.name}.`);
+                                        setShowTimeModal(false);
+                                        setTimePin('');
+                                    } catch (e) { alert(e.message); }
+                                }}>
+                                    SALIDA
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </Modal>
             )}

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { formatCurrency, MOCK as STATIC_MOCK } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -88,7 +88,7 @@ export const DailyWorkPage = () => {
         if (!pendingAction) return;
         const action = pendingAction;
         const isSecond = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
-        const finalPrice = isSecond ? action.price * 0.7 : action.price;
+        const finalPrice = isSecond ? action.price * 0.5 : action.price;
 
         if (finalPrice > 0 && paymentMethod === 'COMBINADO') {
             const tEfectivo = parseFloat(combinedAmounts.EFECTIVO) || 0;
@@ -325,7 +325,7 @@ export const DailyWorkPage = () => {
                     <div className="glass-card" style={{ padding: 20 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
                             {selectedQueueClient ? (
-                                <span>Registrando servicios para: <strong>{selectedQueueClient.name}</strong>. A partir del 2do parche de igual tipo, descuento del 30%.</span>
+                                <span>Registrando servicios para: <strong>{selectedQueueClient.name}</strong>. A partir del 2do parche de igual tipo, descuento del 50%.</span>
                             ) : (
                                 <span>Seleccioná un cliente de la cola para aplicar lógica de parches adicionales.</span>
                             )}
@@ -423,7 +423,7 @@ export const DailyWorkPage = () => {
                         <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}>
                             {formatCurrency(
                                 (selectedQueueClient && selectedQueueClient.services.some(s => s.id === pendingAction.id))
-                                    ? pendingAction.price * 0.7
+                                    ? pendingAction.price * 0.5
                                     : pendingAction.price
                             )}
                         </div>
