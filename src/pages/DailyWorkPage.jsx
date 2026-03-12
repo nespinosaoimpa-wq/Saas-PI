@@ -83,13 +83,8 @@ export const DailyWorkPage = () => {
     const [combinedAmounts, setCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
 
     const initiateQuickAction = (action) => {
-        if (!selectedQueueClient) {
-            alert('Primero seleccioná un cliente de la cola o agregá uno nuevo.');
-            return;
-        }
-        
-        // Add to cart instead of paying immediately
-        const alreadyHas = selectedQueueClient.services.some(s => s.id === action.id) || cart.some(s => s.id === action.id);
+        // Allow adding to cart even if no client is selected (Anonymous mode)
+        const alreadyHas = (selectedQueueClient?.services.some(s => s.id === action.id)) || cart.some(s => s.id === action.id);
         const finalPrice = alreadyHas ? action.price * 0.5 : action.price;
         
         setCart(prev => [...prev, { ...action, currentPrice: finalPrice, isDiscounted: alreadyHas }]);
@@ -358,16 +353,19 @@ export const DailyWorkPage = () => {
                     <div className="glass-card" style={{ padding: 20 }}>
                         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
                             {selectedQueueClient ? (
-                                <span>Servicios de: <strong>{selectedQueueClient.name}</strong>. Parches adicionales al 50%.</span>
+                                <span>Registrando para: <strong>{selectedQueueClient.name}</strong>.</span>
                             ) : (
-                                <span>Seleccioná un cliente para empezar a sumar servicios.</span>
+                                <span>Modo Express: Sumá servicios al carrito directamente.</span>
                             )}
                         </p>
 
                         {/* Cart View */}
-                        {selectedQueueClient && cart.length > 0 && (
+                        {cart.length > 0 && (
                             <div style={{ background: 'rgba(var(--primary-rgb), 0.05)', padding: 12, borderRadius: 8, border: '1px solid rgba(var(--primary-rgb), 0.1)', marginBottom: 16 }}>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', marginBottom: 8, textTransform: 'uppercase' }}>CARRITO ACTUAL</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>CARRITO DE SERVICIOS</div>
+                                    {selectedQueueClient && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Para: {selectedQueueClient.name}</span>}
+                                </div>
                                 {cart.map((item, idx) => (
                                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, marginBottom: 4 }}>
                                         <span>{item.label} {item.isDiscounted && <small style={{ color: 'var(--success)', fontWeight: 700 }}>(50% desc)</small>}</span>
@@ -381,7 +379,7 @@ export const DailyWorkPage = () => {
                                 ))}
                                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div style={{ fontSize: 16, fontWeight: 800 }}>Total: {formatCurrency(cart.reduce((s, i) => s + i.currentPrice, 0))}</div>
-                                    <button className="btn btn-primary btn-sm" onClick={openPaymentModal}>COBRAR TODO</button>
+                                    <button className="btn btn-primary btn-sm" onClick={openPaymentModal}>FINALIZAR Y COBRAR</button>
                                 </div>
                             </div>
                         )}
