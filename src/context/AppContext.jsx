@@ -137,10 +137,15 @@ export const AppProvider = ({ children }) => {
 
 
             setData({
-                clients, vehicles, workOrders, inventory, suppliers,
+                clients: clients.length ? clients : MOCK.clients,
+                vehicles: vehicles.length ? vehicles : MOCK.vehicles,
+                workOrders: workOrders.length ? workOrders : MOCK.workOrders,
+                inventory: inventory.length ? inventory : MOCK.inventory,
+                suppliers: suppliers.length ? suppliers : MOCK.suppliers,
                 boxes: boxes.length ? boxes : MOCK.boxes,
                 vehicleNotes, payments, cashClosings, appointments,
-                promotions, assignments, employees,
+                promotions, assignments, 
+                employees: employees.length ? employees : MOCK.employees || [],
                 // Tablas opcionales (pueden no existir)
                 dailyQuickServices: [], vehicleHealth: [], brands: [],
                 dailyWorkLog: [], serviceHistory: [], employeeEarnings: [],

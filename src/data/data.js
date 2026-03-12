@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // SAAS PIRIPI PRO — Mock Data & State Management
 // ============================================================
 
@@ -10,6 +10,11 @@ export const MOCK = {
     { id: 'b2', name: 'Box 2', status: 'Ocupado', mechanic: 'Pablo Ruiz' },
     { id: 'b3', name: 'Box 3', status: 'Libre', mechanic: null },
     { id: 'b4', name: 'Box 4', status: 'Libre', mechanic: null },
+  ],
+  employees: [
+    { id: 'e1', name: 'Miguel Torres', pin: '1234', role: 'mechanic' },
+    { id: 'e2', name: 'Pablo Ruiz', pin: '5678', role: 'mechanic' },
+    { id: 'e3', name: 'Carlos Admin', pin: '0000', role: 'admin' },
   ],
 
   clients: [
