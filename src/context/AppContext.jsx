@@ -167,8 +167,8 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = async (action, isSecondOrMore = false, mechanicId = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }) => {
-        const finalPrice = isSecondOrMore ? action.price * 0.5 : action.price;
+    const addQuickService = async (action, isSecondOrMore = false, mechanicId = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }, overrideTotal = null) => {
+        const finalPrice = overrideTotal !== null ? overrideTotal : (isSecondOrMore ? action.price * 0.5 : action.price);
 
         try {
             // 1. Intentar persistir en tabla de servicios rápidos (puede no existir)

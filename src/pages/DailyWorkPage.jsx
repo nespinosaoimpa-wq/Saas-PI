@@ -77,18 +77,28 @@ export const DailyWorkPage = () => {
     const [pendingAction, setPendingAction] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
     const [combinedAmounts, setCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
+    const [quantity, setQuantity] = useState(1);
 
     const initiateQuickAction = (action) => {
         setPendingAction(action);
         setPaymentMethod('EFECTIVO');
         setCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
+        setQuantity(1);
     };
 
     const confirmQuickAction = () => {
         if (!pendingAction) return;
         const action = pendingAction;
-        const isSecond = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
-        const finalPrice = isSecond ? action.price * 0.5 : action.price;
+        const alreadyHas = selectedQueueClient && selectedQueueClient.services.some(s => s.id === action.id);
+        
+        // Logic: 1st is 100%, 2nd onwards 50%. 
+        // If they already have one from a previous registration, all in this batch are 50%
+        let finalPrice = 0;
+        if (alreadyHas) {
+            finalPrice = action.price * 0.5 * quantity;
+        } else {
+            finalPrice = action.price + (action.price * 0.5 * (quantity - 1));
+        }
 
         if (finalPrice > 0 && paymentMethod === 'COMBINADO') {
             const tEfectivo = parseFloat(combinedAmounts.EFECTIVO) || 0;
@@ -101,27 +111,29 @@ export const DailyWorkPage = () => {
         }
 
         addQuickService(
-            action,
-            isSecond,
+            { ...action, label: quantity > 1 ? `${quantity}x ${action.label}` : action.label, price: action.price }, // Original price for record, total handled below
+            alreadyHas || quantity > 1, 
             user?.id,
             selectedQueueClient?.client_id || null,
             selectedQueueClient?.vehicle_id || null,
-            { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null }
+            { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null },
+            finalPrice // Pass pre-calculated total
         );
 
         if (selectedQueueClient) {
+            const newServices = Array(quantity).fill(action);
             setGomeriaQueue(prev => prev.map(q => {
                 if (q.id === selectedQueueClient.id) {
-                    return { ...q, services: [...q.services, action] };
+                    return { ...q, services: [...q.services, ...newServices] };
                 }
                 return q;
             }));
-            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, action] }));
+            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, ...newServices] }));
         }
 
         setLastTicket({
             id: `T-${Date.now()}`,
-            label: isSecond ? `${action.label} (Adicional)` : action.label,
+            label: quantity > 1 ? `${quantity}x ${action.label}` : (alreadyHas ? `${action.label} (Adicional)` : action.label),
             price: finalPrice,
             timestamp: new Date().toLocaleString('es-AR')
         });
@@ -419,13 +431,27 @@ export const DailyWorkPage = () => {
                     </React.Fragment>
                 }>
                     <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', marginBottom: 16 }}>
-                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total a Pagar</div>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}>
-                            {formatCurrency(
-                                (selectedQueueClient && selectedQueueClient.services.some(s => s.id === pendingAction.id))
-                                    ? pendingAction.price * 0.5
-                                    : pendingAction.price
-                            )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total a Pagar</div>
+                                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}>
+                                    {formatCurrency(
+                                        (() => {
+                                            const alreadyHas = selectedQueueClient && selectedQueueClient.services.some(s => s.id === pendingAction.id);
+                                            if (alreadyHas) return pendingAction.price * 0.5 * quantity;
+                                            return pendingAction.price + (pendingAction.price * 0.5 * (quantity - 1));
+                                        })()
+                                    )}
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Cantidad</div>
+                                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 8, padding: 4 }}>
+                                    <button className="btn btn-ghost btn-sm" style={{ padding: '0 8px' }} onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+                                    <div style={{ width: 30, textAlign: 'center', fontWeight: 700 }}>{quantity}</div>
+                                    <button className="btn btn-ghost btn-sm" style={{ padding: '0 8px' }} onClick={() => setQuantity(quantity + 1)}>+</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <FormField label="Forma de Pago">
