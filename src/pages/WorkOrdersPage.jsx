@@ -18,7 +18,7 @@ import {
 
 export const WorkOrdersPage = () => {
     const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel, updateWorkOrder } = useApp();
-    const { employees } = useAuth();
+    const { user, employees } = useAuth();
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
     const [tab, setTab] = useState('active');
@@ -147,7 +147,7 @@ export const WorkOrdersPage = () => {
                     <button className="btn btn-ghost" onClick={() => exportToExcel('work_orders')}>
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
-                    { !['mecanico', 'gomero'].includes(employees._userRole || MOCK?.currentUserRole || localStorage.getItem('role') || 'mecanico') && (
+                    { ['admin', 'cajero'].includes(user.role) && (
                         <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add_circle" size={18} /> Nueva OT</button>
                     )}
                 </div>
@@ -175,7 +175,7 @@ export const WorkOrdersPage = () => {
                                 }}
                                 onViewVehicle={setVehicleSheet}
                                 rightAction={
-                                    (wo.status === 'Pendiente' || wo.status === 'En Box') && !['mecanico', 'gomero'].includes(employees._userRole || MOCK?.currentUserRole || localStorage.getItem('role') || 'mecanico') ? (
+                                    (wo.status === 'Pendiente' || wo.status === 'En Box') && ['admin', 'cajero'].includes(user.role) ? (
                                         <button
                                             className="btn btn-success btn-sm"
                                             onClick={(e) => handleFinalizeClick(e, wo.id)}

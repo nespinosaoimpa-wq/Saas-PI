@@ -5,7 +5,6 @@ import * as XLSX from 'xlsx';
 
 const AppContext = createContext();
 
-const SHEETS_WEBHOOK_URL = import.meta.env.VITE_SHEETS_WEBHOOK_URL || '';
 
 export const AppProvider = ({ children }) => {
     const [data, setData] = useState({
@@ -78,26 +77,6 @@ export const AppProvider = ({ children }) => {
         return active.sort((a,b) => new Date(b.logged_at) - new Date(a.logged_at));
     };
 
-    // =========================================
-    // Sincronización con Google Sheets
-    // =========================================
-    const syncToSheets = async (payload) => {
-        try {
-            // Enviamos los datos al Webhook de Google Apps Script
-            const response = await fetch(SHEETS_WEBHOOK_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Importante para Google Apps Script Webhooks
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    date: new Date().toISOString(),
-                    ...payload
-                })
-            });
-            console.log('✅ Sincronizado con Google Sheets');
-        } catch (e) {
-            console.error('❌ Error sincronizando con Sheets:', e);
-        }
-    };
 
     const loadData = async () => {
         if (!supabase) return;
@@ -241,13 +220,6 @@ export const AppProvider = ({ children }) => {
                     });
                 }
 
-                // Respaldo en Sheets
-                syncToSheets({
-                    type: 'GOMERIA',
-                    service: action.label,
-                    amount: finalPrice,
-                    mechanic: mechanicId
-                });
             }
 
             // 3. Actualizar estado local
@@ -387,13 +359,6 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error creating client", error); throw error; }
 
-        // Respaldo en Sheets
-        syncToSheets({
-            type: 'CLIENTE_NUEVO',
-            name: `${clientData.first_name} ${clientData.last_name}`,
-            phone: clientData.phone,
-            dni: clientData.dni
-        });
 
         setData(prev => ({ ...prev, clients: [...prev.clients, newClient] }));
         return newClient;
@@ -509,13 +474,6 @@ export const AppProvider = ({ children }) => {
         const { data: newItem, error } = await supabase.from('inventory').insert([itemData]).select().single();
         if (error) { console.error("Error creating inventory item", error); throw error; }
 
-        // Respaldo en Sheets
-        syncToSheets({
-            type: 'INVENTARIO_NUEVO',
-            item: itemData.name,
-            stock: itemData.stock_type === 'UNIT' ? itemData.stock_quantity : itemData.stock_ml,
-            price: itemData.sell_price
-        });
 
         setData(prev => ({ ...prev, inventory: [...prev.inventory, newItem] }));
         return newItem;
@@ -532,13 +490,6 @@ export const AppProvider = ({ children }) => {
         
         const updated = data[0];
 
-        // Respaldo en Sheets
-        syncToSheets({
-            type: 'INVENTARIO_ACTUALIZACION',
-            item: updated.name,
-            stock: updated.stock_type === 'UNIT' ? updated.stock_quantity : updated.stock_ml,
-            price: updated.sell_price
-        });
 
         setData(prev => ({ ...prev, inventory: prev.inventory.map(i => i.id === id ? { ...i, ...updated } : i) }));
         return updated;
@@ -549,13 +500,6 @@ export const AppProvider = ({ children }) => {
         const { error } = await supabase.from('inventory').delete().eq('id', id);
         if (error) { console.error("Error deleting inventory item", error); throw error; }
 
-        // Respaldo en Sheets
-        if (item) {
-            syncToSheets({
-                type: 'INVENTARIO_ELIMINADO',
-                item: item.name
-            });
-        }
 
         setData(prev => ({ ...prev, inventory: prev.inventory.filter(i => i.id !== id) }));
     };
@@ -588,14 +532,6 @@ export const AppProvider = ({ children }) => {
                 await supabase.from('work_order_assignments').insert(assignments);
             }
 
-            // Respaldo en Sheets
-            syncToSheets({
-                type: 'ORDEN_NUEVA',
-                order_number: newWo.order_number,
-                description: woData.description,
-                total: woData.total_price,
-                status: newWo.status
-            });
 
             await loadData();
             return newWo;
@@ -712,13 +648,6 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error adding payment", error); throw error; }
 
-        // Respaldo en Sheets
-        syncToSheets({
-            type: 'CAJA_INGRESO',
-            amount: parseFloat(paymentData.amount),
-            method: paymentData.method || 'EFECTIVO',
-            description: paymentData.description || 'Ingreso'
-        });
 
         setData(prev => ({ ...prev, payments: [newPayment, ...prev.payments] }));
         return newPayment;
@@ -742,13 +671,6 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error adding withdrawal", error); throw error; }
 
-        // Respaldo Egresos en Sheets
-        syncToSheets({
-            type: 'EGRESO',
-            description: withdrawalData.description,
-            amount: Math.abs(parseFloat(withdrawalData.amount)),
-            method: 'EFECTIVO'
-        });
 
         setData(prev => ({ ...prev, payments: [newWithdrawal, ...prev.payments] }));
         return newWithdrawal;
@@ -817,14 +739,6 @@ export const AppProvider = ({ children }) => {
                 .in('id', unclosedPayments);
         }
 
-        // Respaldo en Sheets
-        syncToSheets({
-            type: 'CIERRE_CAJA',
-            cash: closeData.cash_expected || 0,
-            transfer: closeData.transfer_total || 0,
-            card: closeData.card_total || 0,
-            difference: closeData.difference || 0
-        });
 
         // Reload all data so the view refreshes with the marked payments
         await loadData();
