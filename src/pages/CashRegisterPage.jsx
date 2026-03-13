@@ -1,4 +1,4 @@
-﻿import React, { useState, Fragment } from 'react';
+import React, { useState, Fragment } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -16,7 +16,7 @@ import {
 } from '../components/ui';
 
 export const CashRegisterPage = () => {
-    const { data: MOCK, addPayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
+    const { data: MOCK, addPayment, updatePayment, deletePayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
     const { user, employees } = useAuth();
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
@@ -26,6 +26,12 @@ export const CashRegisterPage = () => {
     const [closingCash, setClosingCash] = useState('');
     const [newPayment, setNewPayment] = useState({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
     const [newWithdrawal, setNewWithdrawal] = useState({ amount: '', description: '' });
+    
+    // For editing payments
+    const [showEdit, setShowEdit] = useState(false);
+    const [editingPayment, setEditingPayment] = useState({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
+
+    const isAdmin = user?.role === 'admin';
 
     const technicians = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
@@ -72,14 +78,53 @@ export const CashRegisterPage = () => {
         setClosingCash('');
     };
 
+    const handleEditPaymentSubmit = async () => {
+        if (!editingPayment.amount || isNaN(editingPayment.amount)) {
+            alert('Ingresá un monto válido');
+            return;
+        }
+        await updatePayment(editingPayment.id, {
+            amount: parseFloat(editingPayment.amount),
+            method: editingPayment.method,
+            description: editingPayment.description,
+            reference: editingPayment.reference || null
+        });
+        setShowEdit(false);
+        setEditingPayment({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
+    };
+
+    const handleDeletePayment = async (id) => {
+        if (window.confirm('¿Eliminar este movimiento de caja? Esta acción también eliminará el ingreso de caja.')) {
+            await deletePayment(id);
+        }
+    };
+
+    const handleOpenEdit = (payment) => {
+        setEditingPayment({
+            id: payment.id,
+            amount: payment.amount,
+            method: payment.method || payment.payment_method || 'EFECTIVO',
+            description: payment.description || '',
+            reference: payment.reference || ''
+        });
+        setShowEdit(true);
+    };
+
     const todayStr = new Date().toISOString().split('T')[0];
-    // Only show UNCLOSED payments for the current shift (no cash_closing_id)
-    const todayPayments = MOCK.payments.filter(p => (p.date || p.payment_date) === todayStr && !p.cash_closing_id);
+    
+    // Only show UNCLOSED payments for the current shift (no cash_closing_id). We don't filter by date anymore, 
+    // to catch payments from shifts spanning midnight or forgotten closures.
+    const todayPayments = MOCK.payments.filter(p => !p.cash_closing_id);
+
+    const sortedClosings = (MOCK.cashClosings || []).sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
+    const startingBalance = sortedClosings.length > 0 ? (sortedClosings[0].actual_cash || 0) : 0;
 
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
     const cash = todayPayments.filter(p => (p.method || p.payment_method) === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
     const transfer = todayPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
     const card = todayPayments.filter(p => (p.method || p.payment_method) === 'TARJETA').reduce((s, p) => s + p.amount, 0);
+    
+    const currentExpectedCash = cash + startingBalance;
 
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
     const monthStart = todayStr.slice(0, 7);
@@ -105,10 +150,10 @@ export const CashRegisterPage = () => {
                 </div>
 
                 <div className="grid-auto-cards">
-                    <StatCard icon="payments" label={`Total ${period === 'daily' ? 'Hoy' : period === 'weekly' ? 'Semana' : 'Mes'}`} value={formatCurrency(totalPeriod)} sub={`${allPayments.length} operaciones`} barPercent={75} />
-                    <StatCard icon="account_balance_wallet" label="Efectivo" value={formatCurrency(cash)} sub="Hoy" barPercent={cash > 0 ? 100 : 0} barAlert />
-                    <StatCard icon="swap_horiz" label="Transferencias" value={formatCurrency(transfer)} sub="Hoy" barPercent={transfer > 0 ? 100 : 0} />
-                    <StatCard icon="credit_card" label="Tarjeta" value={formatCurrency(card)} sub="Hoy" barPercent={card > 0 ? 100 : 0} />
+                    <StatCard icon="payments" label={`Total ${period === 'daily' ? 'Turno' : period === 'weekly' ? 'Semana' : 'Mes'}`} value={formatCurrency(totalPeriod)} sub={`${allPayments.length} operaciones`} barPercent={75} />
+                    <StatCard icon="account_balance_wallet" label="Caja Esperada" value={formatCurrency(period === 'daily' ? currentExpectedCash : cash)} sub={period === 'daily' ? `Saldo anterior: ${formatCurrency(startingBalance)}` : "Efectivo total"} barPercent={period === 'daily' ? (currentExpectedCash > 0 ? 100 : 0) : (cash > 0 ? 100 : 0)} barAlert />
+                    <StatCard icon="swap_horiz" label="Transferencias" value={formatCurrency(transfer)} sub="Turno" barPercent={transfer > 0 ? 100 : 0} />
+                    <StatCard icon="credit_card" label="Tarjeta" value={formatCurrency(card)} sub="Turno" barPercent={card > 0 ? 100 : 0} />
                 </div>
 
                 <DataTable
@@ -156,6 +201,20 @@ export const CashRegisterPage = () => {
                         },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
+                        { 
+                            key: 'actions', 
+                            label: '', 
+                            render: r => isAdmin && (
+                                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEdit(r)} style={{ color: 'var(--text)' }}>
+                                        <Icon name="edit" size={14} />
+                                    </button>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => handleDeletePayment(r.id)} style={{ color: 'var(--danger)' }}>
+                                        <Icon name="delete" size={14} />
+                                    </button>
+                                </div>
+                            )
+                        }
                     ]}
                     data={allPayments}
                 />
@@ -189,14 +248,48 @@ export const CashRegisterPage = () => {
                         </div>
                     </Modal>
                 )}
+                
+                {showEdit && (
+                    <Modal title="Editar Movimiento" onClose={() => setShowEdit(false)}
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEdit(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleEditPaymentSubmit}>Actualizar</button></Fragment>}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <FormField label="Monto">
+                                <input className="form-input" type="number" placeholder="$0.00" value={editingPayment.amount} onChange={e => setEditingPayment({ ...editingPayment, amount: e.target.value })} />
+                            </FormField>
+                            <FormField label="Método de pago">
+                                <select className="form-select" value={editingPayment.method} onChange={e => setEditingPayment({ ...editingPayment, method: e.target.value })}>
+                                    <option value="EFECTIVO">Efectivo</option>
+                                    <option value="TRANSFERENCIA">Transferencia</option>
+                                    <option value="TARJETA">Tarjeta</option>
+                                </select>
+                            </FormField>
+                            <FormField label="Referencia (opcional)">
+                                <input className="form-input" placeholder="Nº tarjeta, CBU, etc." value={editingPayment.reference} onChange={e => setEditingPayment({ ...editingPayment, reference: e.target.value })} />
+                            </FormField>
+                            <FormField label="Descripción">
+                                <input className="form-input" placeholder="Descripción del cobro" value={editingPayment.description} onChange={e => setEditingPayment({ ...editingPayment, description: e.target.value })} />
+                            </FormField>
+                        </div>
+                    </Modal>
+                )}
+
                 {showClose && (
                     <Modal title="Cierre de Caja Diario" onClose={() => setShowClose(false)}
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowClose(false)}>Cancelar</button><button className="btn btn-primary" onClick={handlePerformClose}>Confirmar Cierre</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Efectivo esperado:</span>
-                                    <strong style={{ color: 'var(--primary)' }}>{formatCurrency(cash)}</strong>
+                                    <span style={{ color: 'var(--text-muted)' }}>Saldo anterior:</span>
+                                    <span>{formatCurrency(startingBalance)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Ingresos en efectivo:</span>
+                                    <span>{formatCurrency(cash)}</span>
+                                </div>
+                                <hr style={{ borderColor: 'var(--border)', margin: '8px 0' }} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Efectivo TOTAL esperado:</span>
+                                    <strong style={{ color: 'var(--primary)' }}>{formatCurrency(currentExpectedCash)}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                     <span style={{ color: 'var(--text-muted)' }}>Transferencias total:</span>

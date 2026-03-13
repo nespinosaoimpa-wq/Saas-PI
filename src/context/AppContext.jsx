@@ -520,8 +520,15 @@ export const AppProvider = ({ children }) => {
     };
 
     const updateInventoryItem = async (id, updates) => {
-        const { data: updated, error } = await supabase.from('inventory').update(updates).eq('id', id).select().single();
+        const { data, error } = await supabase.from('inventory').update(updates).eq('id', id).select();
         if (error) { console.error("Error updating inventory item", error); throw error; }
+
+        if (!data || data.length === 0) {
+            console.error("No item returned after update.");
+            return updates; // Return the updates as fallback
+        }
+        
+        const updated = data[0];
 
         // Respaldo en Sheets
         syncToSheets({
@@ -745,35 +752,67 @@ export const AppProvider = ({ children }) => {
         return newWithdrawal;
     };
 
+    const updatePayment = async (id, updates) => {
+        const { data: updated, error } = await supabase
+            .from('payments')
+            .update(updates)
+            .eq('id', id)
+            .select();
+            
+        if (error) { console.error("Error updating payment", error); throw error; }
+
+        const paymentReturned = updated && updated.length > 0 ? updated[0] : updates;
+
+        setData(prev => ({
+            ...prev,
+            payments: prev.payments.map(p => p.id === id ? { ...p, ...paymentReturned } : p)
+        }));
+        
+        return paymentReturned;
+    };
+
+    const deletePayment = async (id) => {
+        const { error } = await supabase.from('payments').delete().eq('id', id);
+        if (error) { console.error("Error deleting payment", error); throw error; }
+        
+        setData(prev => ({ ...prev, payments: prev.payments.filter(p => p.id !== id) }));
+    };
+
     const performCashClose = async (closeData) => {
         const today = new Date().toISOString().split('T')[0];
-        const { data: closing, error } = await supabase
+        
+        // Find previous closing balance
+        const sortedClosings = (data.cashClosings || []).sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
+        const lastClosing = sortedClosings.length > 0 ? sortedClosings[0] : null;
+        const startingBalance = lastClosing ? (lastClosing.actual_cash || 0) : 0;
+
+        const { data: closingResult, error } = await supabase
             .from('cash_closings')
             .insert([{
                 date: today,
+                starting_balance: startingBalance,
                 cash_income: closeData.cash_expected || 0,
                 transfer_income: closeData.transfer_total || 0,
                 card_income: closeData.card_total || 0,
-                expected_cash: closeData.cash_expected || 0,
+                expected_cash: (closeData.cash_expected || 0) + startingBalance,
                 actual_cash: closeData.cash_real || 0,
                 difference: closeData.difference || 0,
                 employee_id: closeData.employee_id || null
             }])
-            .select()
-            .single();
+            .select();
 
         if (error) { console.error("Error performing cash close", error); throw error; }
+        
+        const closing = closingResult && closingResult.length > 0 ? closingResult[0] : null;
 
-        // Mark all of today's unclosed payments with this closing ID so next shift starts at $0
-        const todayUnclosed = data.payments.filter(p =>
-            (p.date || p.payment_date) === today && !p.cash_closing_id
-        ).map(p => p.id);
+        // Mark all unclosed payments with this closing ID
+        const unclosedPayments = data.payments.filter(p => !p.cash_closing_id).map(p => p.id);
 
-        if (todayUnclosed.length > 0 && closing?.id) {
+        if (unclosedPayments.length > 0 && closing?.id) {
             await supabase
                 .from('payments')
                 .update({ cash_closing_id: closing.id })
-                .in('id', todayUnclosed);
+                .in('id', unclosedPayments);
         }
 
         // Respaldo en Sheets
@@ -901,6 +940,8 @@ export const AppProvider = ({ children }) => {
             addWorkOrder,
             updateWorkOrder,
             addPayment,
+            updatePayment,
+            deletePayment,
             addWithdrawal,
             performCashClose,
             processSale,

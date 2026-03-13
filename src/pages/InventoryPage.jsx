@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { formatCurrency, formatML } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +18,9 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     } = useApp();
     const { user } = useAuth();
 
-    // Check access: Solo administradores pueden modificar inventario y precios
-    const canEdit = user?.role === 'admin';
+    // Check access
+    const canModify = user?.role === 'admin';
+    const canAdd = user?.role === 'admin' || user?.role === 'cajero';
 
     const inventory = MOCK.inventory || [];
     const suppliers = MOCK.suppliers || [];
@@ -129,7 +130,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                     <button className="btn btn-ghost" onClick={() => exportToExcel('inventory')}>
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
-                    {canEdit && <button className="btn btn-primary" onClick={() => handleOpenModal()}><Icon name="add_shopping_cart" size={18} /> Nuevo Producto</button>}
+                    {canAdd && <button className="btn btn-primary" onClick={() => handleOpenModal()}><Icon name="add_shopping_cart" size={18} /> Nuevo Producto</button>}
                 </div>
 
                 {/* Volume gauges for oils */}
@@ -166,7 +167,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                         { key: 'price', label: 'Venta', render: r => <strong style={{ color: 'var(--primary)' }}>{formatCurrency(r.sell_price)}{r.stock_type === 'VOLUME' ? '/L' : ''}</strong> },
                         {
                             key: 'actions', label: '', render: r => (
-                                canEdit && <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                canModify && <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                     <button className="btn btn-ghost btn-sm" onClick={() => handleOpenModal(r)}>
                                         <Icon name="edit" size={16} />
                                     </button>
