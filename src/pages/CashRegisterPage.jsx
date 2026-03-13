@@ -42,7 +42,8 @@ export const CashRegisterPage = () => {
         }
         addPayment({
             ...newPayment,
-            amount: parseFloat(newPayment.amount)
+            amount: parseFloat(newPayment.amount),
+            employee_id: user?.id
         });
         setShowNew(false);
         setNewPayment({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
@@ -55,7 +56,8 @@ export const CashRegisterPage = () => {
         }
         addWithdrawal({
             amount: parseFloat(newWithdrawal.amount),
-            description: newWithdrawal.description || 'Retiro de caja'
+            description: newWithdrawal.description || 'Retiro de caja',
+            employee_id: user?.id
         });
         setShowWithdrawal(false);
         setNewWithdrawal({ amount: '', description: '' });
@@ -158,7 +160,13 @@ export const CashRegisterPage = () => {
 
                 <DataTable
                     columns={[
-                        { key: 'date', label: 'Fecha', render: r => r.date || r.payment_date },
+                        { key: 'date', label: 'Fecha/Hora', render: r => r.created_at ? new Date(r.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : (r.date || r.payment_date) },
+                        {
+                            key: 'employee', label: 'Cajero', render: r => {
+                                const emp = employees.find(e => e.id === r.employee_id);
+                                return emp ? emp.name : '—';
+                            }
+                        },
                         {
                             key: 'type', label: 'Tipo', render: r => {
                                 const t = r.type || (r.amount < 0 ? 'EGRESO' : 'INGRESO');

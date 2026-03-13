@@ -1,6 +1,7 @@
 import React, { useState, Fragment, useRef, useEffect } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import {
     SectionHeader,
     Modal,
@@ -13,6 +14,7 @@ import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 
 export const SalesPage = () => {
     const { data: MOCK, processSale, exportToExcel } = useApp();
+    const { user } = useAuth();
     const [cart, setCart] = useState([]);
     const [manualCode, setManualCode] = useState('');
     const [showCamera, setShowCamera] = useState(false);
@@ -107,7 +109,7 @@ export const SalesPage = () => {
                 cae: afipData.cae,
                 cae_due_date: afipData.caeDueDate,
                 receipt_number: afipData.receiptText
-            } : null);
+            } : null, user?.id);
 
             const saleData = {
                 items: [...cart],

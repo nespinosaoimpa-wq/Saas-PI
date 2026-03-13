@@ -225,7 +225,8 @@ export const AppProvider = ({ children }) => {
                                 method: method,
                                 description: `Gomería Express (${method}): ${action.label}`,
                                 type: 'INGRESO',
-                                reference: 'DIRECTO'
+                                reference: 'DIRECTO',
+                                employee_id: mechanicId || null
                             });
                         }
                     }
@@ -235,7 +236,8 @@ export const AppProvider = ({ children }) => {
                         method: paymentOptions.method,
                         description: `Gomería Express: ${action.label}`,
                         type: 'INGRESO',
-                        reference: 'DIRECTO'
+                        reference: 'DIRECTO',
+                        employee_id: mechanicId || null
                     });
                 }
 
@@ -832,7 +834,7 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Punto de Venta — processSale
     // ==========================================
-    const processSale = async (cart, payMethod, afipData = null) => {
+    const processSale = async (cart, payMethod, afipData = null, employeeId = null) => {
         const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
         const today = new Date().toISOString().split('T')[0];
 
@@ -846,6 +848,7 @@ export const AppProvider = ({ children }) => {
                 description: `Venta POS: ${cart.map(ci => `${ci.qty}x ${ci.name}`).join(', ')}`,
                 type: 'VENTA',
                 reference: null,
+                employee_id: employeeId || null,
                 cae: afipData?.cae || null,
                 cae_due_date: afipData?.cae_due_date || null,
                 receipt_number: afipData?.receipt_number || null
