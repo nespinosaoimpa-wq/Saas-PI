@@ -864,8 +864,13 @@ export const AppProvider = ({ children }) => {
                 await supabase.from('inventory').update({
                     stock_quantity: Math.max(0, (ci.stock_quantity || 0) - ci.qty)
                 }).eq('id', ci.id);
+            } else if (ci.stock_type === 'VOLUME') {
+                // Para VOLUME, ci.qty representa Litros. Descontamos en ml.
+                const mlToDeduct = Math.round(ci.qty * 1000);
+                await supabase.from('inventory').update({
+                    stock_ml: Math.max(0, (ci.stock_ml || 0) - mlToDeduct)
+                }).eq('id', ci.id);
             }
-            // Para VOLUME no descontamos en POS (sería por ml, lógica distinta)
         }
 
         // 3. Refresh data

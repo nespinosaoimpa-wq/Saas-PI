@@ -72,8 +72,18 @@ export const SalesPage = () => {
     const updateQty = (id, delta) => {
         setCart(prev => prev.map(ci => {
             if (ci.id === id) {
+                // Para VOLUME, delta suele ser +/- 1 litro si se usa el botón, pero permitimos decimales
                 const newQty = ci.qty + delta;
-                return newQty > 0 ? { ...ci, qty: newQty } : ci;
+                return newQty > 0 ? { ...ci, qty: Number(newQty.toFixed(3)) } : ci;
+            }
+            return ci;
+        }));
+    };
+
+    const setManualQty = (id, value) => {
+        setCart(prev => prev.map(ci => {
+            if (ci.id === id) {
+                return { ...ci, qty: Number(value) };
             }
             return ci;
         }));
@@ -208,11 +218,39 @@ export const SalesPage = () => {
                                             <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ci.barcode || ci.id}</div>
                                         </td>
                                         <td style={{ padding: '10px 16px', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                                                <button className="btn btn-ghost" style={{ padding: '2px 6px', fontSize: 16 }} onClick={() => updateQty(ci.id, -1)}>−</button>
-                                                <span style={{ fontWeight: 700, minWidth: 24, textAlign: 'center' }}>{ci.qty}</span>
-                                                <button className="btn btn-ghost" style={{ padding: '2px 6px', fontSize: 16 }} onClick={() => updateQty(ci.id, 1)}>+</button>
-                                            </div>
+                                            {ci.stock_type === 'VOLUME' ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                                                    <select 
+                                                        className="form-select" 
+                                                        style={{ padding: '2px 4px', fontSize: 11, height: 28, minWidth: 80 }}
+                                                        value={ci.qty === 0.5 || ci.qty === 1 || ci.qty === 1.5 || ci.qty === 4 ? ci.qty : 'custom'}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === 'custom') {
+                                                                const ml = prompt('Ingrese cantidad en mililitros (ej: 750):', (ci.qty * 1000).toString());
+                                                                if (ml && !isNaN(ml)) setManualQty(ci.id, parseFloat(ml) / 1000);
+                                                            } else {
+                                                                setManualQty(ci.id, parseFloat(val));
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value={0.5}>500 ml</option>
+                                                        <option value={1}>1 Litro</option>
+                                                        <option value={1.5}>1.5 Litros</option>
+                                                        <option value={4}>4 Litros</option>
+                                                        <option value="custom">Personalizado...</option>
+                                                    </select>
+                                                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)' }}>
+                                                        {(ci.qty * 1000).toFixed(0)} ml
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                                    <button className="btn btn-ghost" style={{ padding: '2px 6px', fontSize: 16 }} onClick={() => updateQty(ci.id, -1)}>−</button>
+                                                    <span style={{ fontWeight: 700, minWidth: 24, textAlign: 'center' }}>{ci.qty}</span>
+                                                    <button className="btn btn-ghost" style={{ padding: '2px 6px', fontSize: 16 }} onClick={() => updateQty(ci.id, 1)}>+</button>
+                                                </div>
+                                            )}
                                         </td>
                                         <td style={{ padding: '10px 16px', textAlign: 'right', fontSize: 13 }}>
                                             {formatCurrency(ci.sell_price)}
