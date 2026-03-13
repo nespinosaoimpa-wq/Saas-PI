@@ -372,6 +372,14 @@ export const AppProvider = ({ children }) => {
         return updated;
     };
 
+    const deleteClient = async (id) => {
+        const { error } = await supabase
+            .from('clients').delete().eq('id', id);
+        if (error) { console.error("Error deleting client", error); throw error; }
+        setData(prev => ({ ...prev, clients: prev.clients.filter(c => c.id !== id) }));
+        return true;
+    };
+
     // ==========================================
     // CRUD — Vehículos
     // ==========================================
@@ -851,6 +859,7 @@ export const AppProvider = ({ children }) => {
             getVehicleHistory,
             addClient,
             updateClient,
+            deleteClient,
             addVehicle,
             updateVehicle,
             addVehicleNote,

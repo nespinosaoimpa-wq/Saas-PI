@@ -14,7 +14,7 @@ import {
 } from '../components/ui';
 
 export const ClientsPage = ({ initialScannedCode = '' }) => {
-    const { data: MOCK, getClientVehicles, addClient, addVehicle, updateClient, addVehicleNote, getVehicleHistory } = useApp();
+    const { data: MOCK, getClientVehicles, addClient, addVehicle, updateClient, deleteClient, addVehicleNote, getVehicleHistory } = useApp();
     const [search, setSearch] = useState('');
     const [selectedClient, setSelectedClient] = useState(null);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -139,7 +139,23 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                         title={`Ficha: ${selectedClient?.first_name || 'Sin Nombre'} ${selectedClient?.last_name || ''}`}
                         onClose={() => setSelectedClient(null)}
                         width="900px"
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setSelectedClient(null)}>Cerrar</button><button className="btn btn-primary" onClick={() => { setNewClient({ ...selectedClient }); setShowEditModal(true); }}>Editar Datos</button></Fragment>}
+                        footer={<Fragment>
+                            <button className="btn btn-ghost" onClick={() => setSelectedClient(null)}>Cerrar</button>
+                            <button className="btn btn-danger" onClick={async () => {
+                                if (window.confirm('¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer y fallará si el cliente tiene vehículos asociados.')) {
+                                    try {
+                                        await deleteClient(selectedClient.id);
+                                        alert('✅ Cliente eliminado con éxito.');
+                                        setSelectedClient(null);
+                                    } catch (e) {
+                                        alert('Error al eliminar: ' + e.message);
+                                    }
+                                }
+                            }} style={{ marginRight: 'auto' }}>
+                                <Icon name="delete" size={16} /> Eliminar Cliente
+                            </button>
+                            <button className="btn btn-primary" onClick={() => { setNewClient({ ...selectedClient }); setShowEditModal(true); }}>Editar Datos</button>
+                        </Fragment>}
                     >
                         <div className="grid-client-detail">
                             {/* Profile + Vehicles */}
