@@ -90,7 +90,27 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
             if (editingItem) {
                 await updateInventoryItem(editingItem.id, payload);
             } else {
-                await addInventoryItem(payload);
+                // LÓGICA DE SUBCARGA AUTOMÁTICA
+                const existingProduct = inventory.find(i => 
+                    (payload.barcode && i.barcode === payload.barcode) || 
+                    (i.name.toLowerCase() === payload.name.toLowerCase())
+                );
+
+                if (existingProduct) {
+                    alert(`Producto existente encontrado: ${existingProduct.name}. Se sumará el nuevo stock.`);
+                    if (existingProduct.stock_type === 'UNIT') {
+                        await updateInventoryItem(existingProduct.id, {
+                            stock_quantity: (existingProduct.stock_quantity || 0) + (payload.stock_quantity || 0)
+                        });
+                    } else if (existingProduct.stock_type === 'VOLUME') {
+                        await updateInventoryItem(existingProduct.id, {
+                            stock_ml: (existingProduct.stock_ml || 0) + (payload.stock_ml || 0)
+                        });
+                    }
+                } else {
+                    // Es un producto realmente nuevo
+                    await addInventoryItem(payload);
+                }
             }
             setShowModal(false);
         } catch (e) {

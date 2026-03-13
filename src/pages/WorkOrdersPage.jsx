@@ -1,4 +1,4 @@
-﻿import React, { useState, Fragment, useMemo } from 'react';
+import React, { useState, Fragment, useMemo } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -147,7 +147,9 @@ export const WorkOrdersPage = () => {
                     <button className="btn btn-ghost" onClick={() => exportToExcel('work_orders')}>
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
-                    <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add_circle" size={18} /> Nueva OT</button>
+                    { !['mecanico', 'gomero'].includes(employees._userRole || MOCK?.currentUserRole || localStorage.getItem('role') || 'mecanico') && (
+                        <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add_circle" size={18} /> Nueva OT</button>
+                    )}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -173,7 +175,7 @@ export const WorkOrdersPage = () => {
                                 }}
                                 onViewVehicle={setVehicleSheet}
                                 rightAction={
-                                    (wo.status === 'Pendiente' || wo.status === 'En Box') ? (
+                                    (wo.status === 'Pendiente' || wo.status === 'En Box') && !['mecanico', 'gomero'].includes(employees._userRole || MOCK?.currentUserRole || localStorage.getItem('role') || 'mecanico') ? (
                                         <button
                                             className="btn btn-success btn-sm"
                                             onClick={(e) => handleFinalizeClick(e, wo.id)}

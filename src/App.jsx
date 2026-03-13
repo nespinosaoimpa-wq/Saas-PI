@@ -100,7 +100,10 @@ function App() {
     }
 
     const pageInfo = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
-    const PageComponent = PAGES[page] || DashboardPage;
+    
+    // Ensure mechanics/gomeros don't land on Dashboard if they shouldn't
+    const effectivePage = (page === 'dashboard' && !['admin', 'cajero'].includes(user.role)) ? 'work_orders' : page;
+    const PageComponent = PAGES[effectivePage] || DashboardPage;
 
     // ============================================================
     // NAVIGATION STRUCTURE — Grouped by business area
@@ -144,16 +147,15 @@ function App() {
             case 'settings':
                 return user.role === 'admin';
             case 'inventory':
-                return ['admin', 'cajero', 'mecanico'].includes(user.role);
+            case 'dashboard':
             case 'sales':
             case 'cash':
             case 'clients':
             case 'calendar':
                 return ['admin', 'cajero'].includes(user.role);
-            case 'dashboard':
             case 'work_orders':
             case 'daily_work':
-                return true;
+                return ['admin', 'cajero', 'mecanico', 'gomero'].includes(user.role);
             default:
                 return true;
         }

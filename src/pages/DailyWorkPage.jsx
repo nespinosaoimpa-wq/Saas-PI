@@ -289,9 +289,11 @@ export const DailyWorkPage = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: 10 }}>
-                                        <button className="btn btn-success" style={{ flex: 1, height: 46, fontSize: 14, fontWeight: 700 }} onClick={() => handleFinishOrder(wo.id)}>
-                                            <Icon name="check_circle" size={20} /> FINALIZAR TRABAJO
-                                        </button>
+                                        { !['mecanico', 'gomero'].includes(user?.role || 'mecanico') && (
+                                            <button className="btn btn-success" style={{ flex: 1, height: 46, fontSize: 14, fontWeight: 700 }} onClick={() => handleFinishOrder(wo.id)}>
+                                                <Icon name="check_circle" size={20} /> FINALIZAR TRABAJO
+                                            </button>
+                                        )}
                                         <label className="btn btn-ghost" style={{ width: 46, height: 46, padding: 0, justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                             <Icon name="photo_camera" size={20} />
                                             <input
@@ -318,6 +320,7 @@ export const DailyWorkPage = () => {
                 </div>
 
                 {/* Gomería — Quick Services */}
+                { user?.role !== 'mecanico' && (
                 <div>
                     <SectionHeader icon="tire_repair" title="Gomería: Registro Rápido" right={
                         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>MÓDULO EXPRESS</span>
@@ -331,7 +334,7 @@ export const DailyWorkPage = () => {
                             <button className="btn btn-primary btn-sm" onClick={addToQueue}>Agregar</button>
                         </div>
                         <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8 }}>
-                            {gomeriaQueue.map(q => (
+                             {gomeriaQueue.map(q => (
                                 <div key={q.id}
                                     onClick={() => setSelectedQueueClient(q)}
                                     className={`nav-item ${selectedQueueClient?.id === q.id ? 'active' : ''}`}
@@ -461,6 +464,7 @@ export const DailyWorkPage = () => {
                         </div>
                     </div>
                 </div>
+                )}
             </div>
 
             {/* Modal de Pago Express */}
