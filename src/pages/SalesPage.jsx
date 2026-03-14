@@ -30,10 +30,26 @@ export const SalesPage = () => {
     // Buscar producto por código o nombre o marca
     const findProduct = (term) => {
         if (!term) return null;
-        const lowerTerm = term.toLowerCase();
-        return MOCK.inventory.find(i =>
-            (i.barcode && i.barcode.toLowerCase() === lowerTerm) ||
-            (i.id && i.id.toLowerCase() === lowerTerm) ||
+        const lowerTerm = term.toString().toLowerCase().trim();
+        
+        // 1. Priority: Exact match on Barcode or ID
+        let match = (MOCK.inventory || []).find(i => 
+            (i.barcode && String(i.barcode).toLowerCase() === lowerTerm) ||
+            (i.id && String(i.id).toLowerCase() === lowerTerm)
+        );
+        if (match) return match;
+
+        // 2. Priority: Partial match on Barcode/ID (only if term length >= 3)
+        if (lowerTerm.length >= 3) {
+            match = (MOCK.inventory || []).find(i => 
+                (i.barcode && String(i.barcode).toLowerCase().includes(lowerTerm)) ||
+                (i.id && String(i.id).toLowerCase().includes(lowerTerm))
+            );
+            if (match) return match;
+        }
+
+        // 3. Priority: Name or Brand includes term
+        return (MOCK.inventory || []).find(i =>
             (i.name && i.name.toLowerCase().includes(lowerTerm)) ||
             (i.brand && i.brand.toLowerCase().includes(lowerTerm))
         );

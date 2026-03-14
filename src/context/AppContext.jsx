@@ -585,6 +585,58 @@ export const AppProvider = ({ children }) => {
         }
         if (error) { console.error("Error creating WO", error); throw error; }
     };
+    
+    const addItemsToWorkOrder = async (woId, products) => {
+        if (!products || products.length === 0) return;
+        
+        try {
+            const items = products.map(p => ({
+                work_order_id: woId,
+                inventory_item_id: p.id,
+                description: p.name,
+                quantity: p.qty,
+                unit_price: p.sell_price,
+                total_price: p.sell_price * p.qty,
+                is_labor: false
+            }));
+            
+            const { error: itemsError } = await supabase.from('work_order_items').insert(items);
+            if (itemsError) throw itemsError;
+
+            // Descontar stock
+            for (const p of products) {
+                if (p.stock_type === 'UNIT') {
+                    await supabase.from('inventory').update({
+                        stock_quantity: Math.max(0, (p.stock_quantity || 0) - p.qty)
+                    }).eq('id', p.id);
+                } else if (p.stock_type === 'VOLUME') {
+                    const mlToDeduct = Math.round(p.qty * 1000);
+                    await supabase.from('inventory').update({
+                        stock_ml: Math.max(0, (p.stock_ml || 0) - mlToDeduct)
+                    }).eq('id', p.id);
+                }
+            }
+
+            // Actualizar precio total de la OT
+            const wo = data.workOrders.find(w => w.id === woId);
+            if (wo) {
+                const addedCost = products.reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
+                const newPartsCost = (wo.parts_cost || 0) + addedCost;
+                const newTotal = (wo.total_price || 0) + addedCost;
+                
+                await supabase.from('work_orders').update({
+                    parts_cost: newPartsCost,
+                    total_price: newTotal
+                }).eq('id', woId);
+            }
+
+            await loadData();
+            return true;
+        } catch (error) {
+            console.error("Error adding items to WO", error);
+            throw error;
+        }
+    };
 
     const updateWorkOrder = async (id, updates, afipData = null) => {
         const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
@@ -917,6 +969,7 @@ export const AppProvider = ({ children }) => {
             addSupplier,
             updateSupplier,
             addWorkOrder,
+            addItemsToWorkOrder,
             updateWorkOrder,
             addPayment,
             updatePayment,

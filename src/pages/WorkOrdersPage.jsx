@@ -17,7 +17,7 @@ import {
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
-    const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel, updateWorkOrder } = useApp();
+    const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel, updateWorkOrder, addItemsToWorkOrder } = useApp();
     const { user, employees } = useAuth();
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
@@ -30,6 +30,10 @@ export const WorkOrdersPage = () => {
     const [invoiceType, setInvoiceType] = useState('INTERNAL');
     const [customerCuit, setCustomerCuit] = useState('');
     const [isFinalizing, setIsFinalizing] = useState(false);
+    const [addingProductsToWO, setAddingProductsToWO] = useState(null); // WO object or null
+    const [extraProducts, setExtraProducts] = useState([]);
+    const [extraProductSearch, setExtraProductSearch] = useState('');
+    const [isAddingProducts, setIsAddingProducts] = useState(false);
 
     const handleFinalizeClick = (e, woId) => {
         e.stopPropagation();
@@ -179,6 +183,32 @@ export const WorkOrdersPage = () => {
         setSelectedProducts(prev => prev.filter(p => p.id !== id));
     };
 
+    const handleAddExtraProducts = async () => {
+        if (!addingProductsToWO || extraProducts.length === 0) return;
+        setIsAddingProducts(true);
+        try {
+            await addItemsToWorkOrder(addingProductsToWO.id, extraProducts);
+            alert('✅ Productos agregados correctamente a la OT.');
+            setAddingProductsToWO(null);
+            setExtraProducts([]);
+            setExtraProductSearch('');
+        } catch (e) {
+            alert('Error al agregar productos: ' + e.message);
+        } finally {
+            setIsAddingProducts(false);
+        }
+    };
+
+    const filteredExtraProducts = useMemo(() => {
+        if (!extraProductSearch) return [];
+        const term = extraProductSearch.toLowerCase();
+        return MOCK.inventory.filter(i => 
+            i.name.toLowerCase().includes(term) || 
+            (i.barcode && i.barcode.toLowerCase().includes(term)) ||
+            (i.brand && i.brand.toLowerCase().includes(term))
+        ).slice(0, 5);
+    }, [extraProductSearch, MOCK.inventory]);
+
     return (
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
@@ -217,14 +247,24 @@ export const WorkOrdersPage = () => {
                                 onViewVehicle={setVehicleSheet}
                                 rightAction={
                                     (wo.status === 'Pendiente' || wo.status === 'En Box') && ['admin', 'cajero'].includes(user.role) ? (
-                                        <button
-                                            className="btn btn-success btn-sm"
-                                            onClick={(e) => handleFinalizeClick(e, wo.id)}
-                                            style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
-                                            title="Finalizar y registrar cobro de la orden"
-                                        >
-                                            FINALIZAR
-                                        </button>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button
+                                                className="btn btn-primary btn-sm"
+                                                onClick={(e) => { e.stopPropagation(); setAddingProductsToWO(wo); setExtraProducts([]); setExtraProductSearch(''); }}
+                                                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
+                                                title="Agregar más productos o insumos a esta orden"
+                                            >
+                                                + PRODUCTO
+                                            </button>
+                                            <button
+                                                className="btn btn-success btn-sm"
+                                                onClick={(e) => handleFinalizeClick(e, wo.id)}
+                                                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
+                                                title="Finalizar y registrar cobro de la orden"
+                                            >
+                                                FINALIZAR
+                                            </button>
+                                        </div>
                                     ) : null
                                 }
                                 onClick={() => {
@@ -537,6 +577,54 @@ export const WorkOrdersPage = () => {
                                         ))}
                                 </div>
                             )}
+                        </div>
+                    </Modal>
+                )}
+                {addingProductsToWO && (
+                    <Modal title={`Agregar Productos a OT #${addingProductsToWO.order_number}`} onClose={() => setAddingProductsToWO(null)} width="600px"
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setAddingProductsToWO(null)}>Cancelar</button><button className="btn btn-primary" onClick={handleAddExtraProducts} disabled={isAddingProducts || extraProducts.length === 0}>{isAddingProducts ? 'Guardando...' : 'Confirmar y Agregar'}</button></Fragment>}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <FormField label="Buscar Producto (Nombre o Código)">
+                                <input className="form-input" value={extraProductSearch} onChange={e => setExtraProductSearch(e.target.value)} placeholder="Ej: Aceite, Filtro, 779..." />
+                            </FormField>
+                            {extraProductSearch && filteredExtraProducts.length > 0 && (
+                                <div className="glass-card" style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    {filteredExtraProducts.map(p => (
+                                        <div key={p.id} className="search-result-item" style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4 }} onClick={() => {
+                                            setExtraProducts(prev => {
+                                                const existing = prev.find(item => item.id === p.id);
+                                                if (existing) return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
+                                                return [...prev, { ...p, qty: 1 }];
+                                            });
+                                            setExtraProductSearch('');
+                                        }}>
+                                            <Icon name="add" size={16} /> <strong style={{ marginLeft: 8 }}>{p.name}</strong> — {formatCurrency(p.sell_price)}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div style={{ marginTop: 8 }}>
+                                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>Productos a sumar:</label>
+                                {extraProducts.length === 0 && <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', border: '1px dashed var(--border)', borderRadius: 8 }}>No hay productos seleccionados</div>}
+                                {extraProducts.map(p => (
+                                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-hover)', borderRadius: 8, marginBottom: 4 }}>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)} c/u</div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <button className="btn btn-icon btn-sm" onClick={() => setExtraProducts(prev => prev.map(x => x.id === p.id ? { ...x, qty: Math.max(0.1, x.qty - 1) } : x).filter(x => x.qty > 0))}>-</button>
+                                                <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 700 }}>{p.qty}</span>
+                                                <button className="btn btn-icon btn-sm" onClick={() => setExtraProducts(prev => prev.map(x => x.id === p.id ? { ...x, qty: x.qty + 1 } : x))}>+</button>
+                                            </div>
+                                            <button className="btn btn-icon btn-sm btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => setExtraProducts(prev => prev.filter(x => x.id !== p.id))}>
+                                                <Icon name="close" size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </Modal>
                 )}

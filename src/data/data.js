@@ -130,7 +130,10 @@ export const MOCK = {
 
 // Helper functions exported for use across pages
 export const formatCurrency = (n) => '$' + (n || 0).toLocaleString('es-AR');
-export const formatML = (ml) => ml >= 1000 ? (ml / 1000).toFixed(1) + 'L' : ml + 'ml';
+export const formatML = (ml) => {
+  if (ml === undefined || ml === null) return '0ml';
+  return ml >= 1000 ? (ml / 1000).toFixed(1) + 'L' : ml + 'ml';
+};
 export const getHealthColor = (score) => score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
 export const getStatusBadge = (status) => {
   const map = { 'Pendiente': 'badge-pending', 'En Box': 'badge-active', 'Finalizado': 'badge-done', 'Cancelado': 'badge-canceled', 'Programado': 'badge-pending', 'Confirmado': 'badge-active', 'En Curso': 'badge-active', 'Completado': 'badge-done' };
