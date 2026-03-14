@@ -100,10 +100,7 @@ export const DashboardPage = () => {
                     {/* Service Queue */}
                     <div>
                         <SectionHeader icon="checklist_rtl" title="Cola de Trabajo" right={
-                            <Fragment>
-                                <button className="btn btn-sm btn-ghost"><Icon name="filter_alt" size={16} /> Filtrar</button>
-                                <button className="btn btn-sm btn-primary"><Icon name="add" size={16} /> Nueva OT</button>
-                            </Fragment>
+                            <button className="btn btn-sm btn-ghost"><Icon name="filter_alt" size={16} /> Filtrar</button>
                         } />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {activeOrders.slice(0, 5).map(wo => {
