@@ -56,22 +56,52 @@ export function LoginPage() {
                     <Icon name="schedule" size={18} /> Fichar Ingreso/Salida
                 </button>
 
-                <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                    <div style={{ display: 'inline-flex', padding: 24, background: 'linear-gradient(135deg, var(--primary), var(--accent))', borderRadius: '24px', color: 'white', marginBottom: 24, boxShadow: '0 10px 30px rgba(var(--primary-rgb), 0.3)' }}>
-                        <Icon name="precision_manufacturing" size={56} />
+                <div style={{ textAlign: 'center', marginBottom: 48, zIndex: 1 }}>
+                    <div style={{
+                        display: 'inline-flex',
+                        padding: 12,
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '24px',
+                        marginBottom: 24,
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                        <img src="/apple-touch-icon.png" alt="Piripi Logo" style={{ width: 80, height: 80, borderRadius: '16px' }} />
                     </div>
-                    <h1 style={{ fontSize: 32, letterSpacing: -1 }}>PIRIPI <strong style={{ color: 'var(--primary)' }}>PRO</strong></h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>Bienvenido al Sistema de Gestión</p>
+                    <h1 style={{ fontSize: 36, letterSpacing: -1, color: '#ffffff', fontWeight: 900 }}>PIRIPI <span style={{ color: 'var(--primary)' }}>PRO</span></h1>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: 500 }}>Bienvenido al Sistema de Gestión</p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, width: '100%', maxWidth: 700, padding: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, width: '100%', maxWidth: 700, padding: 20, zIndex: 1 }}>
                     {employees.map(emp => (
-                        <button key={emp.id} className="card" style={{ padding: 20, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border)', transition: 'all 0.2s', background: 'rgba(255,255,255,0.03)', borderRadius: 16 }} onClick={() => handleEmployeeClick(emp)}>
-                            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
-                                <Icon name="person" size={28} style={{ color: 'var(--primary)' }} />
+                        <button key={emp.id} className="card" style={{
+                            padding: 24,
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: 20,
+                            backdropFilter: 'blur(10px)',
+                            color: '#ffffff'
+                        }}
+                            onClick={() => handleEmployeeClick(emp)}
+                            onMouseOver={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                            }}
+                            onMouseOut={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(var(--primary-rgb), 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+                                <Icon name="person" size={32} style={{ color: 'var(--primary)' }} />
                             </div>
-                            <h3 style={{ margin: '0 0 4px 0', fontSize: 14 }}>{emp.name}</h3>
-                            <span style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <h3 style={{ margin: '0 0 6px 0', fontSize: 15, fontWeight: 700, color: '#ffffff' }}>{emp.name}</h3>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1 }}>
                                 {emp.role}
                             </span>
                         </button>
