@@ -41,10 +41,13 @@ export function LoginPage() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'flex-start', // Start from top to prevent cutoff
                 background: 'radial-gradient(circle at center, #111827 0%, #000000 100%)',
                 position: 'relative',
-                overflow: 'hidden'
+                minHeight: '100vh',           // Ensure full height
+                height: 'auto',              // Allow growth
+                overflowY: 'auto',            // Enable scrolling
+                padding: '80px 20px 40px 20px' // Space for logo and bottom
             }}>
                 {/* Decorative Background Elements */}
                 <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40%', height: '40%', background: 'rgba(var(--primary-rgb), 0.05)', filter: 'blur(100px)', borderRadius: '50%' }} />
