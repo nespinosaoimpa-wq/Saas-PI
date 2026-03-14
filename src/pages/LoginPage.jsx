@@ -47,7 +47,7 @@ export function LoginPage() {
                 minHeight: '100dvh',
                 width: '100%',
                 overflowY: 'auto',
-                padding: '100px 20px 40px 20px'
+                padding: '160px 20px 40px 20px' // Increased top padding to lower the logo
             }}>
                 {/* Fixed Header Bar */}
                 <div style={{
@@ -217,7 +217,7 @@ export function LoginPage() {
                                         if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                         try {
                                             const res = addTimeLog(timePin, 'IN');
-                                            alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${res.emp.name}`);
+                                            alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}`);
                                             setShowTimeModal(false);
                                             setTimePin('');
                                         } catch (e) { alert(e.message); }
@@ -226,7 +226,7 @@ export function LoginPage() {
                                         if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                         try {
                                             const res = addTimeLog(timePin, 'OUT');
-                                            alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${res.emp.name}`);
+                                            alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}`);
                                             setShowTimeModal(false);
                                             setTimePin('');
                                         } catch (e) { alert(e.message); }
