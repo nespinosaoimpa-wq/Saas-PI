@@ -8,7 +8,8 @@ import {
     StatCard,
     DataTable,
     Icon,
-    Tabs
+    Tabs,
+    StatusBadge
 } from '../components/ui';
 
 export const ReportsPage = () => {
