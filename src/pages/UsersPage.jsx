@@ -15,7 +15,7 @@ import {
 
 export const UsersPage = () => {
     const { employees: contextEmployees, refreshEmployees, user } = useAuth();
-    const { timeTrackingLogs } = useApp();
+    const { timeTrackingLogs, exportToExcel } = useApp();
     const [employees, setEmployees] = useState(contextEmployees);
     const [showLogs, setShowLogs] = useState(false);
     const [showNew, setShowNew] = useState(false);
@@ -120,6 +120,13 @@ export const UsersPage = () => {
                 <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
                     <button className={`nav-item ${!showLogs ? 'active' : ''}`} onClick={() => setShowLogs(false)} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: !showLogs ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Cuentas de Acceso</button>
                     <button className={`nav-item ${showLogs ? 'active' : ''}`} onClick={() => setShowLogs(true)} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: showLogs ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Reloj de Asistencia</button>
+                    {showLogs && (
+                        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: 16 }}>
+                            <button className="btn btn-ghost" onClick={() => exportToExcel('attendance')}>
+                                <Icon name="download" size={18} /> Exportar Excel
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {!showLogs ? (
@@ -163,18 +170,20 @@ export const UsersPage = () => {
                     <DataTable
                         columns={[
                             { key: 'employee_name', label: 'Empleado', render: r => <strong>{r.employee_name}</strong> },
-                            { key: 'type', label: 'Evento', render: r => (
-                                <span style={{ 
-                                    padding: '4px 10px', 
-                                    borderRadius: 12, 
-                                    fontSize: 11, 
-                                    fontWeight: 700,
-                                    background: r.type === 'IN' ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--danger-rgb), 0.1)',
-                                    color: r.type === 'IN' ? 'var(--success)' : 'var(--danger)'
-                                }}>
-                                    {r.type === 'IN' ? 'ENTRADA' : 'SALIDA'}
-                                </span>
-                            )},
+                            {
+                                key: 'type', label: 'Evento', render: r => (
+                                    <span style={{
+                                        padding: '4px 10px',
+                                        borderRadius: 12,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        background: r.type === 'IN' ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--danger-rgb), 0.1)',
+                                        color: r.type === 'IN' ? 'var(--success)' : 'var(--danger)'
+                                    }}>
+                                        {r.type === 'IN' ? 'ENTRADA' : 'SALIDA'}
+                                    </span>
+                                )
+                            },
                             { key: 'timestamp', label: 'Fecha y Hora', render: r => new Date(r.timestamp).toLocaleString('es-AR') }
                         ]}
                         data={timeTrackingLogs.slice(0, 50)}

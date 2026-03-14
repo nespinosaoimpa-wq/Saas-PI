@@ -26,7 +26,7 @@ export const CashRegisterPage = () => {
     const [closingCash, setClosingCash] = useState('');
     const [newPayment, setNewPayment] = useState({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
     const [newWithdrawal, setNewWithdrawal] = useState({ amount: '', description: '' });
-    
+
     // For editing payments
     const [showEdit, setShowEdit] = useState(false);
     const [editingPayment, setEditingPayment] = useState({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
@@ -63,6 +63,16 @@ export const CashRegisterPage = () => {
         setNewWithdrawal({ amount: '', description: '' });
     };
 
+    const handleDeletePayment = async (id) => {
+        if (window.confirm('¿Seguro que querés eliminar este registro? Esta acción es solo para correcciones y no se puede deshacer.')) {
+            try {
+                await deletePayment(id);
+            } catch (error) {
+                alert('Error al eliminar: ' + error.message);
+            }
+        }
+    };
+
     const handlePerformClose = async () => {
         const cash_expected = cash;
         const diff = parseFloat(closingCash || 0) - cash_expected;
@@ -95,11 +105,7 @@ export const CashRegisterPage = () => {
         setEditingPayment({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
     };
 
-    const handleDeletePayment = async (id) => {
-        if (window.confirm('¿Eliminar este movimiento de caja? Esta acción también eliminará el ingreso de caja.')) {
-            await deletePayment(id);
-        }
-    };
+
 
     const handleOpenEdit = (payment) => {
         setEditingPayment({
@@ -113,19 +119,19 @@ export const CashRegisterPage = () => {
     };
 
     const todayStr = new Date().toISOString().split('T')[0];
-    
+
     // Only show UNCLOSED payments for the current shift (no cash_closing_id). We don't filter by date anymore, 
     // to catch payments from shifts spanning midnight or forgotten closures.
     const todayPayments = MOCK.payments.filter(p => !p.cash_closing_id);
 
-    const sortedClosings = (MOCK.cashClosings || []).sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
+    const sortedClosings = (MOCK.cashClosings || []).sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
     const startingBalance = sortedClosings.length > 0 ? (sortedClosings[0].actual_cash || 0) : 0;
 
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
     const cash = todayPayments.filter(p => (p.method || p.payment_method) === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
     const transfer = todayPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
     const card = todayPayments.filter(p => (p.method || p.payment_method) === 'TARJETA').reduce((s, p) => s + p.amount, 0);
-    
+
     const currentExpectedCash = cash + startingBalance;
 
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
@@ -209,9 +215,9 @@ export const CashRegisterPage = () => {
                         },
                         { key: 'reference', label: 'Referencia', render: r => r.reference || '—' },
                         { key: 'desc', label: 'Descripción', render: r => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.description}</span> },
-                        { 
-                            key: 'actions', 
-                            label: '', 
+                        {
+                            key: 'actions',
+                            label: '',
                             render: r => isAdmin && (
                                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                                     <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEdit(r)} style={{ color: 'var(--text)' }}>
@@ -256,7 +262,7 @@ export const CashRegisterPage = () => {
                         </div>
                     </Modal>
                 )}
-                
+
                 {showEdit && (
                     <Modal title="Editar Movimiento" onClose={() => setShowEdit(false)}
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEdit(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleEditPaymentSubmit}>Actualizar</button></Fragment>}>

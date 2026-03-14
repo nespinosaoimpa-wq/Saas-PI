@@ -235,11 +235,11 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                                 getVehicleHistory(selectedVehicle.id).map(h => {
                                                     const isOT = h.source === 'OT';
                                                     return (
-                                                        <div key={h.id} className="timeline-item" style={{ 
-                                                            padding: '16px', 
-                                                            background: isOT ? 'var(--bg-base)' : 'rgba(var(--warning-rgb), 0.05)', 
-                                                            border: '1px solid var(--border)', 
-                                                            borderRadius: 'var(--radius)', 
+                                                        <div key={h.id} className="timeline-item" style={{
+                                                            padding: '16px',
+                                                            background: isOT ? 'var(--bg-base)' : 'rgba(var(--warning-rgb), 0.05)',
+                                                            border: '1px solid var(--border)',
+                                                            borderRadius: 'var(--radius)',
                                                             marginBottom: 12,
                                                             borderLeft: isOT ? '4px solid var(--primary)' : '4px solid var(--warning)',
                                                             position: 'relative',
@@ -254,7 +254,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                                                     <Icon name="calendar_today" size={12} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} /> {h.date}
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             <div className="timeline-content" style={{ margin: 0, paddingLeft: 0, border: 'none' }}>
                                                                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.4 }}>{h.description}</div>
                                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>

@@ -41,7 +41,7 @@ export const AppProvider = ({ children }) => {
     const addTimeLog = (pin, type) => {
         const emp = (data.employees || []).find(e => e.pin === pin);
         if (!emp) throw new Error('PIN incorrecto. Empleado no encontrado.');
-        
+
         const now = new Date();
         const newLog = {
             id: Date.now().toString(),
@@ -51,19 +51,19 @@ export const AppProvider = ({ children }) => {
             timestamp: now.toISOString(),
             time_display: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         };
-        
+
         // Update local state without affecting 'data'
         const updated = [newLog, ...timeTrackingLogs];
         setTimeTrackingLogs(updated);
         localStorage.setItem('piripi_time_tracking', JSON.stringify(updated));
-        
+
         return { log: newLog, emp, time: newLog.time_display };
     };
 
     const getActiveEmployees = () => {
         const active = [];
         const employees = data.employees || [];
-        
+
         employees.forEach(emp => {
             const lastLog = timeTrackingLogs.find(l => l.employee_id === emp.id);
             if (lastLog && lastLog.type === 'IN') {
@@ -74,7 +74,7 @@ export const AppProvider = ({ children }) => {
                 });
             }
         });
-        return active.sort((a,b) => new Date(b.logged_at) - new Date(a.logged_at));
+        return active.sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
     };
 
 
@@ -123,7 +123,7 @@ export const AppProvider = ({ children }) => {
                 suppliers: suppliers.length ? suppliers : MOCK.suppliers,
                 boxes: boxes.length ? boxes : MOCK.boxes,
                 vehicleNotes, payments, cashClosings, appointments,
-                promotions, assignments, 
+                promotions, assignments,
                 employees: employees.length ? employees : MOCK.employees || [],
                 // Tablas opcionales (pueden no existir)
                 dailyQuickServices: [], vehicleHealth: [], brands: [],
@@ -291,6 +291,14 @@ export const AppProvider = ({ children }) => {
                 Estado: a.status || ''
             }));
             filename = `turnos_${new Date().toISOString().split('T')[0]}.xlsx`;
+        } else if (dataType === 'attendance') {
+            rows = (timeTrackingLogs || []).map(l => ({
+                Fecha: new Date(l.timestamp).toLocaleDateString('es-AR'),
+                Hora: new Date(l.timestamp).toLocaleTimeString('es-AR'),
+                Empleado: l.employee_name || '',
+                Evento: l.type === 'IN' ? 'ENTRADA' : 'SALIDA',
+            }));
+            filename = `asistencia_${new Date().toISOString().split('T')[0]}.xlsx`;
         }
 
         if (rows.length === 0) return alert('No hay datos para exportar');
@@ -495,7 +503,7 @@ export const AppProvider = ({ children }) => {
             console.error("No item returned after update.");
             return updates; // Return the updates as fallback
         }
-        
+
         const updated = data[0];
 
 
@@ -679,7 +687,6 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error adding withdrawal", error); throw error; }
 
-
         setData(prev => ({ ...prev, payments: [newWithdrawal, ...prev.payments] }));
         return newWithdrawal;
     };
@@ -690,7 +697,7 @@ export const AppProvider = ({ children }) => {
             .update(updates)
             .eq('id', id)
             .select();
-            
+
         if (error) { console.error("Error updating payment", error); throw error; }
 
         const paymentReturned = updated && updated.length > 0 ? updated[0] : updates;
@@ -699,22 +706,22 @@ export const AppProvider = ({ children }) => {
             ...prev,
             payments: prev.payments.map(p => p.id === id ? { ...p, ...paymentReturned } : p)
         }));
-        
+
         return paymentReturned;
     };
 
     const deletePayment = async (id) => {
         const { error } = await supabase.from('payments').delete().eq('id', id);
         if (error) { console.error("Error deleting payment", error); throw error; }
-        
+
         setData(prev => ({ ...prev, payments: prev.payments.filter(p => p.id !== id) }));
     };
 
     const performCashClose = async (closeData) => {
         const today = new Date().toISOString().split('T')[0];
-        
+
         // Find previous closing balance
-        const sortedClosings = (data.cashClosings || []).sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
+        const sortedClosings = (data.cashClosings || []).sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
         const lastClosing = sortedClosings.length > 0 ? sortedClosings[0] : null;
         const startingBalance = lastClosing ? (lastClosing.actual_cash || 0) : 0;
 
@@ -734,7 +741,7 @@ export const AppProvider = ({ children }) => {
             .select();
 
         if (error) { console.error("Error performing cash close", error); throw error; }
-        
+
         const closing = closingResult && closingResult.length > 0 ? closingResult[0] : null;
 
         // Mark all unclosed payments with this closing ID
