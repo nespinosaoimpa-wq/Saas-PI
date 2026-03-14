@@ -59,14 +59,14 @@ export function LoginPage() {
                 <div style={{ textAlign: 'center', marginBottom: 48, zIndex: 1 }}>
                     <div style={{
                         display: 'inline-flex',
-                        padding: 12,
-                        background: 'rgba(255,255,255,0.05)',
-                        borderRadius: '24px',
-                        marginBottom: 24,
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        padding: '24px',
+                        background: 'rgba(255,255,255,0.02)',
+                        borderRadius: '32px',
+                        marginBottom: 32,
+                        boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+                        border: '1px solid rgba(255,255,255,0.05)'
                     }}>
-                        <img src="/apple-touch-icon.png" alt="Piripi Logo" style={{ width: 80, height: 80, borderRadius: '16px' }} />
+                        <img src="/logo-piripi.png" alt="Piripi Logo" style={{ width: 140, height: 140, objectFit: 'contain' }} />
                     </div>
                     <h1 style={{ fontSize: 36, letterSpacing: -1, color: '#ffffff', fontWeight: 900 }}>PIRIPI <span style={{ color: 'var(--primary)' }}>PRO</span></h1>
                     <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: 500 }}>Bienvenido al Sistema de Gestión</p>
