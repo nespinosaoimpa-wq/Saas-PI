@@ -100,9 +100,9 @@ function App() {
     }
 
     const pageInfo = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
-    
+
     // Ensure mechanics/gomeros don't land on Dashboard if they shouldn't
-    const effectivePage = (page === 'dashboard' && !['admin', 'cajero'].includes(user.role)) ? 'work_orders' : page;
+    const effectivePage = (page === 'dashboard' && !['admin', 'cajero'].includes(user.role)) ? (user.role === 'limpieza' ? 'dashboard' : 'work_orders') : page;
     const PageComponent = PAGES[effectivePage] || DashboardPage;
 
     // ============================================================
@@ -139,6 +139,7 @@ function App() {
     };
 
     const isVisible = (key) => {
+        if (user.role === 'limpieza') return false; // Limpieza sees no modules
         switch (key) {
             case 'suppliers':
             case 'promotions':
@@ -339,7 +340,7 @@ function App() {
                         <Icon name="alarm_on" size={56} style={{ color: 'var(--primary)', marginBottom: 16 }} />
                         <h3 style={{ margin: '0 0 8px 0', fontSize: 20 }}>Reloj de Asistencia</h3>
                         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>Ingresá tu PIN numérico personal para registrar tu entrada o salida.</p>
-                        
+
                         <div style={{ maxWidth: 300, margin: '0 auto' }}>
                             <FormField label="PIN de Acceso (4 dígitos)">
                                 <input

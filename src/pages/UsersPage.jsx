@@ -217,6 +217,7 @@ export const UsersPage = () => {
                                         <option value="cajero">Cajero (Cobros y Ventas)</option>
                                         <option value="mecanico">Mecánico (Mecánica Grl y Box)</option>
                                         <option value="gomero">Gomero (Gomería Express)</option>
+                                        <option value="limpieza">Limpieza (Solo Fichaje)</option>
                                     </select>
                                 </FormField>
                                 <FormField label="PIN de Acceso Rápido (4 dígitos)">

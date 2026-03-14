@@ -807,6 +807,16 @@ export const AppProvider = ({ children }) => {
         return total;
     };
 
+    const updateAssignmentCommission = async (assignmentId, updates) => {
+        const { error } = await supabase
+            .from('work_order_assignments')
+            .update(updates)
+            .eq('id', assignmentId);
+
+        if (error) { console.error("Error updating commission", error); throw error; }
+        await loadData();
+    };
+
     // ==========================================
     // Comisiones
     // ==========================================
@@ -883,6 +893,7 @@ export const AppProvider = ({ children }) => {
             addWithdrawal,
             performCashClose,
             processSale,
+            updateAssignmentCommission,
             getCommissions,
             getEmployeeProductivity,
             addQuickService,

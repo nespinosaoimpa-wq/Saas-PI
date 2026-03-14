@@ -16,7 +16,7 @@ import {
 } from '../components/ui';
 
 export const CashRegisterPage = () => {
-    const { data: MOCK, addPayment, updatePayment, deletePayment, performCashClose, addWithdrawal, getCommissions, exportToExcel } = useApp();
+    const { data: MOCK, addPayment, updatePayment, deletePayment, performCashClose, addWithdrawal, getCommissions, exportToExcel, updateAssignmentCommission } = useApp();
     const { user, employees } = useAuth();
     const [period, setPeriod] = useState('daily');
     const [showNew, setShowNew] = useState(false);
@@ -32,6 +32,10 @@ export const CashRegisterPage = () => {
     const [editingPayment, setEditingPayment] = useState({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
 
     const isAdmin = user?.role === 'admin';
+
+    // For editing technician commissions
+    const [showCommEdit, setShowCommEdit] = useState(false);
+    const [editingComm, setEditingComm] = useState({ assignmentId: '', rate: '', labor_cost: 0, order_number: '' });
 
     const technicians = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
@@ -103,6 +107,28 @@ export const CashRegisterPage = () => {
         });
         setShowEdit(false);
         setEditingPayment({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
+    };
+
+    const handleEditCommSubmit = async () => {
+        if (!editingComm.rate || isNaN(editingComm.rate)) {
+            alert('Ingresá un porcentaje válido');
+            return;
+        }
+        await updateAssignmentCommission(editingComm.assignmentId, {
+            labor_commission_percent: parseFloat(editingComm.rate)
+        });
+        setShowCommEdit(false);
+        setEditingComm({ assignmentId: '', rate: '', labor_cost: 0, order_number: '' });
+    };
+
+    const handleOpenCommEdit = (entry) => {
+        setEditingComm({
+            assignmentId: entry.assignmentId,
+            rate: entry.percent,
+            labor_cost: entry.work_total,
+            order_number: entry.wo_number
+        });
+        setShowCommEdit(true);
     };
 
 
@@ -287,6 +313,37 @@ export const CashRegisterPage = () => {
                     </Modal>
                 )}
 
+                {showCommEdit && (
+                    <Modal title={`Ajustar Comisión - OT #${editingComm.order_number}`} onClose={() => setShowCommEdit(false)}
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowCommEdit(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleEditCommSubmit}>Guardar Cambios</button></Fragment>}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Monto Mano de Obra:</span>
+                                    <span>{formatCurrency(editingComm.labor_cost)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Comisión Calculada:</span>
+                                    <strong style={{ color: 'var(--primary)' }}>{formatCurrency(editingComm.labor_cost * (parseFloat(editingComm.rate || 0) / 100))}</strong>
+                                </div>
+                            </div>
+                            <FormField label="Porcentaje de Comisión (%)">
+                                <input className="form-input" type="number" step="0.1" value={editingComm.rate} onChange={e => setEditingComm({ ...editingComm, rate: e.target.value })} />
+                            </FormField>
+                            <FormField label="Monto Fijo Sugerido (Calcula %)">
+                                <input className="form-input" type="number" placeholder="Ingresá monto para calcular %" onChange={e => {
+                                    const val = parseFloat(e.target.value);
+                                    if (val && editingComm.labor_cost > 0) {
+                                        const newRate = (val / editingComm.labor_cost) * 100;
+                                        setEditingComm({ ...editingComm, rate: newRate.toFixed(1) });
+                                    }
+                                }} />
+                            </FormField>
+                        </div>
+                    </Modal>
+                )}
+
+
                 {showClose && (
                     <Modal title="Cierre de Caja Diario" onClose={() => setShowClose(false)}
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowClose(false)}>Cancelar</button><button className="btn btn-primary" onClick={handlePerformClose}>Confirmar Cierre</button></Fragment>}>
@@ -353,6 +410,7 @@ export const CashRegisterPage = () => {
                             const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
                             const commRate = wo._assignment?.labor_commission_percent || wo.applied_commission_rate || tech.commission_rate || 0;
                             return {
+                                assignmentId: wo._assignment?.id,
                                 wo_number: wo.order_number,
                                 date: wo.completed_at?.split('T')[0] || wo.created_at?.split('T')[0] || '—',
                                 vehicle: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : '—',
@@ -380,6 +438,7 @@ export const CashRegisterPage = () => {
                                                 <th style={{ padding: '8px 12px', textAlign: 'right' }}>Monto Trabajo</th>
                                                 <th style={{ padding: '8px 12px', textAlign: 'center' }}>% Comisión</th>
                                                 <th style={{ padding: '8px 12px', textAlign: 'right' }}>$ Comisión</th>
+                                                <th style={{ padding: '8px 12px', textAlign: 'right' }}></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -391,6 +450,13 @@ export const CashRegisterPage = () => {
                                                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{formatCurrency(e.work_total)}</td>
                                                     <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600 }}>{e.percent}%</td>
                                                     <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(e.amount)}</td>
+                                                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                                                        {isAdmin && e.assignmentId && (
+                                                            <button className="btn btn-ghost btn-sm" onClick={() => handleOpenCommEdit(e)} title="Modificar Comisión">
+                                                                <Icon name="edit" size={14} />
+                                                            </button>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>

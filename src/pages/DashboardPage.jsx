@@ -65,6 +65,24 @@ export const DashboardPage = () => {
 
     const boxOccupied = MOCK.boxes.filter(b => getBoxStatus(b.id).status === 'Ocupado').length;
 
+    if (user.role === 'limpieza') {
+        return (
+            <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <div style={{ textAlign: 'center', maxWidth: 400 }}>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
+                        <Icon name="cleaning_services" size={40} style={{ color: 'var(--primary)' }} />
+                    </div>
+                    <h2 style={{ fontSize: 24, marginBottom: 8 }}>Hola, {user.name}</h2>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: 32 }}>Tu acceso está limitado solo al fichaje de horas. Por favor, usá el botón superior para registrar tu entrada o salida.</p>
+                    <div style={{ padding: 20, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                        <Icon name="info" size={20} style={{ color: 'var(--primary)', marginBottom: 8 }} />
+                        <div style={{ fontSize: 13 }}>Tu jornada se registra automáticamente al fichar.</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
