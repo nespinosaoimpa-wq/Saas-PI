@@ -175,12 +175,12 @@ export const CashRegisterPage = () => {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Tabs tabs={[{ key: 'daily', label: 'Diario' }, { key: 'weekly', label: 'Semanal' }, { key: 'monthly', label: 'Mensual' }]} active={period} onChange={setPeriod} />
                     <div style={{ flex: 1 }} />
-                    <button className="btn btn-ghost" onClick={() => exportToExcel('payments')}>
+                    <button className="btn btn-ghost" onClick={() => exportToExcel('payments')} title="Exportar reporte de movimientos en Excel">
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
-                    <button className="btn btn-ghost" onClick={() => setShowClose(true)}><Icon name="lock" size={18} /> Cierre de Caja</button>
-                    <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => setShowWithdrawal(true)}><Icon name="money_off" size={18} /> Retiro / Egreso</button>
-                    <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add" size={18} /> Registrar Ingreso</button>
+                    <button className="btn btn-ghost" onClick={() => setShowClose(true)} title="Realizar el cierre de caja de este turno"><Icon name="lock" size={18} /> Cierre de Caja</button>
+                    <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => setShowWithdrawal(true)} title="Registrar un retiro de dinero, gasto o pago a proveedores"><Icon name="money_off" size={18} /> Retiro / Egreso</button>
+                    <button className="btn btn-primary" onClick={() => setShowNew(true)} title="Registrar un ingreso de dinero manual"><Icon name="add" size={18} /> Registrar Ingreso</button>
                 </div>
 
                 <div className="grid-auto-cards">
@@ -246,10 +246,10 @@ export const CashRegisterPage = () => {
                             label: '',
                             render: r => isAdmin && (
                                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                                    <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEdit(r)} style={{ color: 'var(--text)' }}>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEdit(r)} style={{ color: 'var(--text)' }} title="Editar monto o método de este movimiento">
                                         <Icon name="edit" size={14} />
                                     </button>
-                                    <button className="btn btn-ghost btn-sm" onClick={() => handleDeletePayment(r.id)} style={{ color: 'var(--danger)' }}>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => handleDeletePayment(r.id)} style={{ color: 'var(--danger)' }} title="Borrar este registro permanentemente">
                                         <Icon name="delete" size={14} />
                                     </button>
                                 </div>

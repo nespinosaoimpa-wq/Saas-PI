@@ -24,14 +24,18 @@ export const SalesPage = () => {
     const [lastSale, setLastSale] = useState(null);
     const [printSale, setPrintSale] = useState(null);
     const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+    const [cashierProfitPercent, setCashierProfitPercent] = useState(0);
     const codeInputRef = useRef(null);
 
-    // Buscar producto por código o nombre
-    const findProduct = (code) => {
+    // Buscar producto por código o nombre o marca
+    const findProduct = (term) => {
+        if (!term) return null;
+        const lowerTerm = term.toLowerCase();
         return MOCK.inventory.find(i =>
-            (i.barcode && i.barcode === code) ||
-            i.id.toLowerCase() === code.toLowerCase() ||
-            i.name.toLowerCase().includes(code.toLowerCase())
+            (i.barcode && i.barcode.toLowerCase() === lowerTerm) ||
+            (i.id && i.id.toLowerCase() === lowerTerm) ||
+            (i.name && i.name.toLowerCase().includes(lowerTerm)) ||
+            (i.brand && i.brand.toLowerCase().includes(lowerTerm))
         );
     };
 
@@ -93,7 +97,9 @@ export const SalesPage = () => {
         setCart(prev => prev.filter(ci => ci.id !== id));
     };
 
-    const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
+    const subtotal = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
+    const extraProfit = subtotal * (cashierProfitPercent / 100);
+    const total = subtotal + extraProfit;
 
     const handleCheckout = async () => {
         if (cart.length === 0) return alert('El carrito está vacío');
@@ -133,6 +139,7 @@ export const SalesPage = () => {
             setPrintSale(saleData);
             setCart([]);
             setInvoiceType('INTERNAL');
+            setCashierProfitPercent(0);
         } catch (error) {
             alert('Error en la transacción: ' + error.message);
         } finally {
@@ -164,14 +171,15 @@ export const SalesPage = () => {
                             onKeyDown={e => e.key === 'Enter' && handleManualAdd()}
                             style={{ flex: 1, fontSize: 16, padding: '12px 16px' }}
                             autoFocus
+                            title="Escribe el código de barras o nombre del producto y presiona Enter"
                         />
-                        <button className="btn btn-primary" onClick={handleManualAdd} style={{ padding: '12px 20px' }}>
+                        <button className="btn btn-primary" onClick={handleManualAdd} style={{ padding: '12px 20px' }} title="Agregar producto al carrito manualmente">
                             <Icon name="add_shopping_cart" size={20} /> Agregar
                         </button>
-                        <button className="btn btn-ghost" onClick={() => setShowCamera(true)} style={{ padding: '12px 16px' }}>
+                        <button className="btn btn-ghost" onClick={() => setShowCamera(true)} style={{ padding: '12px 16px' }} title="Escanear código de barras con la cámara">
                             <Icon name="photo_camera" size={20} />
                         </button>
-                        <button className="btn btn-ghost" onClick={() => exportToExcel('sales')} style={{ padding: '12px 16px', marginLeft: 'auto' }} title="Exportar Ventas a Excel">
+                        <button className="btn btn-ghost" onClick={() => exportToExcel('sales')} style={{ padding: '12px 16px', marginLeft: 'auto' }} title="Exportar historial de ventas a Excel">
                             <Icon name="download" size={20} />
                         </button>
                     </div>
@@ -286,9 +294,25 @@ export const SalesPage = () => {
 
                         <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0' }} />
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                            <span style={{ fontSize: 20, fontWeight: 700 }}>TOTAL</span>
-                            <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(total)}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
+                                <span>{formatCurrency(subtotal)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                                <span style={{ color: 'var(--text-muted)' }}>% Ganancia Cajero:</span>
+                                <input 
+                                    type="number" 
+                                    className="form-input" 
+                                    style={{ width: 60, padding: '2px 4px', height: 24, fontSize: 12, textAlign: 'right' }} 
+                                    value={cashierProfitPercent} 
+                                    onChange={e => setCashierProfitPercent(parseFloat(e.target.value) || 0)}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                                <span style={{ fontSize: 20, fontWeight: 700 }}>TOTAL</span>
+                                <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(total)}</span>
+                            </div>
                         </div>
 
                         <FormField label="Método de Pago" style={{ marginTop: 12 }}>

@@ -147,10 +147,10 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 250 }}><SearchBar value={search} onChange={setSearch} placeholder="Buscar por nombre, código de barras, marca..." /></div>
                     <Tabs tabs={[{ key: 'all', label: 'Todos' }, { key: 'volume', label: 'Volumen' }, { key: 'unit', label: 'Unidad' }, { key: 'low', label: '⚠️ Bajo Stock' }]} active={tab} onChange={setTab} />
-                    <button className="btn btn-ghost" onClick={() => exportToExcel('inventory')}>
+                    <button className="btn btn-ghost" onClick={() => exportToExcel('inventory')} title="Descargar inventario completo en formato Excel">
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
-                    {canAdd && <button className="btn btn-primary" onClick={() => handleOpenModal()}><Icon name="add_shopping_cart" size={18} /> Nuevo Producto</button>}
+                    {canAdd && <button className="btn btn-primary" onClick={() => handleOpenModal()} title="Agregar un producto nuevo al stock"><Icon name="add_shopping_cart" size={18} /> Nuevo Producto</button>}
                 </div>
 
                 {/* Volume gauges for oils */}
@@ -188,10 +188,10 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                         {
                             key: 'actions', label: '', render: r => (
                                 canModify && <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                    <button className="btn btn-ghost btn-sm" onClick={() => handleOpenModal(r)}>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => handleOpenModal(r)} title="Editar detalles del producto">
                                         <Icon name="edit" size={16} />
                                     </button>
-                                    <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(r.id)} style={{ color: 'var(--danger)' }}>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(r.id)} style={{ color: 'var(--danger)' }} title="Eliminar producto permanentemente">
                                         <Icon name="delete" size={16} />
                                     </button>
                                 </div>

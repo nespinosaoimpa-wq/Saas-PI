@@ -89,10 +89,13 @@ export const WorkOrdersPage = () => {
 
     // Nuevo estado para la búsqueda interactiva
     const [clientSearch, setClientSearch] = useState('');
+    const [productSearch, setProductSearch] = useState('');
+    const [selectedProducts, setSelectedProducts] = useState([]);
 
     const laborCost = parseFloat(newOrder.labor_cost) || 0;
-    const partsCost = parseFloat(newOrder.parts_cost) || 0;
-    const totalPrice = laborCost + partsCost;
+    const partsManualCost = parseFloat(newOrder.parts_cost) || 0;
+    const productsCost = selectedProducts.reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
+    const totalPrice = laborCost + partsManualCost + productsCost;
 
     const selectedMechanics = mechanics.filter(m => newOrder.mechanic_ids.includes(m.id));
 
@@ -105,8 +108,9 @@ export const WorkOrdersPage = () => {
         const createdWO = await addWorkOrder({
             ...newOrder,
             labor_cost: laborCost,
-            parts_cost: partsCost,
+            parts_cost: partsManualCost + productsCost,
             total_price: totalPrice,
+            products: selectedProducts,
             applied_commission_rate: parseFloat(newOrder.applied_commission_rate) || (selectedMechanics.length > 0 ? selectedMechanics[0].commission_rate : 0)
         });
 
@@ -114,6 +118,8 @@ export const WorkOrdersPage = () => {
         setShowNew(false);
         setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_ids: [], applied_commission_rate: '', labor_profit_percent: 100 });
         setClientSearch('');
+        setSelectedProducts([]);
+        setProductSearch('');
         // Opcional: imprimir el ticket de ingreso inmediatamente
         if (createdWO) {
             setPrintWO(createdWO);
@@ -138,17 +144,52 @@ export const WorkOrdersPage = () => {
         }).slice(0, 5); // Limitar resultados para no colapsar la UI
     }, [clientSearch, MOCK.clients, MOCK.vehicles]);
 
+    const filteredProducts = useMemo(() => {
+        if (!productSearch) return [];
+        const term = productSearch.toLowerCase();
+        return MOCK.inventory.filter(i => 
+            i.name.toLowerCase().includes(term) || 
+            (i.barcode && i.barcode.toLowerCase().includes(term)) ||
+            (i.brand && i.brand.toLowerCase().includes(term))
+        ).slice(0, 5);
+    }, [productSearch, MOCK.inventory]);
+
+    const addProductToWO = (p) => {
+        setSelectedProducts(prev => {
+            const existing = prev.find(item => item.id === p.id);
+            if (existing) {
+                return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
+            }
+            return [...prev, { ...p, qty: 1 }];
+        });
+        setProductSearch('');
+    };
+
+    const updateProductQty = (id, delta) => {
+        setSelectedProducts(prev => prev.map(p => {
+            if (p.id === id) {
+                const newQty = Math.max(0.1, p.qty + delta);
+                return { ...p, qty: Number(newQty.toFixed(2)) };
+            }
+            return p;
+        }).filter(p => p.qty > 0));
+    };
+
+    const removeProductFromWO = (id) => {
+        setSelectedProducts(prev => prev.filter(p => p.id !== id));
+    };
+
     return (
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Tabs tabs={[{ key: 'active', label: 'Activas' }, { key: 'done', label: 'Finalizadas' }, { key: 'all', label: 'Todas' }]} active={tab} onChange={setTab} />
                     <div style={{ flex: 1 }} />
-                    <button className="btn btn-ghost" onClick={() => exportToExcel('work_orders')}>
+                    <button className="btn btn-ghost" onClick={() => exportToExcel('work_orders')} title="Descargar listado de órdenes en formato Excel">
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
                     { ['admin', 'cajero'].includes(user.role) && (
-                        <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="add_circle" size={18} /> Nueva OT</button>
+                        <button className="btn btn-primary" onClick={() => setShowNew(true)} title="Crear una nueva orden de trabajo para un cliente"><Icon name="add_circle" size={18} /> Nueva OT</button>
                     )}
                 </div>
 
@@ -180,6 +221,7 @@ export const WorkOrdersPage = () => {
                                             className="btn btn-success btn-sm"
                                             onClick={(e) => handleFinalizeClick(e, wo.id)}
                                             style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
+                                            title="Finalizar y registrar cobro de la orden"
                                         >
                                             FINALIZAR
                                         </button>
@@ -278,6 +320,67 @@ export const WorkOrdersPage = () => {
 
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
 
+                            <SectionHeader icon="inventory_2" title="Repuestos y Productos (Stock)" />
+                            <div style={{ position: 'relative' }}>
+                                <FormField label="Buscar Repuesto o Insumo">
+                                    <SearchBar
+                                        value={productSearch}
+                                        onChange={setProductSearch}
+                                        placeholder="Buscar por Nombre, Marca o Código..."
+                                    />
+                                </FormField>
+                                {productSearch && filteredProducts.length > 0 && (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0,
+                                        background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                        borderRadius: 'var(--radius-sm)', marginTop: 4, zIndex: 11,
+                                        maxHeight: 200, overflowY: 'auto'
+                                    }}>
+                                        {filteredProducts.map(p => (
+                                            <div
+                                                key={p.id}
+                                                style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
+                                                onClick={() => addProductToWO(p)}
+                                                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <div>
+                                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{p.brand ? `[${p.brand}] ` : ''}{p.name}</div>
+                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Stock: {p.stock_type === 'VOLUME' ? `${p.stock_ml/1000}L` : `${p.stock_quantity} uds`} | {formatCurrency(p.sell_price)}</div>
+                                                </div>
+                                                <Icon name="add_shopping_cart" size={18} style={{ color: 'var(--primary)' }} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {selectedProducts.length > 0 && (
+                                <div style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius)', padding: 12, border: '1px solid var(--border)' }}>
+                                    {selectedProducts.map(p => (
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: 600 }}>{p.name}</div>
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)} x {p.qty} {p.stock_type === 'VOLUME' ? 'L' : 'uds'}</div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <div style={{ display: 'flex', gap: 4 }}>
+                                                    <button className="btn btn-ghost btn-xs" onClick={() => updateProductQty(p.id, -1)} style={{ padding: '2px 6px' }} title="Disminuir cantidad">-</button>
+                                                    <button className="btn btn-ghost btn-xs" onClick={() => updateProductQty(p.id, 1)} style={{ padding: '2px 6px' }} title="Aumentar cantidad">+</button>
+                                                </div>
+                                                <div style={{ fontWeight: 700, width: 80, textAlign: 'right' }}>{formatCurrency(p.sell_price * p.qty)}</div>
+                                                <button className="btn btn-ghost btn-sm" onClick={() => removeProductFromWO(p.id)} style={{ color: 'var(--danger)', padding: 4 }} title="Eliminar producto"><Icon name="delete" size={16} /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div style={{ textAlign: 'right', borderTop: '1px solid var(--border)', paddingTop: 8, fontWeight: 700, color: 'var(--primary)' }}>
+                                        Subtotal Repuestos: {formatCurrency(productsCost)}
+                                    </div>
+                                </div>
+                            )}
+
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
                             {/* Presupuesto manual separado */}
                             <SectionHeader icon="attach_money" title="Presupuesto" />
                             <FormRow>
@@ -287,7 +390,7 @@ export const WorkOrdersPage = () => {
                                 <FormField label="Rentabilidad MO (%)">
                                     <input className="form-input" type="number" value={newOrder.labor_profit_percent} onChange={e => setNewOrder({ ...newOrder, labor_profit_percent: e.target.value })} style={{ fontSize: 18, fontWeight: 700 }} />
                                 </FormField>
-                                <FormField label="Repuestos/Materiales ($)">
+                                <FormField label="Repuestos Extras ($)">
                                     <input className="form-input" type="number" value={newOrder.parts_cost} onChange={e => setNewOrder({ ...newOrder, parts_cost: e.target.value })} style={{ fontSize: 18, fontWeight: 700 }} />
                                 </FormField>
                             </FormRow>

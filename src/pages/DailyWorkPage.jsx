@@ -80,6 +80,7 @@ export const DailyWorkPage = () => {
 
     const [pendingAction, setPendingAction] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
+    const [selectedMechanicId, setSelectedMechanicId] = useState(user?.role === 'mechanic' || user?.role === 'gomero' ? user.id : '');
     const [combinedAmounts, setCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
 
     const initiateQuickAction = (action) => {
@@ -100,6 +101,7 @@ export const DailyWorkPage = () => {
         setPaymentMethod('EFECTIVO');
         setCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
         setManualDiscount(0);
+        setSelectedMechanicId(user?.role === 'mechanic' || user?.role === 'gomero' ? user.id : '');
     };
 
     const confirmQuickAction = () => {
@@ -126,7 +128,7 @@ export const DailyWorkPage = () => {
         addQuickService(
             { id: 'cart', label: labels, price: subtotal }, 
             false, 
-            user?.id,
+            selectedMechanicId || user?.id,
             selectedQueueClient?.client_id || null,
             selectedQueueClient?.vehicle_id || null,
             { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null },
@@ -290,11 +292,11 @@ export const DailyWorkPage = () => {
 
                                     <div style={{ display: 'flex', gap: 10 }}>
                                         { !['mecanico', 'gomero'].includes(user?.role || 'mecanico') && (
-                                            <button className="btn btn-success" style={{ flex: 1, height: 46, fontSize: 14, fontWeight: 700 }} onClick={() => handleFinishOrder(wo.id)}>
+                                            <button className="btn btn-success" style={{ flex: 1, height: 46, fontSize: 14, fontWeight: 700 }} onClick={() => handleFinishOrder(wo.id)} title="Finalizar el trabajo y pasarlo a cobros">
                                                 <Icon name="check_circle" size={20} /> FINALIZAR TRABAJO
                                             </button>
                                         )}
-                                        <label className="btn btn-ghost" style={{ width: 46, height: 46, padding: 0, justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                        <label className="btn btn-ghost" style={{ width: 46, height: 46, padding: 0, justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Tomar foto del trabajo para el registro histórico">
                                             <Icon name="photo_camera" size={20} />
                                             <input
                                                 type="file"
@@ -409,6 +411,7 @@ export const DailyWorkPage = () => {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             cursor: 'pointer', color: 'var(--text-muted)'
                                         }}
+                                        title="Editar precio del servicio"
                                     >
                                         <Icon name="edit" size={14} />
                                     </button>
@@ -426,6 +429,7 @@ export const DailyWorkPage = () => {
                                 className="quick-action-card"
                                 onClick={() => setShowCustomModal(true)}
                                 style={{ border: '2px dashed var(--primary)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                                title="Registrar un servicio con precio y descripción personalizados"
                             >
                                 <Icon name="add" size={28} style={{ color: 'var(--primary)', marginBottom: 8 }} />
                                 <div className="quick-action-label" style={{ color: 'var(--primary)' }}>Servicio Libre</div>
@@ -457,7 +461,7 @@ export const DailyWorkPage = () => {
                                 <div style={{ fontSize: 28, fontWeight: 800 }}>{formatCurrency(commissions)}</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Acumulado este mes</div>
                             </div>
-                            <button className="btn btn-sm btn-ghost">Detalle</button>
+                            <button className="btn btn-sm btn-ghost" title="Ver detalle de comisiones">Detalle</button>
                         </div>
                         <div className="stat-bar" style={{ height: 5, marginTop: 14 }}>
                             <div className="stat-bar-fill" style={{ width: '65%' }}></div>
@@ -472,7 +476,7 @@ export const DailyWorkPage = () => {
                 <Modal title={`Cobrar Servicio: ${pendingAction.label}`} onClose={() => setPendingAction(null)} footer={
                     <React.Fragment>
                         <button className="btn btn-ghost" onClick={() => setPendingAction(null)}>Cancelar</button>
-                        <button className="btn btn-success" onClick={confirmQuickAction}>Confirmar y Ticket</button>
+                        <button className="btn btn-success" onClick={confirmQuickAction} title="Confirmar el cobro y generar el ticket">Confirmar y Ticket</button>
                     </React.Fragment>
                 }>
                     <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', marginBottom: 16 }}>
@@ -516,6 +520,20 @@ export const DailyWorkPage = () => {
                             <option value="COMBINADO">Combinado (Varias Formas) 🔀</option>
                         </select>
                     </FormField>
+
+                    <FormField label="¿Qué Gomero realizó el trabajo?">
+                        <select 
+                            className="form-select" 
+                            value={selectedMechanicId} 
+                            onChange={e => setSelectedMechanicId(e.target.value)}
+                        >
+                            <option value="">Seleccionar Gomero...</option>
+                            {(MOCK.employees || []).filter(e => e.role === 'mechanic' || e.role === 'gomero' || !e.role).map(emp => (
+                                <option key={emp.id} value={emp.id}>{emp.full_name || emp.name}</option>
+                            ))}
+                        </select>
+                    </FormField>
+
                     {paymentMethod === 'COMBINADO' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16, padding: 16, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Ingresá los montos de cada método:</div>
@@ -538,7 +556,7 @@ export const DailyWorkPage = () => {
                 <Modal title={`Editar Precio: ${editingAction.label}`} onClose={() => setEditingAction(null)} footer={
                     <React.Fragment>
                         <button className="btn btn-ghost" onClick={() => setEditingAction(null)}>Cancelar</button>
-                        <button className="btn btn-primary" onClick={saveEditPrice}>Guardar Precio</button>
+                        <button className="btn btn-primary" onClick={saveEditPrice} title="Guardar el nuevo precio para este servicio">Guardar Precio</button>
                     </React.Fragment>
                 }>
                     <FormField label="Nuevo Precio Fijo ($)" icon="attach_money">
@@ -564,7 +582,7 @@ export const DailyWorkPage = () => {
                 <Modal title="Servicio Registrado" onClose={() => setShowTicketModal(false)} footer={
                     <React.Fragment>
                         <button className="btn btn-ghost" onClick={() => setShowTicketModal(false)}>Cerrar</button>
-                        <button className="btn btn-success" onClick={printTicket}>
+                        <button className="btn btn-success" onClick={printTicket} title="Imprimir el ticket para el cliente">
                             <Icon name="print" size={18} /> Imprimir Ticket
                         </button>
                     </React.Fragment>
@@ -590,7 +608,7 @@ export const DailyWorkPage = () => {
                 <Modal title="Agregar Servicio Libre" onClose={() => setShowCustomModal(false)} footer={
                     <React.Fragment>
                         <button className="btn btn-ghost" onClick={() => setShowCustomModal(false)}>Cancelar</button>
-                        <button className="btn btn-primary" onClick={handleCustomSubmit}>Confirmar y Cobrar</button>
+                        <button className="btn btn-primary" onClick={handleCustomSubmit} title="Confirmar y cobrar el servicio libre">Confirmar y Cobrar</button>
                     </React.Fragment>
                 }>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

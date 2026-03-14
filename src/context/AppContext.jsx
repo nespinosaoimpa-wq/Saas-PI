@@ -24,10 +24,9 @@ export const AppProvider = ({ children }) => {
         brands: [],
         dailyWorkLog: [],
         dailyQuickServices: [],
-        serviceHistory: [],
-        employeeEarnings: [],
         employees: [],
-        activityLog: []
+        activityLog: [],
+        workOrderItems: []
     });
     const [loading, setLoading] = useState(true);
 
@@ -97,7 +96,7 @@ export const AppProvider = ({ children }) => {
             const [
                 clients, vehicles, workOrders, inventory, suppliers, boxes,
                 vehicleNotes, payments, cashClosings, appointments, promotions,
-                assignments, employees
+                assignments, employees, workOrderItems, dailyQuickServices
             ] = await Promise.all([
                 fetchTable('clients'),
                 fetchTable('vehicles'),
@@ -111,7 +110,9 @@ export const AppProvider = ({ children }) => {
                 supabase.from('appointments').select('*').order('date', { ascending: true }).then(r => r.data || []),
                 supabase.from('promotions').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
                 fetchTable('work_order_assignments'),
-                fetchTable('employees')
+                fetchTable('employees'),
+                fetchTable('work_order_items'),
+                fetchTable('daily_quick_services')
             ]);
 
 
@@ -125,8 +126,10 @@ export const AppProvider = ({ children }) => {
                 vehicleNotes, payments, cashClosings, appointments,
                 promotions, assignments,
                 employees: employees.length ? employees : MOCK.employees || [],
+                workOrderItems: workOrderItems.length ? workOrderItems : [],
+                dailyQuickServices: dailyQuickServices.length ? dailyQuickServices : [],
                 // Tablas opcionales (pueden no existir)
-                dailyQuickServices: [], vehicleHealth: [], brands: [],
+                vehicleHealth: [], brands: [],
                 dailyWorkLog: [], serviceHistory: [], employeeEarnings: [],
                 activityLog: []
             });
@@ -225,8 +228,8 @@ export const AppProvider = ({ children }) => {
             // 3. Actualizar estado local
             setData(prev => ({
                 ...prev,
-                dailyQuickServices: [newService || { service_type: action.label, price: finalPrice }, ...(prev.dailyQuickServices || [])],
-                activityLog: [{ label: action.label, price: finalPrice, timestamp: new Date().toISOString() }, ...(prev.activityLog || [])]
+                dailyQuickServices: [newService || { id: Date.now().toString(), service_type: action.label, price: finalPrice, mechanic_id: mechanicId, created_at: new Date().toISOString() }, ...(prev.dailyQuickServices || [])],
+                activityLog: [{ label: action.label, price: finalPrice, timestamp: new Date().toISOString(), mechanic_id: mechanicId }, ...(prev.activityLog || [])]
             }));
 
         } catch (e) {
@@ -538,7 +541,7 @@ export const AppProvider = ({ children }) => {
         }]).select('*, clients(*), vehicles(*)').single();
 
         if (!error && newWo) {
-            // Asignar mecánicos si existen
+            // 1. Asignar mecánicos si existen
             if (woData.mechanic_ids && woData.mechanic_ids.length > 0) {
                 const assignments = woData.mechanic_ids.map(mid => ({
                     work_order_id: newWo.id,
@@ -546,6 +549,34 @@ export const AppProvider = ({ children }) => {
                     labor_commission_percent: woData.applied_commission_rate
                 }));
                 await supabase.from('work_order_assignments').insert(assignments);
+            }
+
+            // 2. Asignar productos si existen
+            if (woData.products && woData.products.length > 0) {
+                const items = woData.products.map(p => ({
+                    work_order_id: newWo.id,
+                    inventory_item_id: p.id,
+                    description: p.name,
+                    quantity: p.qty,
+                    unit_price: p.sell_price,
+                    total_price: p.sell_price * p.qty,
+                    is_labor: false
+                }));
+                await supabase.from('work_order_items').insert(items);
+
+                // Descontar stock
+                for (const p of woData.products) {
+                    if (p.stock_type === 'UNIT') {
+                        await supabase.from('inventory').update({
+                            stock_quantity: Math.max(0, (p.stock_quantity || 0) - p.qty)
+                        }).eq('id', p.id);
+                    } else if (p.stock_type === 'VOLUME') {
+                        const mlToDeduct = Math.round(p.qty * 1000);
+                        await supabase.from('inventory').update({
+                            stock_ml: Math.max(0, (p.stock_ml || 0) - mlToDeduct)
+                        }).eq('id', p.id);
+                    }
+                }
             }
 
 
