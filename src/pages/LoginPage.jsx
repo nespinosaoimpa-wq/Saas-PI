@@ -98,19 +98,18 @@ export function LoginPage() {
                 <div style={{ textAlign: 'center', marginBottom: 'clamp(24px, 5vh, 64px)', zIndex: 1 }}>
                     <div style={{
                         display: 'inline-flex',
-                        padding: '10px',
+                        padding: '12px',
                         background: '#ffffff',
-                        borderRadius: '50%',
+                        borderRadius: '40px',
                         marginBottom: 'clamp(16px, 3vh, 32px)',
                         boxShadow: '0 0 50px rgba(var(--primary-rgb), 0.3), 0 20px 60px rgba(0,0,0,0.6)',
                         border: '4px solid rgba(255,255,255,0.05)',
-                        overflow: 'hidden',
-                        width: 'clamp(100px, 12vh, 160px)',
-                        height: 'clamp(100px, 12vh, 160px)',
+                        width: 'clamp(120px, 15vh, 180px)',
+                        height: 'clamp(120px, 15vh, 180px)',
                         alignItems: 'center',
                         justifyContent: 'center'
                     }}>
-                        <img src="/logo-piripi.png" alt="Piripi Logo" style={{ width: '82%', height: '82%', objectFit: 'contain' }} />
+                        <img src="/logo-piripi.png" alt="Piripi Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
                     </div>
                     <h1 style={{ fontSize: 'clamp(28px, 4vh, 42px)', letterSpacing: -1.5, color: '#ffffff', fontWeight: 900, marginBottom: 4 }}>
                         PIRIPI <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>PRO</span>
