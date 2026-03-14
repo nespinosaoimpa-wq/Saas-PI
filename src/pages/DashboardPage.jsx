@@ -8,12 +8,21 @@ import {
     GlassCard,
     SectionHeader,
     StatusBadge,
-    Icon
+    Icon,
+    Modal,
+    FormField,
+    LiquidGauge
 } from '../components/ui';
 
 export const DashboardPage = () => {
-    const { data: MOCK, getLowStockItems, getActiveEmployees } = useApp();
+    const { data: MOCK, getLowStockItems, getActiveEmployees, processSale } = useApp();
     const { employees, user } = useAuth();
+
+    // Oil Tank Related State
+    const [selectedTank, setSelectedTank] = React.useState(null);
+    const [sellAmount, setSellAmount] = React.useState('');
+    const [sellLiters, setSellLiters] = React.useState('');
+    const [isProcessingSale, setIsProcessingSale] = React.useState(false);
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
     const lowStock = getLowStockItems();
@@ -83,6 +92,46 @@ export const DashboardPage = () => {
         );
     }
 
+    const oilTanks = (MOCK.inventory || []).filter(i => i.stock_type === 'VOLUME');
+
+    const handleQuickSell = async (type, val) => {
+        if (!selectedTank) return;
+        setIsProcessingSale(true);
+        try {
+            let liters = 0;
+            if (type === 'PRESET') {
+                liters = val;
+            } else if (type === 'MONTO') {
+                const monto = parseFloat(sellAmount);
+                if (!monto || monto <= 0) throw new Error("Monto inválido");
+                liters = monto / selectedTank.sell_price;
+            } else if (type === 'LITROS') {
+                liters = parseFloat(sellLiters);
+                if (!liters || liters <= 0) throw new Error("Cantidad de litros inválida");
+            }
+
+            // check stock
+            if ((selectedTank.stock_ml / 1000) < liters) {
+                throw new Error("No hay suficiente aceite en el tanque");
+            }
+
+            const cartItem = {
+                ...selectedTank,
+                qty: liters
+            };
+
+            await processSale([cartItem], 'EFECTIVO', null, user.id);
+            alert(`✅ Venta realizada: ${liters.toFixed(3)}L de ${selectedTank.name}`);
+            setSelectedTank(null);
+            setSellAmount('');
+            setSellLiters('');
+        } catch (e) {
+            alert(e.message);
+        } finally {
+            setIsProcessingSale(false);
+        }
+    };
+
     return (
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
@@ -93,6 +142,38 @@ export const DashboardPage = () => {
                     <StatCard icon="garage" label="Ocupación Boxes" value={`${boxOccupied}/${MOCK.boxes.length}`} sub="Capacidad de planta" barPercent={(boxOccupied / MOCK.boxes.length) * 100} />
                     <StatCard icon="inventory_2" label="Stock Crítico" value={lowStock.length} sub="Items bajo mínimo" tag="ALERTA" barPercent={lowStock.length > 0 ? 100 : 0} barAlert={lowStock.length > 0} />
                 </div>
+
+                {/* Oil Tanks Grid */}
+                {oilTanks.length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                        <SectionHeader icon="opacity" title="Tanques de Aceite (Suelto)" />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+                            {oilTanks.map(tank => {
+                                const capacity = tank.container_size_ml || 50000;
+                                const percent = (tank.stock_ml / capacity) * 100;
+                                return (
+                                    <GlassCard key={tank.id} style={{ padding: 16, cursor: 'pointer', transition: 'transform 0.2s' }}
+                                        onClick={() => setSelectedTank(tank)}
+                                        className="tank-card"
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                            <div style={{ width: 60, height: 80 }}>
+                                                <LiquidGauge percent={percent} label={formatML(tank.stock_ml)} />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{tank.name}</div>
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tank.brand}</div>
+                                                <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>
+                                                    {formatCurrency(tank.sell_price)} / L
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </GlassCard>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Main Grid — Queue + Sidebar */}
                 <div className="grid-sidebar">
@@ -249,6 +330,76 @@ export const DashboardPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal Venta Rápida Aceite */}
+            {selectedTank && (
+                <Modal title={`Vender Aceite: ${selectedTank.name}`} onClose={() => setSelectedTank(null)} footer={
+                    <button className="btn btn-ghost" onClick={() => setSelectedTank(null)}>Cerrar</button>
+                }>
+                    <div style={{ padding: 20 }}>
+                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                            <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 4 }}>Precio por Litro</div>
+                            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency(selectedTank.sell_price)}</div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 32 }}>
+                            <button className="btn btn-outline" onClick={() => handleQuickSell('PRESET', 0.25)} disabled={isProcessingSale}>
+                                250 ml
+                            </button>
+                            <button className="btn btn-outline" onClick={() => handleQuickSell('PRESET', 0.5)} disabled={isProcessingSale}>
+                                500 ml
+                            </button>
+                            <button className="btn btn-outline" onClick={() => handleQuickSell('PRESET', 1)} disabled={isProcessingSale}>
+                                1 Litro
+                            </button>
+                        </div>
+
+                        <div className="divider" style={{ marginBottom: 24 }}>O elegir monto / cantidad</div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <FormRow>
+                                <FormField label="Vender por Monto ($)">
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="Ej: 2000"
+                                            value={sellAmount}
+                                            onChange={e => setSellAmount(e.target.value)}
+                                        />
+                                        <button className="btn btn-primary" onClick={() => handleQuickSell('MONTO')} disabled={isProcessingSale || !sellAmount}>
+                                            Vender
+                                        </button>
+                                    </div>
+                                </FormField>
+                            </FormRow>
+
+                            <FormRow>
+                                <FormField label="Vender por Litros (L)">
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="Ej: 0.75"
+                                            value={sellLiters}
+                                            onChange={e => setSellLiters(e.target.value)}
+                                        />
+                                        <button className="btn btn-primary" onClick={() => handleQuickSell('LITROS')} disabled={isProcessingSale || !sellLiters}>
+                                            Vender
+                                        </button>
+                                    </div>
+                                </FormField>
+                            </FormRow>
+                        </div>
+
+                        {sellAmount && selectedTank && (
+                            <div style={{ marginTop: 16, padding: 12, background: 'var(--bg-hover)', borderRadius: 8, fontSize: 13, textAlign: 'center' }}>
+                                Equivalente a: <strong>{(parseFloat(sellAmount) / selectedTank.sell_price).toFixed(3)} L</strong>
+                            </div>
+                        )}
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };
