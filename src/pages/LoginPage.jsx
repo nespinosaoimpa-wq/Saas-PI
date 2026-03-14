@@ -41,109 +41,147 @@ export function LoginPage() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'flex-start', // Start from top to prevent cutoff
+                justifyContent: 'center',
                 background: 'radial-gradient(circle at center, #111827 0%, #000000 100%)',
                 position: 'relative',
-                minHeight: '100vh',           // Ensure full height
-                height: 'auto',              // Allow growth
-                overflowY: 'auto',            // Enable scrolling
-                padding: '80px 20px 40px 20px' // Space for logo and bottom
+                minHeight: '100dvh',
+                width: '100%',
+                overflowY: 'auto',
+                padding: '100px 20px 40px 20px'
             }}>
+                {/* Fixed Header Bar */}
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '70px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0 24px',
+                    background: 'rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(10px)',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    zIndex: 100
+                }}>
+                    <button
+                        onClick={() => setShowTimeModal(true)}
+                        style={{
+                            background: 'rgba(var(--primary-rgb), 0.15)',
+                            border: '1px solid rgba(var(--primary-rgb), 0.3)',
+                            color: 'white',
+                            padding: '8px 16px',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            transition: 'all 0.2s',
+                            boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.2)'
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.background = 'rgba(var(--primary-rgb), 0.25)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={e => { e.currentTarget.style.background = 'rgba(var(--primary-rgb), 0.15)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                        <Icon name="schedule" size={18} /> Fichar Personal
+                    </button>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: 600, letterSpacing: 1 }}>v3.0.0</div>
+                </div>
+
                 {/* Decorative Background Elements */}
-                <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40%', height: '40%', background: 'rgba(var(--primary-rgb), 0.05)', filter: 'blur(100px)', borderRadius: '50%' }} />
-                <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40%', height: '40%', background: 'rgba(var(--accent-rgb), 0.05)', filter: 'blur(100px)', borderRadius: '50%' }} />
+                <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40%', height: '40%', background: 'rgba(var(--primary-rgb), 0.1)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40%', height: '40%', background: 'rgba(var(--accent-rgb), 0.1)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
-                <div style={{ position: 'absolute', top: 20, right: 20, color: 'white', opacity: 0.5, fontSize: 12 }}>v3.0.0</div>
-
-                {/* Floating Fichar Button */}
-                <button
-                    onClick={() => setShowTimeModal(true)}
-                    style={{
-                        position: 'absolute', top: 20, left: 20,
-                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'white', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600,
-                        transition: 'all 0.2s'
-                    }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                    onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                >
-                    <Icon name="schedule" size={18} /> Fichar Ingreso/Salida
-                </button>
-
-                <div style={{ textAlign: 'center', marginBottom: 64, zIndex: 1 }}>
+                {/* Hero Section - Scalable */}
+                <div style={{ textAlign: 'center', marginBottom: 'clamp(24px, 5vh, 64px)', zIndex: 1 }}>
                     <div style={{
                         display: 'inline-flex',
-                        padding: '12px',
+                        padding: '10px',
                         background: '#ffffff',
                         borderRadius: '50%',
-                        marginBottom: 32,
-                        boxShadow: '0 0 40px rgba(var(--primary-rgb), 0.2), 0 20px 50px rgba(0,0,0,0.5)',
+                        marginBottom: 'clamp(16px, 3vh, 32px)',
+                        boxShadow: '0 0 50px rgba(var(--primary-rgb), 0.3), 0 20px 60px rgba(0,0,0,0.6)',
                         border: '4px solid rgba(255,255,255,0.05)',
                         overflow: 'hidden',
-                        width: 160,
-                        height: 160,
+                        width: 'clamp(100px, 12vh, 160px)',
+                        height: 'clamp(100px, 12vh, 160px)',
                         alignItems: 'center',
                         justifyContent: 'center'
                     }}>
-                        <img src="/logo-piripi.png" alt="Piripi Logo" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
+                        <img src="/logo-piripi.png" alt="Piripi Logo" style={{ width: '82%', height: '82%', objectFit: 'contain' }} />
                     </div>
-                    <h1 style={{ fontSize: 42, letterSpacing: -2, color: '#ffffff', fontWeight: 900, marginBottom: 8 }}>PIRIPI <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>PRO</span></h1>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, fontWeight: 500, letterSpacing: 0.5 }}>Sistema de Gestión de Mecánica & Lubricentro</p>
+                    <h1 style={{ fontSize: 'clamp(28px, 4vh, 42px)', letterSpacing: -1.5, color: '#ffffff', fontWeight: 900, marginBottom: 4 }}>
+                        PIRIPI <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>PRO</span>
+                    </h1>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'clamp(14px, 1.8vh, 18px)', fontWeight: 500, letterSpacing: 0.5 }}>Sistema de Gestión Integral</p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 24, width: '100%', maxWidth: 840, padding: 20, zIndex: 1 }}>
+                {/* Employee Grid - Responsive */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 15vw, 180px), 1fr))',
+                    gap: 'clamp(16px, 2vw, 24px)',
+                    width: '100%',
+                    maxWidth: '900px',
+                    padding: '0 20px',
+                    zIndex: 1,
+                    marginBottom: '40px'
+                }}>
                     {employees.map(emp => (
                         <button key={emp.id} className="card" style={{
-                            padding: '32px 24px',
+                            padding: 'clamp(20px, 3vh, 32px) 20px',
                             textAlign: 'center',
                             cursor: 'pointer',
                             border: '1px solid rgba(255,255,255,0.08)',
-                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                            background: 'rgba(255,255,255,0.03)',
-                            borderRadius: 24,
-                            backdropFilter: 'blur(12px)',
+                            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                            background: 'rgba(255,255,255,0.04)',
+                            borderRadius: '24px',
+                            backdropFilter: 'blur(16px)',
                             color: '#ffffff',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                            boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
                         }}
                             onClick={() => handleEmployeeClick(emp)}
                             onMouseOver={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.07)';
-                                e.currentTarget.style.borderColor = 'rgba(var(--primary-rgb), 0.4)';
-                                e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.4)';
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                e.currentTarget.style.borderColor = 'rgba(var(--primary-rgb), 0.5)';
+                                e.currentTarget.style.transform = 'translateY(-6px)';
+                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.5)';
                             }}
                             onMouseOut={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
                                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
                             }}
                         >
                             <div style={{
-                                width: 72,
-                                height: 72,
-                                borderRadius: '20px',
-                                background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.15), rgba(var(--accent-rgb), 0.15))',
+                                width: 'clamp(56px, 8vh, 72px)',
+                                height: 'clamp(56px, 8vh, 72px)',
+                                borderRadius: '18px',
+                                background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.2), rgba(var(--accent-rgb), 0.2))',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                margin: '0 auto 20px auto',
+                                marginBottom: '16px',
                                 border: '1px solid rgba(var(--primary-rgb), 0.2)'
                             }}>
-                                <Icon name="person" size={36} style={{ color: 'var(--primary)' }} />
+                                <Icon name="person" size={32} style={{ color: 'var(--primary)' }} />
                             </div>
-                            <h3 style={{ margin: '0 0 6px 0', fontSize: 17, fontWeight: 800, color: '#ffffff', letterSpacing: -0.3 }}>{emp.name}</h3>
+                            <h3 style={{ margin: '0 0 6px 0', fontSize: 'clamp(14px, 1.6vh, 17px)', fontWeight: 800, color: '#ffffff', letterSpacing: -0.3 }}>{emp.name}</h3>
                             <div style={{
-                                fontSize: 10,
-                                fontWeight: 700,
+                                fontSize: '10px',
+                                fontWeight: 800,
                                 color: 'var(--primary)',
                                 textTransform: 'uppercase',
-                                letterSpacing: 1.5,
-                                background: 'rgba(var(--primary-rgb), 0.1)',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                display: 'inline-block'
+                                letterSpacing: 1.2,
+                                background: 'rgba(var(--primary-rgb), 0.15)',
+                                padding: '3px 10px',
+                                borderRadius: '6px'
                             }}>
                                 {emp.role}
                             </div>
