@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
+import { formatCurrency } from '../data/data';
 import {
     SectionHeader,
     DataTable,
@@ -24,10 +25,11 @@ export const UsersPage = () => {
     const [error, setError] = useState('');
     const [viewType, setViewType] = useState('accounts'); // 'accounts', 'attendance', 'performance'
     const [selectedEmployeeForStats, setSelectedEmployeeForStats] = useState(null);
-    const { getDetailedEmployeeStats, formatCurrency } = useApp();
+    const { getDetailedEmployeeStats } = useApp();
 
     useEffect(() => {
-        setEmployees(contextEmployees);
+        const uniqueEmployees = contextEmployees.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+        setEmployees(uniqueEmployees);
     }, [contextEmployees]);
 
     const handleSave = async () => {

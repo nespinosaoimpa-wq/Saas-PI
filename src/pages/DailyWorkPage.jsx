@@ -604,9 +604,12 @@ export const DailyWorkPage = () => {
                             onChange={e => setSelectedMechanicId(e.target.value)}
                         >
                             <option value="">Seleccionar Gomero...</option>
-                            {(MOCK.employees || []).filter(e => e.role === 'mechanic' || e.role === 'gomero' || !e.role).map(emp => (
-                                <option key={emp.id} value={emp.id}>{emp.full_name || emp.name}</option>
-                            ))}
+                            {(MOCK.employees || [])
+                                .filter(e => e.role === 'mechanic' || e.role === 'gomero' || e.role === 'admin' || !e.role)
+                                .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
+                                .map(emp => (
+                                    <option key={emp.id} value={emp.id}>{emp.full_name || emp.name}</option>
+                                ))}
                         </select>
                     </FormField>
 
