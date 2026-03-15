@@ -200,10 +200,10 @@ export const SalesPage = () => {
     return (
         <div className="page-content">
             <div className="page-grid grid-sales">
-
                 {/* Columna Izquierda: Carrito */}
                 <div>
                     {/* Barra de escaneo */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                         <div style={{ position: 'relative', flex: 1 }}>
                             <input
                                 ref={codeInputRef}
