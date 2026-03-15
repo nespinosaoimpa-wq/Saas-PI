@@ -26,6 +26,8 @@ export const SalesPage = () => {
     const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
     const [cashierProfitPercent, setCashierProfitPercent] = useState(0);
     const [searchResults, setSearchResults] = useState([]);
+    const [discountValue, setDiscountValue] = useState(0);
+    const [discountType, setDiscountType] = useState('PERCENT'); // PERCENT or FIXED
     const codeInputRef = useRef(null);
 
     // Buscar producto por código o nombre o marca
@@ -131,8 +133,15 @@ export const SalesPage = () => {
     };
 
     const subtotal = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
-    const extraProfit = subtotal * (cashierProfitPercent / 100);
-    const total = subtotal + extraProfit;
+    
+    // Calcular Descuento
+    const discountAmount = discountType === 'PERCENT' 
+        ? (subtotal * (discountValue / 100)) 
+        : Math.min(discountValue, subtotal);
+    
+    const discountedSubtotal = subtotal - discountAmount;
+    const extraProfit = discountedSubtotal * (cashierProfitPercent / 100);
+    const total = discountedSubtotal + extraProfit;
 
     const handleCheckout = async () => {
         if (cart.length === 0) return alert('El carrito está vacío');
@@ -173,6 +182,7 @@ export const SalesPage = () => {
             setCart([]);
             setInvoiceType('INTERNAL');
             setCashierProfitPercent(0);
+            setDiscountValue(0);
         } catch (error) {
             alert('Error en la transacción: ' + error.message);
         } finally {
@@ -363,6 +373,27 @@ export const SalesPage = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                                 <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
                                 <span>{formatCurrency(subtotal)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                                <span style={{ color: 'var(--text-muted)' }}>Descuento:</span>
+                                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                    <select 
+                                        className="form-select" 
+                                        style={{ width: 45, padding: '2px 4px', height: 24, fontSize: 10 }}
+                                        value={discountType}
+                                        onChange={e => setDiscountType(e.target.value)}
+                                    >
+                                        <option value="PERCENT">%</option>
+                                        <option value="FIXED">$</option>
+                                    </select>
+                                    <input 
+                                        type="number" 
+                                        className="form-input" 
+                                        style={{ width: 60, padding: '2px 4px', height: 24, fontSize: 12, textAlign: 'right' }} 
+                                        value={discountValue} 
+                                        onChange={e => setDiscountValue(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
                                 <span style={{ color: 'var(--text-muted)' }}>% Ganancia Cajero:</span>
