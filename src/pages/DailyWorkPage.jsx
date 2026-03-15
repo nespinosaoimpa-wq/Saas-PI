@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { formatCurrency, MOCK as STATIC_MOCK } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormField } from '../components/ui';
+import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormField, FormRow } from '../components/ui';
 
 export const DailyWorkPage = () => {
     const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions } = useApp();
@@ -23,6 +23,14 @@ export const DailyWorkPage = () => {
     // Custom Service State
     const [showCustomModal, setShowCustomModal] = useState(false);
     const [customService, setCustomService] = useState({ label: '', price: '' });
+
+    // Express POS State
+    const [showExpressPOS, setShowExpressPOS] = useState(false);
+    const [posSearch, setPosSearch] = useState('');
+
+    // Button Config State
+    const [configAction, setConfigAction] = useState(null); // Action being edited (icon/label/price)
+    const [showNewActionModal, setShowNewActionModal] = useState(false);
 
     // OT Interactivity States
     const [checklistState, setChecklistState] = useState({});
@@ -161,6 +169,28 @@ export const DailyWorkPage = () => {
         initiateQuickAction(action);
     };
 
+    const addToCartFromPOS = (product) => {
+        const action = {
+            id: product.id,
+            label: product.name,
+            price: product.sell_price,
+            icon: 'inventory_2',
+            color: 'var(--primary)',
+            inventory_item: product // Mark as inventory item
+        };
+        initiateQuickAction(action);
+        setPosSearch('');
+        setShowExpressPOS(false);
+    };
+
+    const filteredPOSProducts = (MOCK.inventory || []).filter(p => {
+        if (!posSearch) return false;
+        const term = posSearch.toLowerCase();
+        return p.name.toLowerCase().includes(term) || 
+               (p.brand && p.brand.toLowerCase().includes(term)) ||
+               (p.barcode && p.barcode.toString().includes(term));
+    }).slice(0, 6);
+
     const addToQueue = () => {
         if (!newQueueName.trim()) return;
         const newItem = { id: Date.now(), name: newQueueName, services: [] };
@@ -189,6 +219,28 @@ export const DailyWorkPage = () => {
         setQuickActions(updated);
         localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
         setEditingAction(null);
+    };
+
+    const saveConfigAction = (updatedAction) => {
+        const updated = quickActions.map(a => a.id === updatedAction.id ? updatedAction : a);
+        setQuickActions(updated);
+        localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        setConfigAction(null);
+    };
+
+    const addNewAction = (newAction) => {
+        const updated = [...quickActions, { ...newAction, id: `qa-${Date.now()}` }];
+        setQuickActions(updated);
+        localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        setShowNewActionModal(false);
+    };
+
+    const removeAction = (id) => {
+        if (window.confirm('¿Eliminar este botón permanente?')) {
+            const updated = quickActions.filter(a => a.id !== id);
+            setQuickActions(updated);
+            localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        }
     };
 
     const handleCustomSubmit = () => {
@@ -421,19 +473,56 @@ export const DailyWorkPage = () => {
                                     <div style={{ fontSize: 11, color: action.price > 0 ? 'var(--text-primary)' : 'var(--success)', fontWeight: 700, marginTop: 4 }}>
                                         {action.price > 0 ? formatCurrency(action.price) : 'GRATIS'}
                                     </div>
+                                    
+                                    {/* Botón de Ajustes (absoluto) */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setConfigAction(action); }}
+                                        style={{
+                                            position: 'absolute', bottom: 6, right: 6,
+                                            background: 'none', border: 'none',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', color: 'var(--text-muted)', opacity: 0.5
+                                        }}
+                                        title="Configurar botón (Nombre, Icono, Precio)"
+                                    >
+                                        <Icon name="settings" size={14} />
+                                    </button>
                                 </div>
                             ))}
+
+                            {/* Botón de Venta POS Express */}
+                            <div
+                                className="quick-action-card"
+                                onClick={() => setShowExpressPOS(true)}
+                                style={{ border: '2px solid var(--accent)', background: 'rgba(var(--accent-rgb), 0.05)' }}
+                                title="Buscar y agregar un producto del inventario directamente"
+                            >
+                                <Icon name="inventory_2" size={28} style={{ color: 'var(--accent)', marginBottom: 8 }} />
+                                <div className="quick-action-label" style={{ color: 'var(--accent)' }}>+ PRODUCTO</div>
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Desde Inventario</div>
+                            </div>
 
                             {/* Botón de Servicio Libre */}
                             <div
                                 className="quick-action-card"
                                 onClick={() => setShowCustomModal(true)}
-                                style={{ border: '2px dashed var(--primary)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                                style={{ border: '2px dashed var(--primary)', background: 'transparent' }}
                                 title="Registrar un servicio con precio y descripción personalizados"
                             >
                                 <Icon name="add" size={28} style={{ color: 'var(--primary)', marginBottom: 8 }} />
                                 <div className="quick-action-label" style={{ color: 'var(--primary)' }}>Servicio Libre</div>
                                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Precio Variable</div>
+                            </div>
+
+                            {/* Botón de Agregar Nuevo Botón Fijo */}
+                            <div
+                                className="quick-action-card"
+                                onClick={() => setShowNewActionModal(true)}
+                                style={{ border: '1px dashed var(--border)', background: 'transparent', opacity: 0.6 }}
+                                title="Agregar un nuevo botón fijo a este panel"
+                            >
+                                <Icon name="add_to_photos" size={24} style={{ color: 'var(--text-muted)', marginBottom: 4 }} />
+                                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)' }}>MÁS BOTONES</div>
                             </div>
                         </div>
 
@@ -551,29 +640,98 @@ export const DailyWorkPage = () => {
                 </Modal>
             )}
 
-            {/* Modal de Edición de Precios Rápidos */}
-            {editingAction && (
-                <Modal title={`Editar Precio: ${editingAction.label}`} onClose={() => setEditingAction(null)} footer={
+            {/* Modal de Edición de Botones (Configuración completa) */}
+            {configAction && (
+                <Modal title={`Configurar Botón: ${configAction.label}`} onClose={() => setConfigAction(null)} footer={
                     <React.Fragment>
-                        <button className="btn btn-ghost" onClick={() => setEditingAction(null)}>Cancelar</button>
-                        <button className="btn btn-primary" onClick={saveEditPrice} title="Guardar el nuevo precio para este servicio">Guardar Precio</button>
+                        <button className="btn btn-ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={() => removeAction(configAction.id)}>Eliminar</button>
+                        <button className="btn btn-ghost" onClick={() => setConfigAction(null)}>Cancelar</button>
+                        <button className="btn btn-primary" onClick={() => saveConfigAction(configAction)}>Guardar Cambios</button>
                     </React.Fragment>
                 }>
-                    <FormField label="Nuevo Precio Fijo ($)" icon="attach_money">
-                        <input
-                            type="number"
-                            className="form-input"
-                            value={editPrice}
-                            onChange={(e) => setEditPrice(e.target.value)}
-                            min={0}
-                            step={100}
-                            autoFocus
-                        />
-                    </FormField>
-                    <p style={{ marginTop: 16, fontSize: 12, color: 'var(--text-muted)' }}>
-                        <Icon name="info" size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                        Al guardar, el precio fijado será aplicable solo en este navegador (se guarda en caché local). Si pones 0, el servicio figurará como GRATIS.
-                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormField label="Nombre del Botón">
+                            <input className="form-input" value={configAction.label} onChange={e => setConfigAction({...configAction, label: e.target.value})} />
+                        </FormField>
+                        <FormRow>
+                            <FormField label="Precio ($)">
+                                <input type="number" className="form-input" value={configAction.price} onChange={e => setConfigAction({...configAction, price: parseFloat(e.target.value) || 0})} />
+                            </FormField>
+                            <FormField label="Icono (Google Icon Name)">
+                                <input className="form-input" value={configAction.icon} onChange={e => setConfigAction({...configAction, icon: e.target.value})} />
+                            </FormField>
+                        </FormRow>
+                        <FormField label="Color del Icono">
+                            <input type="color" className="form-input" style={{ height: 40 }} value={configAction.color.startsWith('var') ? '#3b82f6' : configAction.color} onChange={e => setConfigAction({...configAction, color: e.target.value})} />
+                        </FormField>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal para Nuevo Botón Fijo */}
+            {showNewActionModal && (
+                <Modal title="Agregar Nuevo Botón de Servicio" onClose={() => setShowNewActionModal(false)} footer={
+                    <React.Fragment>
+                        <button className="btn btn-ghost" onClick={() => setShowNewActionModal(false)}>Cancelar</button>
+                        <button className="btn btn-primary" onClick={() => {
+                            const label = document.getElementById('new-action-label').value;
+                            const price = parseFloat(document.getElementById('new-action-price').value) || 0;
+                            const icon = document.getElementById('new-action-icon').value || 'build';
+                            if (!label) return alert('El nombre es obligatorio');
+                            addNewAction({ label, price, icon, color: 'var(--primary)' });
+                        }}>Crear Botón</button>
+                    </React.Fragment>
+                }>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormField label="Nombre del Servicio">
+                            <input id="new-action-label" className="form-input" placeholder="Ej: Válvula de Aire" />
+                        </FormField>
+                        <FormRow>
+                            <FormField label="Precio sugerido ($)">
+                                <input id="new-action-price" type="number" className="form-input" placeholder="0" />
+                            </FormField>
+                            <FormField label="Icono (ej: air, build, tire_repair)">
+                                <input id="new-action-icon" className="form-input" placeholder="build" />
+                            </FormField>
+                        </FormRow>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal de POS Express (Inventario) */}
+            {showExpressPOS && (
+                <Modal title="Agregar Producto de Inventario" onClose={() => setShowExpressPOS(false)} width="500px">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormField label="Buscar por nombre, marca o código">
+                            <input 
+                                className="form-input" 
+                                value={posSearch} 
+                                onChange={e => setPosSearch(e.target.value)} 
+                                placeholder="Ej: Aceite 15w40, Castrol, 779..."
+                                autoFocus
+                            />
+                        </FormField>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
+                            {posSearch && filteredPOSProducts.map(p => (
+                                <div 
+                                    key={p.id} 
+                                    className="glass-card" 
+                                    style={{ padding: 12, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                    onClick={() => addToCartFromPOS(p)}
+                                >
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name}</div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.brand} | Stock: {p.stock_type === 'UNIT' ? p.stock_quantity : (p.stock_ml/1000).toFixed(1)+'L'}</div>
+                                    </div>
+                                    <div style={{ fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency(p.sell_price)}</div>
+                                </div>
+                            ))}
+                            {posSearch && filteredPOSProducts.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>No se encontraron productos maching</div>
+                            )}
+                            {!posSearch && <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>Escribe algo para buscar...</div>}
+                        </div>
+                    </div>
                 </Modal>
             )}
 

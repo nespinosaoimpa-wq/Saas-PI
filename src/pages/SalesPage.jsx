@@ -25,6 +25,7 @@ export const SalesPage = () => {
     const [printSale, setPrintSale] = useState(null);
     const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
     const [cashierProfitPercent, setCashierProfitPercent] = useState(0);
+    const [searchResults, setSearchResults] = useState([]);
     const codeInputRef = useRef(null);
 
     // Buscar producto por código o nombre o marca
@@ -54,6 +55,22 @@ export const SalesPage = () => {
             (i.brand && i.brand.toLowerCase().includes(lowerTerm))
         );
     };
+
+    // Live search results
+    useEffect(() => {
+        if (!manualCode.trim() || manualCode.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+        const term = manualCode.toLowerCase();
+        const results = (MOCK.inventory || []).filter(i => 
+            (i.name && i.name.toLowerCase().includes(term)) ||
+            (i.brand && i.brand.toLowerCase().includes(term)) ||
+            (i.barcode && String(i.barcode).includes(term)) ||
+            (i.short_code && String(i.short_code).includes(term))
+        ).slice(0, 8);
+        setSearchResults(results);
+    }, [manualCode, MOCK.inventory]);
 
     // Agregar producto al carrito
     const addToCart = (code) => {
@@ -177,18 +194,50 @@ export const SalesPage = () => {
                 {/* Columna Izquierda: Carrito */}
                 <div>
                     {/* Barra de escaneo */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                        <input
-                            ref={codeInputRef}
-                            className="form-input"
-                            placeholder="Escanear código o buscar producto..."
-                            value={manualCode}
-                            onChange={e => setManualCode(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleManualAdd()}
-                            style={{ flex: 1, fontSize: 16, padding: '12px 16px' }}
-                            autoFocus
-                            title="Escribe el código de barras o nombre del producto y presiona Enter"
-                        />
+                        <div style={{ position: 'relative', flex: 1 }}>
+                            <input
+                                ref={codeInputRef}
+                                className="form-input"
+                                placeholder="Escanear código o buscar producto..."
+                                value={manualCode}
+                                onChange={e => setManualCode(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleManualAdd()}
+                                style={{ width: '100%', fontSize: 16, padding: '12px 16px' }}
+                                autoFocus
+                                title="Escribe el código de barras o nombre del producto y presiona Enter"
+                            />
+                            {/* Live Search Dropdown */}
+                            {searchResults.length > 0 && (
+                                <div className="glass-card" style={{ 
+                                    position: 'absolute', top: '100%', left: 0, right: 0, 
+                                    zIndex: 100, marginTop: 4, padding: 8,
+                                    boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                                    maxHeight: 400, overflowY: 'auto'
+                                }}>
+                                    {searchResults.map(p => (
+                                        <div 
+                                            key={p.id} 
+                                            className="nav-item" 
+                                            style={{ 
+                                                padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                            }}
+                                            onClick={() => {
+                                                addToCart(p.barcode || p.id);
+                                                setManualCode('');
+                                                setSearchResults([]);
+                                            }}
+                                        >
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</div>
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.brand} | Stock: {p.stock_type === 'UNIT' ? p.stock_quantity : (p.stock_ml/1000).toFixed(1)+'L'}</div>
+                                            </div>
+                                            <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 15 }}>{formatCurrency(p.sell_price)}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <button className="btn btn-primary" onClick={handleManualAdd} style={{ padding: '12px 20px' }} title="Agregar producto al carrito manualmente">
                             <Icon name="add_shopping_cart" size={20} /> Agregar
                         </button>
