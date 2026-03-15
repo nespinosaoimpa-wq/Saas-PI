@@ -17,12 +17,14 @@ export const UsersPage = () => {
     const { employees: contextEmployees, refreshEmployees, user } = useAuth();
     const { timeTrackingLogs, exportToExcel } = useApp();
     const [employees, setEmployees] = useState(contextEmployees);
-    const [showLogs, setShowLogs] = useState(false);
-    const [showNew, setShowNew] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+    const [showNew, setShowNew] = useState(false);
     const [newUser, setNewUser] = useState({ name: '', pin: '', role: 'mecanico', commission_rate: 0 });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [viewType, setViewType] = useState('accounts'); // 'accounts', 'attendance', 'performance'
+    const [selectedEmployeeForStats, setSelectedEmployeeForStats] = useState(null);
+    const { getDetailedEmployeeStats, formatCurrency } = useApp();
 
     useEffect(() => {
         setEmployees(contextEmployees);
@@ -118,9 +120,10 @@ export const UsersPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
-                    <button className={`nav-item ${!showLogs ? 'active' : ''}`} onClick={() => setShowLogs(false)} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: !showLogs ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Cuentas de Acceso</button>
-                    <button className={`nav-item ${showLogs ? 'active' : ''}`} onClick={() => setShowLogs(true)} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: showLogs ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Reloj de Asistencia</button>
-                    {showLogs && (
+                    <button className={`nav-item ${viewType === 'accounts' ? 'active' : ''}`} onClick={() => setViewType('accounts')} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: viewType === 'accounts' ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Cuentas de Acceso</button>
+                    <button className={`nav-item ${viewType === 'attendance' ? 'active' : ''}`} onClick={() => setViewType('attendance')} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: viewType === 'attendance' ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Reloj de Asistencia (General)</button>
+                    <button className={`nav-item ${viewType === 'performance' ? 'active' : ''}`} onClick={() => setViewType('performance')} style={{ padding: '12px 24px', border: 'none', background: 'none', borderBottom: viewType === 'performance' ? '2px solid var(--primary)' : 'none', fontWeight: 600 }}>Historial Profesional (Detalle)</button>
+                    {viewType === 'attendance' && (
                         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: 16 }}>
                             <button className="btn btn-ghost" onClick={() => exportToExcel('attendance')}>
                                 <Icon name="download" size={18} /> Exportar Excel
@@ -129,7 +132,7 @@ export const UsersPage = () => {
                     )}
                 </div>
 
-                {!showLogs ? (
+                {viewType === 'accounts' && (
                     <DataTable
                         columns={[
                             { key: 'name', label: 'Nombre', render: r => <strong>{r.name}</strong> },
@@ -139,8 +142,8 @@ export const UsersPage = () => {
                                 label: 'Rol',
                                 render: r => (
                                     <StatusBadge
-                                        status={r.role === 'admin' ? 'En Box' : r.role === 'mecanico' ? 'Pendiente' : 'Finalizado'}
-                                        labelOverride={r.role.toUpperCase()}
+                                        status={r.role === 'admin' ? 'En Box' : 'Confirmado'}
+                                        labelOverride={r.role === 'admin' ? 'ADMINISTRADOR' : r.role === 'cajero' ? 'CAJERO' : r.role === 'mecanico' ? 'MECÁNICO' : r.role === 'gomero' ? 'GOMERO' : r.role.toUpperCase()}
                                     />
                                 )
                             },
@@ -166,28 +169,75 @@ export const UsersPage = () => {
                         ]}
                         data={employees}
                     />
-                ) : (
-                    <DataTable
-                        columns={[
-                            { key: 'employee_name', label: 'Empleado', render: r => <strong>{r.employee_name}</strong> },
-                            {
-                                key: 'type', label: 'Evento', render: r => (
-                                    <span style={{
-                                        padding: '4px 10px',
-                                        borderRadius: 12,
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        background: r.type === 'IN' ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--danger-rgb), 0.1)',
-                                        color: r.type === 'IN' ? 'var(--success)' : 'var(--danger)'
-                                    }}>
-                                        {r.type === 'IN' ? 'ENTRADA' : 'SALIDA'}
-                                    </span>
-                                )
-                            },
-                            { key: 'timestamp', label: 'Fecha y Hora', render: r => new Date(r.timestamp).toLocaleString('es-AR') }
-                        ]}
-                        data={timeTrackingLogs.slice(0, 50)}
-                    />
+                )}
+
+                {viewType === 'performance' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(var(--primary-rgb), 0.05)', padding: 12, borderRadius: 8 }}>
+                            <Icon name="search" size={20} style={{ color: 'var(--primary)' }} />
+                            <select 
+                                className="form-select" 
+                                style={{ flex: 1, maxWidth: 300 }}
+                                onChange={(e) => setSelectedEmployeeForStats(employees.find(emp => emp.id === e.target.value))}
+                                value={selectedEmployeeForStats?.id || ''}
+                            >
+                                <option value="">Selecciona un empleado para ver su historial...</option>
+                                {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.role})</option>)}
+                            </select>
+                            {selectedEmployeeForStats && (
+                                <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Mano de Obra (Prod)</div>
+                                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>
+                                            {formatCurrency(getDetailedEmployeeStats(selectedEmployeeForStats.id).totalProductionAmount)}
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Horas Totales</div>
+                                        <div style={{ fontSize: 18, fontWeight: 800 }}>
+                                            {getDetailedEmployeeStats(selectedEmployeeForStats.id).totalHours}h
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {selectedEmployeeForStats ? (
+                            <div className="page-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                                <GlassCard title="Producción y Servicios">
+                                    <DataTable
+                                        columns={[
+                                            { key: 'date', label: 'Fecha/Hora', render: r => <span style={{ fontSize: 11 }}>{new Date(r.date).toLocaleString('es-AR')}</span> },
+                                            { key: 'type', label: 'Tipo', render: r => <span className="badge badge-active" style={{ fontSize: 9 }}>{r.type}</span> },
+                                            { key: 'desc', label: 'Servicio', render: r => <div style={{ fontSize: 11 }}>{r.description} {r.order_number && <strong>#{r.order_number}</strong>}</div> },
+                                            { key: 'amount', label: 'M.O.', render: r => <span style={{ fontWeight: 700 }}>{formatCurrency(r.amount)}</span> }
+                                        ]}
+                                        data={getDetailedEmployeeStats(selectedEmployeeForStats.id).productionList}
+                                    />
+                                </GlassCard>
+                                <GlassCard title="Fichaje Individual">
+                                    <DataTable
+                                        columns={[
+                                            { key: 'date', label: 'Fecha', render: r => new Date(r.timestamp).toLocaleDateString('es-AR') },
+                                            { key: 'time', label: 'Hora', render: r => new Date(r.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) },
+                                            { key: 'type', label: 'Evento', render: r => (
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: r.type === 'IN' ? 'var(--success)' : 'var(--danger)' }}>
+                                                    {r.type === 'IN' ? 'ENTRADA' : 'SALIDA'}
+                                                </span>
+                                            )}
+                                        ]}
+                                        data={getDetailedEmployeeStats(selectedEmployeeForStats.id).attendanceLogs}
+                                    />
+                                </GlassCard>
+                            </div>
+                        ) : (
+                            <EmptyState 
+                                icon="person_search" 
+                                title="No hay empleado seleccionado" 
+                                description="Seleccioná un miembro del equipo para auditar su rendimiento, horas trabajadas y trabajos realizados."
+                            />
+                        )}
+                    </div>
                 )}
 
                 {showNew && (

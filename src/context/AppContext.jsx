@@ -926,6 +926,64 @@ export const AppProvider = ({ children }) => {
         return otCommissions + quickCommissions;
     };
 
+    const getDetailedEmployeeStats = (employeeId) => {
+        const logs = (timeTrackingLogs || []).filter(l => l.employee_id === employeeId);
+        
+        // Calcular horas trabajadas
+        let totalMs = 0;
+        const processedLogs = [...logs].reverse(); // De más viejo a más nuevo
+        let lastIn = null;
+        
+        processedLogs.forEach(log => {
+            if (log.type === 'IN') {
+                lastIn = new Date(log.timestamp);
+            } else if (log.type === 'OUT' && lastIn) {
+                totalMs += (new Date(log.timestamp) - lastIn);
+                lastIn = null;
+            }
+        });
+        
+        const totalHours = totalMs / (1000 * 60 * 60);
+
+        // Producción en OTs
+        const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
+        const otProduction = assignments.map(a => {
+            const wo = data.workOrders?.find(w => w.id === a.work_order_id);
+            return {
+                id: a.id,
+                date: wo?.completed_at || wo?.created_at,
+                type: 'OT',
+                description: wo?.description || 'Órden de Trabajo',
+                order_number: wo?.order_number,
+                amount: parseFloat(wo?.labor_cost) || 0,
+                status: wo?.status
+            };
+        }).filter(item => item.status === 'Finalizado' || item.status === 'Cobrado');
+
+        // Producción en Gomería
+        const quickProduction = (data.dailyQuickServices || [])
+            .filter(s => s.mechanic_id === employeeId)
+            .map(s => ({
+                id: s.id,
+                date: s.created_at,
+                type: 'GOMERÍA',
+                description: s.service_type || 'Servicio Rápido',
+                amount: parseFloat(s.price) || 0,
+                status: 'Finalizado'
+            }));
+
+        const combinedProduction = [...otProduction, ...quickProduction].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const totalProductionAmount = combinedProduction.reduce((sum, item) => sum + item.amount, 0);
+
+        return {
+            totalHours: totalHours.toFixed(1),
+            attendanceLogs: logs,
+            productionList: combinedProduction,
+            totalProductionAmount,
+            productionCount: combinedProduction.length
+        };
+    };
+
     const getEmployeeProductivity = (employeeId) => {
         const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
         const finished = assignments.filter(a => {
@@ -980,6 +1038,7 @@ export const AppProvider = ({ children }) => {
             updateAssignmentCommission,
             getCommissions,
             getEmployeeProductivity,
+            getDetailedEmployeeStats,
             addQuickService,
             getActiveEmployees,
             exportToExcel,

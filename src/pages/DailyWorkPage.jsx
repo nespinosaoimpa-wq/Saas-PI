@@ -453,9 +453,9 @@ export const DailyWorkPage = () => {
                                         openEditPrice(action);
                                     }}
                                 >
-                                    {/* Icono de edición (absoluto) */}
+                                    {/* Botón de Ajustes (absoluto) */}
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); openEditPrice(action); }}
+                                        onClick={(e) => { e.stopPropagation(); setConfigAction(action); }}
                                         style={{
                                             position: 'absolute', top: 6, right: 6,
                                             background: 'var(--bg-base)', border: 'none',
@@ -463,9 +463,9 @@ export const DailyWorkPage = () => {
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             cursor: 'pointer', color: 'var(--text-muted)'
                                         }}
-                                        title="Editar precio del servicio"
+                                        title="Configurar botón (Nombre, Icono, Precio)"
                                     >
-                                        <Icon name="edit" size={14} />
+                                        <Icon name="settings" size={14} />
                                     </button>
 
                                     <Icon name={action.icon} size={28} style={{ color: action.color, marginBottom: 8 }} />
@@ -474,19 +474,6 @@ export const DailyWorkPage = () => {
                                         {action.price > 0 ? formatCurrency(action.price) : 'GRATIS'}
                                     </div>
                                     
-                                    {/* Botón de Ajustes (absoluto) */}
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setConfigAction(action); }}
-                                        style={{
-                                            position: 'absolute', bottom: 6, right: 6,
-                                            background: 'none', border: 'none',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            cursor: 'pointer', color: 'var(--text-muted)', opacity: 0.5
-                                        }}
-                                        title="Configurar botón (Nombre, Icono, Precio)"
-                                    >
-                                        <Icon name="settings" size={14} />
-                                    </button>
                                 </div>
                             ))}
 
