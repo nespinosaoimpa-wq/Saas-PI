@@ -40,6 +40,8 @@ export const WorkOrdersPage = () => {
     const [editParts, setEditParts] = useState('');
     const [editingWO, setEditingWO] = useState(null); // woId for editing during process
 
+    const handleFinalizeClick = (e, woId) => {
+        e.stopPropagation();
         const wo = MOCK.workOrders.find(w => w.id === woId);
         setFinalizeWO(woId);
         setInvoiceType('INTERNAL');
