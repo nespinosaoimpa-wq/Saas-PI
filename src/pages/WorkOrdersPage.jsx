@@ -34,12 +34,17 @@ export const WorkOrdersPage = () => {
     const [extraProducts, setExtraProducts] = useState([]);
     const [extraProductSearch, setExtraProductSearch] = useState('');
     const [isAddingProducts, setIsAddingProducts] = useState(false);
+    
+    // New states for price editing
+    const [editLabor, setEditLabor] = useState('');
+    const [editParts, setEditParts] = useState('');
+    const [editingWO, setEditingWO] = useState(null); // woId for editing during process
 
-    const handleFinalizeClick = (e, woId) => {
-        e.stopPropagation();
         const wo = MOCK.workOrders.find(w => w.id === woId);
         setFinalizeWO(woId);
         setInvoiceType('INTERNAL');
+        setEditLabor(wo?.labor_cost || 0);
+        setEditParts(wo?.parts_cost || 0);
         // Pre-fill CUIT if cliente has one (dni of 11 digits)
         if (wo?.clients?.dni && wo.clients.dni.length === 11) {
             setCustomerCuit(wo.clients.dni);
@@ -69,9 +74,16 @@ export const WorkOrdersPage = () => {
                 });
             }
 
+            const finalLabor = parseFloat(editLabor) || 0;
+            const finalParts = parseFloat(editParts) || 0;
+            const finalTotal = finalLabor + finalParts;
+
             await updateWorkOrder(finalizeWO, {
                 status: 'Finalizado',
-                completed_at: new Date().toISOString()
+                completed_at: new Date().toISOString(),
+                labor_cost: finalLabor,
+                parts_cost: finalParts,
+                total_price: finalTotal
             }, afipData); // Pass afipData to track CAE in payment
 
             setFinalizeWO(null);
@@ -209,6 +221,23 @@ export const WorkOrdersPage = () => {
         ).slice(0, 5);
     }, [extraProductSearch, MOCK.inventory]);
 
+    const handleSaveEditPrices = async () => {
+        if (!editingWO) return;
+        const labor = parseFloat(editLabor) || 0;
+        const parts = parseFloat(editParts) || 0;
+        try {
+            await updateWorkOrder(editingWO, {
+                labor_cost: labor,
+                parts_cost: parts,
+                total_price: labor + parts
+            });
+            alert('✅ Precios actualizados.');
+            setEditingWO(null);
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    };
+
     return (
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
@@ -250,8 +279,21 @@ export const WorkOrdersPage = () => {
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button
                                                 className="btn btn-primary btn-sm"
-                                                onClick={(e) => { e.stopPropagation(); setAddingProductsToWO(wo); setExtraProducts([]); setExtraProductSearch(''); }}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setEditingWO(wo.id); 
+                                                    setEditLabor(wo.labor_cost || 0); 
+                                                    setEditParts(wo.parts_cost || 0); 
+                                                }}
                                                 style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
+                                                title="Editar detalles o presupuesto de la orden"
+                                            >
+                                                EDITAR
+                                            </button>
+                                            <button
+                                                className="btn btn-primary btn-sm"
+                                                onClick={(e) => { e.stopPropagation(); setAddingProductsToWO(wo); setExtraProducts([]); setExtraProductSearch(''); }}
+                                                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700, background: 'var(--info)' }}
                                                 title="Agregar más productos o insumos a esta orden"
                                             >
                                                 + PRODUCTO
@@ -497,8 +539,18 @@ export const WorkOrdersPage = () => {
                     return (
                         <Modal title={`Finalizar OT #${wo?.order_number}`} onClose={() => setFinalizeWO(null)}>
                             <div style={{ padding: 12, marginBottom: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
-                                <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>Monto a cobrar:</div>
-                                <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--primary)' }}>{formatCurrency(wo?.total_price || 0)}</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                                    <FormField label="Mano de Obra ($)">
+                                        <input type="number" className="form-input" value={editLabor} onChange={e => setEditLabor(e.target.value)} />
+                                    </FormField>
+                                    <FormField label="Repuestos Extras ($)">
+                                        <input type="number" className="form-input" value={editParts} onChange={e => setEditParts(e.target.value)} />
+                                    </FormField>
+                                </div>
+                                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>Monto total a cobrar:</span>
+                                    <span style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--primary)' }}>{formatCurrency((parseFloat(editLabor) || 0) + (parseFloat(editParts) || 0))}</span>
+                                </div>
                             </div>
 
                             <FormField label="¿Emitir Factura AFIP para el Cierre de Caja?">
@@ -624,6 +676,24 @@ export const WorkOrdersPage = () => {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    </Modal>
+                )}
+
+                {editingWO && (
+                    <Modal title="Editar Presupuesto de la Orden" onClose={() => setEditingWO(null)} width="400px"
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setEditingWO(null)}>Cancelar</button><button className="btn btn-primary" onClick={handleSaveEditPrices}>Guardar Cambios</button></Fragment>}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <FormField label="Mano de Obra ($)">
+                                <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700, color: 'var(--success)' }} value={editLabor} onChange={e => setEditLabor(e.target.value)} />
+                            </FormField>
+                            <FormField label="Repuestos Extras ($)">
+                                <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700 }} value={editParts} onChange={e => setEditParts(e.target.value)} />
+                            </FormField>
+                            <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', textAlign: 'right' }}>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Monto Total Estimado:</div>
+                                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency((parseFloat(editLabor) || 0) + (parseFloat(editParts) || 0))}</div>
                             </div>
                         </div>
                     </Modal>
