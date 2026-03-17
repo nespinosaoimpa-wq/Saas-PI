@@ -61,7 +61,7 @@ export const WorkOrdersPage = () => {
         }
 
         // Pre-fill payment and mechanic info
-        setFinalPaymentMethod('EFECTIVO');
+        setFinalPaymentMethod(wo?.payment_method || 'EFECTIVO');
         setFinalCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', DEBITO: '', CREDITO: '' });
         
         const currentAssignments = MOCK.assignments?.filter(a => a.work_order_id === woId) || [];
@@ -241,6 +241,21 @@ export const WorkOrdersPage = () => {
         ).slice(0, 5);
     }, [extraProductSearch, MOCK.inventory]);
 
+    const handleEditClick = (e, woId) => {
+        e.stopPropagation();
+        const wo = MOCK.workOrders.find(w => w.id === woId);
+        setEditingWO(woId);
+        setEditLabor(wo?.labor_cost || 0);
+        setEditParts(wo?.parts_cost || 0);
+        
+        // Cargar mecánicos actuales
+        const currentAssignments = MOCK.assignments?.filter(a => a.work_order_id === woId) || [];
+        setFinalMechanicIds(currentAssignments.map(a => a.mechanic_id));
+        
+        // Cargar método de pago preferido de la OT
+        setFinalPaymentMethod(wo?.payment_method || 'EFECTIVO');
+    };
+
     const handleSaveEditPrices = async () => {
         if (!editingWO) return;
         const labor = parseFloat(editLabor) || 0;
@@ -249,12 +264,16 @@ export const WorkOrdersPage = () => {
             await updateWorkOrder(editingWO, {
                 labor_cost: labor,
                 parts_cost: parts,
-                total_price: labor + parts
-            });
-            alert('✅ Precios actualizados.');
+                total_price: labor + parts,
+                payment_method: finalPaymentMethod
+            }, {
+                method: finalPaymentMethod
+            }, null, finalMechanicIds);
+            
+            alert('✅ Orden actualizada correctamente.');
             setEditingWO(null);
         } catch (e) {
-            alert('Error: ' + e.message);
+            alert('Error al guardar cambios: ' + e.message);
         }
     };
 
@@ -299,14 +318,9 @@ export const WorkOrdersPage = () => {
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button
                                                 className="btn btn-primary btn-sm"
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    setEditingWO(wo.id); 
-                                                    setEditLabor(wo.labor_cost || 0); 
-                                                    setEditParts(wo.parts_cost || 0); 
-                                                }}
+                                                onClick={(e) => handleEditClick(e, wo.id)}
                                                 style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
-                                                title="Editar detalles o presupuesto de la orden"
+                                                title="Editar detalles, personal o forma de pago"
                                             >
                                                 EDITAR
                                             </button>
@@ -776,19 +790,55 @@ export const WorkOrdersPage = () => {
                 )}
 
                 {editingWO && (
-                    <Modal title="Editar Presupuesto de la Orden" onClose={() => setEditingWO(null)} width="400px"
+                    <Modal title={`Editar Orden #${MOCK.workOrders.find(w => w.id === editingWO)?.order_number}`} onClose={() => setEditingWO(null)} width="500px"
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setEditingWO(null)}>Cancelar</button><button className="btn btn-primary" onClick={handleSaveEditPrices}>Guardar Cambios</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <FormField label="Mano de Obra ($)">
-                                <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700, color: 'var(--success)' }} value={editLabor} onChange={e => setEditLabor(e.target.value)} />
-                            </FormField>
-                            <FormField label="Repuestos Extras ($)">
-                                <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700 }} value={editParts} onChange={e => setEditParts(e.target.value)} />
-                            </FormField>
-                            <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', textAlign: 'right' }}>
+                            <SectionHeader icon="attach_money" title="Presupuesto" />
+                            <FormRow>
+                                <FormField label="Mano de Obra ($)">
+                                    <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700, color: 'var(--success)' }} value={editLabor} onChange={e => setEditLabor(e.target.value)} />
+                                </FormField>
+                                <FormField label="Repuestos Extras ($)">
+                                    <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700 }} value={editParts} onChange={e => setEditParts(e.target.value)} />
+                                </FormField>
+                            </FormRow>
+                            
+                            <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', textAlign: 'right', border: '1px solid var(--border)' }}>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Monto Total Estimado:</div>
                                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency((parseFloat(editLabor) || 0) + (parseFloat(editParts) || 0))}</div>
                             </div>
+
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                            <SectionHeader icon="engineering" title="Personal Asignado" />
+                            <FormField label="Seleccionar Técnico(s)">
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: 8, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-base)' }}>
+                                    {mechanics.map(m => (
+                                        <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: finalMechanicIds.includes(m.id) ? 'var(--primary-light)' : 'var(--bg-hover)', borderRadius: 20, cursor: 'pointer', fontSize: 12 }}>
+                                            <input type="checkbox" checked={finalMechanicIds.includes(m.id)} onChange={e => {
+                                                const ids = e.target.checked
+                                                    ? [...finalMechanicIds, m.id]
+                                                    : finalMechanicIds.filter(id => id !== m.id);
+                                                setFinalMechanicIds(ids);
+                                            }} />
+                                            {m.name}
+                                        </label>
+                                    ))}
+                                </div>
+                            </FormField>
+
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                            <SectionHeader icon="payments" title="Forma de Pago Preferida" />
+                            <FormField label="Método">
+                                <select className="form-select" value={finalPaymentMethod} onChange={e => setFinalPaymentMethod(e.target.value)}>
+                                    <option value="EFECTIVO">Efectivo 💵</option>
+                                    <option value="DEBITO">Débito 💳</option>
+                                    <option value="CREDITO">Crédito 💳</option>
+                                    <option value="TRANSFERENCIA">Transferencia 📱</option>
+                                    <option value="COMBINADO">Combinado (Ver al finalizar) 🔀</option>
+                                </select>
+                            </FormField>
                         </div>
                     </Modal>
                 )}
