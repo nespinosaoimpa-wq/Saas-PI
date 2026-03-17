@@ -213,17 +213,11 @@ export function LoginPage() {
                                     />
                                 </FormField>
                                 <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                                    <button className="btn btn-success" style={{ flex: 1, padding: '16px 0', fontSize: 14, fontWeight: 700 }} onClick={async () => {
-                                        if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
+                                    <button className="btn btn-success" style={{ flex: 1, padding: '16px 0', fontSize: 14, fontWeight: 700 }} onClick={async () => {                                        if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                         try {
-<<<<<<< HEAD
-                                            const res = addTimeLog(timePin, 'IN');
+                                            const res = await addTimeLog(timePin, 'IN');
                                             const empName = res?.emp?.name || res?.name || 'Empleado';
                                             alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}`);
-=======
-                                            const res = await addTimeLog(timePin, 'IN');
-                                            alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}`);
->>>>>>> 6bd80cdc8f033c70c98f30083d9f703a8b2cbb0e
                                             setShowTimeModal(false);
                                             setTimePin('');
                                         } catch (e) { alert(e.message); }
@@ -231,14 +225,9 @@ export function LoginPage() {
                                     <button className="btn btn-danger" style={{ flex: 1, padding: '16px 0', fontSize: 14, fontWeight: 700 }} onClick={async () => {
                                         if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                         try {
-<<<<<<< HEAD
-                                            const res = addTimeLog(timePin, 'OUT');
+                                            const res = await addTimeLog(timePin, 'OUT');
                                             const empName = res?.emp?.name || res?.name || 'Empleado';
                                             alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}`);
-=======
-                                            const res = await addTimeLog(timePin, 'OUT');
-                                            alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}`);
->>>>>>> 6bd80cdc8f033c70c98f30083d9f703a8b2cbb0e
                                             setShowTimeModal(false);
                                             setTimePin('');
                                         } catch (e) { alert(e.message); }

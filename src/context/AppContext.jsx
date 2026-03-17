@@ -35,22 +35,15 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     const [timeTrackingLogs, setTimeTrackingLogs] = useState([]);
 
-<<<<<<< HEAD
-    const addTimeLog = (pin, type) => {
+    const addTimeLog = async (pin, type) => {
         if (!pin) throw new Error('Debe ingresar un PIN');
         
         const allEmployees = data.employees || [];
-        // Comparison with == to handle potential string/number mismatch, though PINs are usually stored as strings
         const emp = allEmployees.find(e => String(e.pin) === String(pin));
         
         if (!emp) {
             throw new Error('PIN incorrecto. Empleado no encontrado.');
         }
-=======
-    const addTimeLog = async (pin, type) => {
-        const emp = (data.employees || []).find(e => e.pin === pin);
-        if (!emp) throw new Error('PIN incorrecto. Empleado no encontrado.');
->>>>>>> 6bd80cdc8f033c70c98f30083d9f703a8b2cbb0e
 
         const now = new Date();
         const newLogData = {
@@ -68,17 +61,8 @@ export const AppProvider = ({ children }) => {
             .select()
             .single();
 
-<<<<<<< HEAD
-        return { 
-            log: newLog, 
-            emp: emp, 
-            time: newLog.time_display,
-            name: emp.name || 'Empleado' // Adding name directly for easier access
-        };
-=======
         if (error) {
             console.error("Error saving attendance log", error);
-            // Fallback local if DB fails (optional, but better to know it failed)
             throw new Error('Error al registrar en la base de datos: ' + error.message);
         }
 
@@ -86,8 +70,12 @@ export const AppProvider = ({ children }) => {
         const updatedLog = inserted || { ...newLogData, id: Date.now().toString() };
         setTimeTrackingLogs(prev => [updatedLog, ...prev]);
 
-        return { log: updatedLog, emp, time: updatedLog.time_display };
->>>>>>> 6bd80cdc8f033c70c98f30083d9f703a8b2cbb0e
+        return { 
+            log: updatedLog, 
+            emp: emp, 
+            time: updatedLog.time_display,
+            name: emp.name || 'Empleado'
+        };
     };
 
     const getActiveEmployees = () => {
