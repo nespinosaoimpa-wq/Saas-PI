@@ -138,7 +138,20 @@ export const UsersPage = () => {
                 {viewType === 'accounts' && (
                     <DataTable
                         columns={[
-                            { key: 'name', label: 'Nombre', render: r => <strong>{r.name}</strong> },
+                            { 
+                                key: 'name', 
+                                label: 'Nombre', 
+                                render: r => (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={{ 
+                                            width: 8, height: 8, borderRadius: '50%', 
+                                            background: timeTrackingLogs.find(l => l.employee_id === r.id)?.type === 'IN' ? 'var(--success)' : 'var(--text-disabled)',
+                                            boxShadow: timeTrackingLogs.find(l => l.employee_id === r.id)?.type === 'IN' ? '0 0 8px var(--success)' : 'none'
+                                        }} />
+                                        <strong>{r.name}</strong>
+                                    </div>
+                                )
+                            },
                             { key: 'pin', label: 'PIN', render: r => <span style={{ fontFamily: 'monospace', letterSpacing: 2 }}>{r.pin}</span> },
                             {
                                 key: 'role',
@@ -151,8 +164,22 @@ export const UsersPage = () => {
                                 )
                             },
                             {
+                                key: 'status',
+                                label: 'Última Actividad',
+                                render: r => {
+                                    const last = timeTrackingLogs.find(l => l.employee_id === r.id);
+                                    if (!last) return <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>Sin registros</span>;
+                                    return (
+                                        <div style={{ fontSize: 11 }}>
+                                            <span style={{ color: last.type === 'IN' ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>{last.type === 'IN' ? 'ENTRADA' : 'SALIDA'}</span>
+                                            <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>{new Date(last.timestamp).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    );
+                                }
+                            },
+                            {
                                 key: 'commission_rate',
-                                label: 'Comisión Base (%)',
+                                label: 'Comisión (%)',
                                 render: r => <span>{parseFloat(r.commission_rate).toFixed(1)}%</span>
                             },
                             {
@@ -171,6 +198,51 @@ export const UsersPage = () => {
                             }
                         ]}
                         data={employees}
+                    />
+                )}
+
+                {viewType === 'attendance' && (
+                    <DataTable
+                        columns={[
+                            { 
+                                key: 'date', 
+                                label: 'Fecha/Hora', 
+                                render: r => (
+                                    <div style={{ fontSize: 13 }}>
+                                        <div style={{ fontWeight: 600 }}>{new Date(r.timestamp).toLocaleDateString('es-AR')}</div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(r.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</div>
+                                    </div>
+                                )
+                            },
+                            { 
+                                key: 'employee', 
+                                label: 'Empleado', 
+                                render: r => {
+                                    const emp = employees.find(e => e.id === r.employee_id);
+                                    return <strong>{emp?.name || 'Desconocido'}</strong>;
+                                }
+                            },
+                            { 
+                                key: 'event', 
+                                label: 'Evento', 
+                                render: r => (
+                                    <StatusBadge 
+                                        status={r.type === 'IN' ? 'En Box' : 'Cancelado'} 
+                                        labelOverride={r.type === 'IN' ? 'ENTRADA' : 'SALIDA'} 
+                                    />
+                                )
+                            },
+                            {
+                                key: 'actions',
+                                label: '',
+                                render: r => (
+                                    <button className="btn btn-ghost btn-sm" style={{ opacity: 0.3 }} title="Auditoría">
+                                        <Icon name="verified_user" size={16} />
+                                    </button>
+                                )
+                            }
+                        ]}
+                        data={[...timeTrackingLogs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))}
                     />
                 )}
 

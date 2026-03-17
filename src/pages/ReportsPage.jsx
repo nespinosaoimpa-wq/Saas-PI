@@ -196,11 +196,36 @@ export const ReportsPage = () => {
                                                     
                                                     <details style={{ marginTop: 8 }}>
                                                         <summary style={{ fontSize: 11, cursor: 'pointer', color: 'var(--primary)', fontWeight: 700 }}>Ver Actividad Detallada</summary>
-                                                        <div style={{ marginTop: 8, maxHeight: 150, overflowY: 'auto', fontSize: 11 }}>
-                                                            {stats.productionList.map((item, idx) => (
-                                                                <div key={idx} style={{ padding: '4px 0', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
-                                                                    <span>{new Date(item.date).toLocaleDateString('es-AR')} - {item.type}</span>
-                                                                    <strong>{formatCurrency(item.amount)}</strong>
+                                                        <div style={{ marginTop: 8, maxHeight: 200, overflowY: 'auto', fontSize: 11 }}>
+                                                            {/* Combine attendance and production for a unified timeline */}
+                                                            {[
+                                                                ...stats.productionList,
+                                                                ...(stats.attendanceLogs || []).map(l => ({
+                                                                    date: l.timestamp,
+                                                                    type: 'FICHAJE',
+                                                                    description: l.type === 'IN' ? 'Entrada al Taller' : 'Salida del Taller',
+                                                                    amount: null,
+                                                                    isLog: true
+                                                                }))
+                                                            ].sort((a, b) => new Date(b.date) - new Date(a.date)).map((item, idx) => (
+                                                                <div key={idx} style={{ 
+                                                                    padding: '6px 0', 
+                                                                    borderBottom: '1px solid var(--border)', 
+                                                                    display: 'flex', 
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    opacity: item.isLog ? 0.8 : 1
+                                                                }}>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{new Date(item.date).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                                                        <span>
+                                                                            <strong style={{ color: item.isLog ? (item.description.includes('Entrada') ? 'var(--success)' : 'var(--danger)') : 'inherit', fontSize: 10, marginRight: 4 }}>
+                                                                                [{item.type}]
+                                                                            </strong>
+                                                                            {item.description} {item.order_number && <strong>#{item.order_number}</strong>}
+                                                                        </span>
+                                                                    </div>
+                                                                    {item.amount !== null && <strong style={{ color: 'var(--primary)' }}>{formatCurrency(item.amount)}</strong>}
                                                                 </div>
                                                             ))}
                                                         </div>
