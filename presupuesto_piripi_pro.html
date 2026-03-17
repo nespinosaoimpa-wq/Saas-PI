@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto PIRIPI PRO — Gestión de Lubricentros</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --bg: #ffffff;
+            --text: #111827;
+            --text-muted: #4b5563;
+            --border: #e5e7eb;
+            --radius: 12px;
+        }
+
+        @media print {
+            .no-print { display: none; }
+            body { background: white !important; padding: 0 !important; }
+            .container { box-shadow: none !important; border: none !important; margin: 0 !important; max-width: 100% !important; }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            color: var(--primary);
+        }
+
+        .header .date {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: var(--text-muted);
+        }
+
+        .tech-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .tech-item {
+            background: #f3f4f6;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .tech-item strong {
+            display: block;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f8fafc;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border);
+            font-weight: 700;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .total-row {
+            background: #f8fafc;
+            font-weight: 800;
+        }
+
+        .price-card {
+            background: #eff6ff;
+            border: 2px solid var(--primary);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .price-card .label {
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .price-card .amount {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .price-card .sub {
+            font-size: 13px;
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        .footer-note {
+            font-size: 12px;
+            text-align: center;
+            color: var(--text-muted);
+            margin-top: 60px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            font-style: italic;
+        }
+
+        .print-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 30px;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .print-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn no-print" onclick="window.print()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        Descargar PDF / Imprimir
+    </button>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>PIRIPI PRO</h1>
+                <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Software de Gestión Automotriz</div>
+            </div>
+            <div class="date">Fecha: 16/03/2026</div>
+        </div>
+
+        <p>Este documento detalla la valoración técnica y comercial de la plataforma desarrollada, basada en estándares de calidad de software moderno y costos actuales del mercado internacional.</p>
+
+        <h2>1. Calidad Tecnológica</h2>
+        <div class="tech-list">
+            <div class="tech-item">
+                <strong>Arquitectura Frontend</strong>
+                React 19 + Vite. Rendimiento extremo y carga instantánea.
+            </div>
+            <div class="tech-item">
+                <strong>Base de Datos & Backend</strong>
+                Supabase (PostgreSQL). Infraestructura robusta y escalable.
+            </div>
+            <div class="tech-item">
+                <strong>Movilidad & UX</strong>
+                Progressive Web App (PWA). Instalable en iOS y Android.
+            </div>
+            <div class="tech-item">
+                <strong>Seguridad</strong>
+                Roles de usuario (RBAC) y cifrado de datos nativo.
+            </div>
+        </div>
+
+        <h2>2. Desglose de Inversión (Horas Hombre)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Módulo Desarrollado</th>
+                    <th>Descripción Clave</th>
+                    <th style="text-align: center;">HH</th>
+                    <th style="text-align: right;">Costo Mercado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Arquitectura & UI</strong></td>
+                    <td>Sistema de navegación, diseño Premium y Contextos.</td>
+                    <td style="text-align: center;">30h</td>
+                    <td style="text-align: right;">$1.200 USD</td>
+                </tr>
+                <tr>
+                    <td><strong>Stock & Inventario</strong></td>
+                    <td>Control de insumos, alertas y códigos de barras.</td>
+                    <td style="text-align: center;">35h</td>
+                    <td style="text-align: right;">$1.400 USD</td>
+                </tr>
+                <tr>
+                    <td><strong>Clientes & Vehículos</strong></td>
+                    <td>Historial clínico, patentes y gestión de datos.</td>
+                    <td style="text-align: center;">30h</td>
+                    <td style="text-align: right;">$1.200 USD</td>
+                </tr>
+                <tr>
+                    <td><strong>Gestión de Órdenes (OT)</strong></td>
+                    <td>Flujo de taller, asignación y edición de costos.</td>
+                    <td style="text-align: center;">40h</td>
+                    <td style="text-align: right;">$1.600 USD</td>
+                </tr>
+                <tr>
+                    <td><strong>POS & Facturación AFIP</strong></td>
+                    <td>Venta rápida e integración con entes fiscales.</td>
+                    <td style="text-align: center;">40h</td>
+                    <td style="text-align: right;">$1.600 USD</td>
+                </tr>
+                <tr>
+                    <td><strong>Caja & Finanzas</strong></td>
+                    <td>Cierres, egresos y control de comisiones técnicos.</td>
+                    <td style="text-align: center;">25h</td>
+                    <td style="text-align: right;">$1.000 USD</td>
+                </tr>
+                <tr>
+                    <td><strong>Seguridad & Personal</strong></td>
+                    <td>Control de ingresos por PIN y roles de acceso.</td>
+                    <td style="text-align: center;">20h</td>
+                    <td style="text-align: right;">$800 USD</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3">VALOR TOTAL DE MERCADO DEL SOFTWARE</td>
+                    <td style="text-align: right;">$8.800 USD</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <h2>3. Valoración vs. Propuesta Real</h2>
+        <p>Valuación de mercado (Promedio Senior Fullstack $40 USD/h): <strong>$8.800 USD</strong></p>
+        
+        <div class="price-card">
+            <div class="label">Propuesta Especial con Descuento Directo <span class="badge">-95% OFF</span></div>
+            <div class="amount">450 USD</div>
+            <div class="sub">Inversión única por etapa actual del proyecto</div>
+        </div>
+
+        <h2>4. Condiciones & Soporte</h2>
+        <p>• <strong>Nuevas Funciones:</strong> Cualquier módulo adicional no listado se cotizará por separado.</p>
+        <p>• <strong>Mantenimiento (Opcional):</strong> Se ofrece un plan de <strong>$40 - $60 USD/mes</strong> que cubre alojamiento, soporte prioritario, backups diarios y actualizaciones de seguridad.</p>
+
+        <div class="footer-note">
+            Este presupuesto tiene una validez de 15 días. Documento generado digitalmente por <strong>SmartFlow Digital</strong>.
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
-console.log("%c>>> PIRIPI PRO v3.0.0 — Auditoría Completa <<<", "color: #00ff00; font-weight: bold; font-size: 20px;");
+
 import { useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { Icon, Modal, FormField, CameraScanner } from './components/ui';
@@ -358,7 +358,8 @@ function App() {
                                     if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                     try {
                                         const res = addTimeLog(timePin, 'IN');
-                                        alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}\n\nPuede seguir trabajando normalmente.`);
+                                        const empName = res?.emp?.name || res?.name || 'Empleado';
+                                        alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}\n\nPuede seguir trabajando normalmente.`);
                                         setShowTimeModal(false);
                                         setTimePin('');
                                     } catch (e) { alert(e.message); }
@@ -369,7 +370,8 @@ function App() {
                                     if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                     try {
                                         const res = addTimeLog(timePin, 'OUT');
-                                        alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}\n\n¡Hasta pronto!`);
+                                        const empName = res?.emp?.name || res?.name || 'Empleado';
+                                        alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}\n\n¡Hasta pronto!`);
                                         setShowTimeModal(false);
                                         setTimePin('');
                                     } catch (e) { alert(e.message); }

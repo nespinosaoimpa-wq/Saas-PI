@@ -38,14 +38,21 @@ export const AppProvider = ({ children }) => {
     });
 
     const addTimeLog = (pin, type) => {
-        const emp = (data.employees || []).find(e => e.pin === pin);
-        if (!emp) throw new Error('PIN incorrecto. Empleado no encontrado.');
+        if (!pin) throw new Error('Debe ingresar un PIN');
+        
+        const allEmployees = data.employees || [];
+        // Comparison with == to handle potential string/number mismatch, though PINs are usually stored as strings
+        const emp = allEmployees.find(e => String(e.pin) === String(pin));
+        
+        if (!emp) {
+            throw new Error('PIN incorrecto. Empleado no encontrado.');
+        }
 
         const now = new Date();
         const newLog = {
             id: Date.now().toString(),
             employee_id: emp.id,
-            employee_name: emp.name,
+            employee_name: emp.name || 'Empleado',
             type: type, // 'IN' or 'OUT'
             timestamp: now.toISOString(),
             time_display: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
@@ -56,7 +63,12 @@ export const AppProvider = ({ children }) => {
         setTimeTrackingLogs(updated);
         localStorage.setItem('piripi_time_tracking', JSON.stringify(updated));
 
-        return { log: newLog, emp, time: newLog.time_display };
+        return { 
+            log: newLog, 
+            emp: emp, 
+            time: newLog.time_display,
+            name: emp.name || 'Empleado' // Adding name directly for easier access
+        };
     };
 
     const getActiveEmployees = () => {
@@ -152,7 +164,7 @@ export const AppProvider = ({ children }) => {
             channel = supabase
                 .channel('db-changes')
                 .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-                    console.log('🔄 Cambio detectado en DB:', payload);
+
                     loadData();
                 })
                 .subscribe();

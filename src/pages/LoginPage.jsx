@@ -217,7 +217,8 @@ export function LoginPage() {
                                         if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                         try {
                                             const res = addTimeLog(timePin, 'IN');
-                                            alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}`);
+                                            const empName = res?.emp?.name || res?.name || 'Empleado';
+                                            alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}`);
                                             setShowTimeModal(false);
                                             setTimePin('');
                                         } catch (e) { alert(e.message); }
@@ -226,7 +227,8 @@ export function LoginPage() {
                                         if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
                                         try {
                                             const res = addTimeLog(timePin, 'OUT');
-                                            alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${res.emp.name}\nHora: ${res.time}`);
+                                            const empName = res?.emp?.name || res?.name || 'Empleado';
+                                            alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}`);
                                             setShowTimeModal(false);
                                             setTimePin('');
                                         } catch (e) { alert(e.message); }
