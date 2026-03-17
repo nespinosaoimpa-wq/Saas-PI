@@ -33,10 +33,9 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Fichaje Personal (Time Tracking)
     // ==========================================
-    const [timeTrackingLogs, setTimeTrackingLogs] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('piripi_time_tracking')) || []; } catch { return []; }
-    });
+    const [timeTrackingLogs, setTimeTrackingLogs] = useState([]);
 
+<<<<<<< HEAD
     const addTimeLog = (pin, type) => {
         if (!pin) throw new Error('Debe ingresar un PIN');
         
@@ -47,10 +46,14 @@ export const AppProvider = ({ children }) => {
         if (!emp) {
             throw new Error('PIN incorrecto. Empleado no encontrado.');
         }
+=======
+    const addTimeLog = async (pin, type) => {
+        const emp = (data.employees || []).find(e => e.pin === pin);
+        if (!emp) throw new Error('PIN incorrecto. Empleado no encontrado.');
+>>>>>>> 6bd80cdc8f033c70c98f30083d9f703a8b2cbb0e
 
         const now = new Date();
-        const newLog = {
-            id: Date.now().toString(),
+        const newLogData = {
             employee_id: emp.id,
             employee_name: emp.name || 'Empleado',
             type: type, // 'IN' or 'OUT'
@@ -58,17 +61,33 @@ export const AppProvider = ({ children }) => {
             time_display: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
         };
 
-        // Update local state without affecting 'data'
-        const updated = [newLog, ...timeTrackingLogs];
-        setTimeTrackingLogs(updated);
-        localStorage.setItem('piripi_time_tracking', JSON.stringify(updated));
+        // Persistir en Supabase (tabla attendance_logs)
+        const { data: inserted, error } = await supabase
+            .from('attendance_logs')
+            .insert([newLogData])
+            .select()
+            .single();
 
+<<<<<<< HEAD
         return { 
             log: newLog, 
             emp: emp, 
             time: newLog.time_display,
             name: emp.name || 'Empleado' // Adding name directly for easier access
         };
+=======
+        if (error) {
+            console.error("Error saving attendance log", error);
+            // Fallback local if DB fails (optional, but better to know it failed)
+            throw new Error('Error al registrar en la base de datos: ' + error.message);
+        }
+
+        // Update local state
+        const updatedLog = inserted || { ...newLogData, id: Date.now().toString() };
+        setTimeTrackingLogs(prev => [updatedLog, ...prev]);
+
+        return { log: updatedLog, emp, time: updatedLog.time_display };
+>>>>>>> 6bd80cdc8f033c70c98f30083d9f703a8b2cbb0e
     };
 
     const getActiveEmployees = () => {
@@ -108,7 +127,7 @@ export const AppProvider = ({ children }) => {
             const [
                 clients, vehicles, workOrders, inventory, suppliers, boxes,
                 vehicleNotes, payments, cashClosings, appointments, promotions,
-                assignments, employees, workOrderItems, dailyQuickServices
+                assignments, employees, workOrderItems, dailyQuickServices, attendance_logs
             ] = await Promise.all([
                 fetchTable('clients'),
                 fetchTable('vehicles'),
@@ -124,7 +143,8 @@ export const AppProvider = ({ children }) => {
                 fetchTable('work_order_assignments'),
                 fetchTable('employees'),
                 fetchTable('work_order_items'),
-                fetchTable('daily_quick_services')
+                fetchTable('daily_quick_services'),
+                supabase.from('attendance_logs').select('*').order('timestamp', { ascending: false }).then(r => r.data || [])
             ]);
 
 
@@ -145,6 +165,7 @@ export const AppProvider = ({ children }) => {
                 dailyWorkLog: [], serviceHistory: [], employeeEarnings: [],
                 activityLog: []
             });
+            setTimeTrackingLogs(attendance_logs);
         } catch (e) {
             console.error('CRITICAL: Error in bulk load', e);
         }
@@ -650,9 +671,28 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    const updateWorkOrder = async (id, updates, afipData = null) => {
+    const updateWorkOrder = async (id, updates, paymentInfo = null, afipData = null, mechanicIds = null) => {
         const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
         if (!error) {
+            // Update assignments if mechanicIds provided
+            if (mechanicIds) {
+                try {
+                    // 1. Delete old assignments
+                    await supabase.from('work_order_assignments').delete().eq('work_order_id', id);
+                    // 2. Insert new ones
+                    const assignments = mechanicIds.map(mid => ({
+                        work_order_id: id,
+                        mechanic_id: mid,
+                        labor_commission_percent: updates.applied_commission_rate || 0
+                    }));
+                    if (assignments.length > 0) {
+                        await supabase.from('work_order_assignments').insert(assignments);
+                    }
+                } catch (e) {
+                    console.error('Error updating WO assignments', e);
+                }
+            }
+
             // Si la orden se finaliza o cobra, intentar crear el pago automáticamente en caja
             if (updates.status === 'Finalizado' || updates.status === 'Cobrado') {
                 const wo = data.workOrders?.find(w => w.id === id);
@@ -660,17 +700,42 @@ export const AppProvider = ({ children }) => {
                     try {
                         const existPayment = data.payments?.some(p => p.work_order_id === id);
                         if (!existPayment) {
-                            await addPayment({
-                                amount: wo.total_price,
-                                method: 'EFECTIVO', // Asumimos efectivo por defecto al finalizar rápido
-                                description: `Pago OT #${wo.order_number}`,
-                                type: 'INGRESO',
-                                reference: 'OT',
-                                work_order_id: wo.id,
-                                cae: afipData ? afipData.cae : null,
-                                cae_due_date: afipData ? afipData.caeDueDate : null,
-                                receipt_number: afipData ? afipData.receiptText : null
-                            });
+                            const method = paymentInfo?.method || 'EFECTIVO';
+                            const combined = paymentInfo?.combinedAmounts;
+                            const mainMechanicId = (mechanicIds && mechanicIds.length > 0) ? mechanicIds[0] : (wo.mechanic_id || null);
+
+                            if (method === 'COMBINADO' && combined) {
+                                for (const [m, amount] of Object.entries(combined)) {
+                                    const amt = parseFloat(amount);
+                                    if (amt > 0) {
+                                        await addPayment({
+                                            amount: amt,
+                                            method: m,
+                                            description: `Pago OT #${wo.order_number} (${m})`,
+                                            type: 'INGRESO',
+                                            reference: 'OT',
+                                            work_order_id: wo.id,
+                                            employee_id: mainMechanicId,
+                                            cae: afipData ? afipData.cae : null,
+                                            cae_due_date: afipData ? afipData.caeDueDate : null,
+                                            receipt_number: afipData ? afipData.receiptText : null
+                                        });
+                                    }
+                                }
+                            } else {
+                                await addPayment({
+                                    amount: wo.total_price,
+                                    method: method,
+                                    description: `Pago OT #${wo.order_number}`,
+                                    type: 'INGRESO',
+                                    reference: 'OT',
+                                    work_order_id: wo.id,
+                                    employee_id: mainMechanicId,
+                                    cae: afipData ? afipData.cae : null,
+                                    cae_due_date: afipData ? afipData.caeDueDate : null,
+                                    receipt_number: afipData ? afipData.receiptText : null
+                                });
+                            }
                         }
                     } catch (e) {
                         console.error('No se pudo automatizar el pago de la OT', e);
@@ -712,6 +777,26 @@ export const AppProvider = ({ children }) => {
         const { error } = await supabase.from('appointments').delete().eq('id', id);
         if (error) { console.error("Error deleting appointment", error); throw error; }
         setData(prev => ({ ...prev, appointments: prev.appointments.filter(a => a.id !== id) }));
+    };
+
+    const deleteWorkOrder = async (id) => {
+        // En un taller real, borrar una OT implica borrar sus assignments e items
+        // O simplemente marcarla como CANCELADA. El usuario pidió BORRAR.
+        try {
+            await supabase.from('work_order_assignments').delete().eq('work_order_id', id);
+            await supabase.from('work_order_items').delete().eq('work_order_id', id);
+            const { error } = await supabase.from('work_orders').delete().eq('id', id);
+            if (error) throw error;
+
+            setData(prev => ({
+                ...prev,
+                workOrders: prev.workOrders.filter(wo => wo.id !== id)
+            }));
+            return true;
+        } catch (e) {
+            console.error("Error deleting work order", e);
+            throw e;
+        }
     };
 
     // ==========================================

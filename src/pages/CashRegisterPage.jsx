@@ -156,7 +156,7 @@ export const CashRegisterPage = () => {
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
     const cash = todayPayments.filter(p => (p.method || p.payment_method) === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
     const transfer = todayPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
-    const card = todayPayments.filter(p => (p.method || p.payment_method) === 'TARJETA').reduce((s, p) => s + p.amount, 0);
+    const card = todayPayments.filter(p => ['TARJETA', 'DEBITO', 'CREDITO'].includes(p.method || p.payment_method)).reduce((s, p) => s + p.amount, 0);
 
     const currentExpectedCash = cash + startingBalance;
 
@@ -187,7 +187,7 @@ export const CashRegisterPage = () => {
                     <StatCard icon="payments" label={`Total ${period === 'daily' ? 'Turno' : period === 'weekly' ? 'Semana' : 'Mes'}`} value={formatCurrency(totalPeriod)} sub={`${allPayments.length} operaciones`} barPercent={75} />
                     <StatCard icon="account_balance_wallet" label="Caja Esperada" value={formatCurrency(period === 'daily' ? currentExpectedCash : cash)} sub={period === 'daily' ? `Saldo anterior: ${formatCurrency(startingBalance)}` : "Efectivo total"} barPercent={period === 'daily' ? (currentExpectedCash > 0 ? 100 : 0) : (cash > 0 ? 100 : 0)} barAlert />
                     <StatCard icon="swap_horiz" label="Transferencias" value={formatCurrency(transfer)} sub="Turno" barPercent={transfer > 0 ? 100 : 0} />
-                    <StatCard icon="credit_card" label="Tarjeta" value={formatCurrency(card)} sub="Turno" barPercent={card > 0 ? 100 : 0} />
+                    <StatCard icon="credit_card" label="Tarjeta / Débito / Crédito" value={formatCurrency(card)} sub="Turno" barPercent={card > 0 ? 100 : 0} />
                 </div>
 
                 <DataTable
@@ -230,6 +230,9 @@ export const CashRegisterPage = () => {
                                     'EFECTIVO': { label: '💵 Efectivo', color: '#27ae60' },
                                     'TRANSFERENCIA': { label: '📲 Transferencia', color: '#2980b9' },
                                     'TARJETA': { label: '💳 Tarjeta', color: '#8e44ad' },
+                                    'DEBITO': { label: '💳 Débito', color: '#8e44ad' },
+                                    'CREDITO': { label: '💳 Crédito', color: '#e67e22' },
+                                    'COMBINADO': { label: '🔀 Combinado', color: '#34495e' },
                                 };
                                 const cfg = methodMap[m] || { label: m, color: 'var(--text-muted)' };
                                 return (
@@ -268,9 +271,11 @@ export const CashRegisterPage = () => {
                             </FormField>
                             <FormField label="Método de pago">
                                 <select className="form-select" value={newPayment.method} onChange={e => setNewPayment({ ...newPayment, method: e.target.value })}>
-                                    <option value="EFECTIVO">Efectivo</option>
-                                    <option value="TRANSFERENCIA">Transferencia</option>
-                                    <option value="TARJETA">Tarjeta</option>
+                                    <option value="EFECTIVO">Efectivo 💵</option>
+                                    <option value="DEBITO">Débito 💳</option>
+                                    <option value="CREDITO">Crédito 💳</option>
+                                    <option value="TRANSFERENCIA">Transferencia 📱</option>
+                                    <option value="COMBINADO">Combinado 🔀</option>
                                 </select>
                             </FormField>
                             <FormField label="Referencia (opcional)">
@@ -298,9 +303,11 @@ export const CashRegisterPage = () => {
                             </FormField>
                             <FormField label="Método de pago">
                                 <select className="form-select" value={editingPayment.method} onChange={e => setEditingPayment({ ...editingPayment, method: e.target.value })}>
-                                    <option value="EFECTIVO">Efectivo</option>
-                                    <option value="TRANSFERENCIA">Transferencia</option>
-                                    <option value="TARJETA">Tarjeta</option>
+                                    <option value="EFECTIVO">Efectivo 💵</option>
+                                    <option value="DEBITO">Débito 💳</option>
+                                    <option value="CREDITO">Crédito 💳</option>
+                                    <option value="TRANSFERENCIA">Transferencia 📱</option>
+                                    <option value="COMBINADO">Combinado 🔀</option>
                                 </select>
                             </FormField>
                             <FormField label="Referencia (opcional)">

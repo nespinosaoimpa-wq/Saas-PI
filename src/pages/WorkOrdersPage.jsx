@@ -17,7 +17,7 @@ import {
 } from '../components/ui';
 
 export const WorkOrdersPage = () => {
-    const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel, updateWorkOrder, addItemsToWorkOrder } = useApp();
+    const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel, updateWorkOrder, addItemsToWorkOrder, deleteWorkOrder } = useApp();
     const { user, employees } = useAuth();
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
@@ -31,6 +31,12 @@ export const WorkOrdersPage = () => {
     const [customerCuit, setCustomerCuit] = useState('');
     const [isFinalizing, setIsFinalizing] = useState(false);
     const [addingProductsToWO, setAddingProductsToWO] = useState(null); // WO object or null
+    
+    // New Finalization States
+    const [finalPaymentMethod, setFinalPaymentMethod] = useState('EFECTIVO');
+    const [finalCombinedAmounts, setFinalCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', DEBITO: '', CREDITO: '' });
+    const [finalMechanicIds, setFinalMechanicIds] = useState([]);
+    const [finalCommissionRate, setFinalCommissionRate] = useState('');
     const [extraProducts, setExtraProducts] = useState([]);
     const [extraProductSearch, setExtraProductSearch] = useState('');
     const [isAddingProducts, setIsAddingProducts] = useState(false);
@@ -53,6 +59,14 @@ export const WorkOrdersPage = () => {
         } else {
             setCustomerCuit('');
         }
+
+        // Pre-fill payment and mechanic info
+        setFinalPaymentMethod(wo?.payment_method || 'EFECTIVO');
+        setFinalCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', DEBITO: '', CREDITO: '' });
+        
+        const currentAssignments = MOCK.assignments?.filter(a => a.work_order_id === woId) || [];
+        setFinalMechanicIds(currentAssignments.map(a => a.mechanic_id));
+        setFinalCommissionRate(wo?.applied_commission_rate || '');
     };
 
     const confirmFinalize = async () => {
@@ -85,8 +99,12 @@ export const WorkOrdersPage = () => {
                 completed_at: new Date().toISOString(),
                 labor_cost: finalLabor,
                 parts_cost: finalParts,
-                total_price: finalTotal
-            }, afipData); // Pass afipData to track CAE in payment
+                total_price: finalTotal,
+                applied_commission_rate: parseFloat(finalCommissionRate) || 0
+            }, {
+                method: finalPaymentMethod,
+                combinedAmounts: finalPaymentMethod === 'COMBINADO' ? finalCombinedAmounts : null
+            }, afipData, finalMechanicIds);
 
             setFinalizeWO(null);
             setPrintWO(wo); // Optionally print right after finalizing
@@ -223,6 +241,21 @@ export const WorkOrdersPage = () => {
         ).slice(0, 5);
     }, [extraProductSearch, MOCK.inventory]);
 
+    const handleEditClick = (e, woId) => {
+        e.stopPropagation();
+        const wo = MOCK.workOrders.find(w => w.id === woId);
+        setEditingWO(woId);
+        setEditLabor(wo?.labor_cost || 0);
+        setEditParts(wo?.parts_cost || 0);
+        
+        // Cargar mecánicos actuales
+        const currentAssignments = MOCK.assignments?.filter(a => a.work_order_id === woId) || [];
+        setFinalMechanicIds(currentAssignments.map(a => a.mechanic_id));
+        
+        // Cargar método de pago preferido de la OT
+        setFinalPaymentMethod(wo?.payment_method || 'EFECTIVO');
+    };
+
     const handleSaveEditPrices = async () => {
         if (!editingWO) return;
         const labor = parseFloat(editLabor) || 0;
@@ -231,12 +264,16 @@ export const WorkOrdersPage = () => {
             await updateWorkOrder(editingWO, {
                 labor_cost: labor,
                 parts_cost: parts,
-                total_price: labor + parts
-            });
-            alert('✅ Precios actualizados.');
+                total_price: labor + parts,
+                payment_method: finalPaymentMethod
+            }, {
+                method: finalPaymentMethod
+            }, null, finalMechanicIds);
+            
+            alert('✅ Orden actualizada correctamente.');
             setEditingWO(null);
         } catch (e) {
-            alert('Error: ' + e.message);
+            alert('Error al guardar cambios: ' + e.message);
         }
     };
 
@@ -281,14 +318,9 @@ export const WorkOrdersPage = () => {
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button
                                                 className="btn btn-primary btn-sm"
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    setEditingWO(wo.id); 
-                                                    setEditLabor(wo.labor_cost || 0); 
-                                                    setEditParts(wo.parts_cost || 0); 
-                                                }}
+                                                onClick={(e) => handleEditClick(e, wo.id)}
                                                 style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
-                                                title="Editar detalles o presupuesto de la orden"
+                                                title="Editar detalles, personal o forma de pago"
                                             >
                                                 EDITAR
                                             </button>
@@ -308,6 +340,21 @@ export const WorkOrdersPage = () => {
                                             >
                                                 FINALIZAR
                                             </button>
+                                            { user.role === 'admin' && (
+                                                <button
+                                                    className="btn btn-ghost btn-sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (window.confirm('¿Seguro que querés eliminar esta Orden de Trabajo? Esta acción no se puede deshacer.')) {
+                                                            deleteWorkOrder(wo.id).catch(err => alert('Error al eliminar: ' + err.message));
+                                                        }
+                                                    }}
+                                                    style={{ height: 32, width: 32, padding: 0, color: 'var(--danger)' }}
+                                                    title="Eliminar Orden de Trabajo"
+                                                >
+                                                    <Icon name="delete" size={18} />
+                                                </button>
+                                            )}
                                         </div>
                                     ) : null
                                 }
@@ -539,8 +586,8 @@ export const WorkOrdersPage = () => {
                 {finalizeWO && (() => {
                     const wo = MOCK.workOrders.find(w => w.id === finalizeWO);
                     return (
-                        <Modal title={`Finalizar OT #${wo?.order_number}`} onClose={() => setFinalizeWO(null)}>
-                            <div style={{ padding: 12, marginBottom: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                        <Modal title={`Finalizar OT #${wo?.order_number}`} onClose={() => setFinalizeWO(null)} width="600px">
+                            <div style={{ padding: 12, marginBottom: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                                     <FormField label="Mano de Obra ($)">
                                         <input type="number" className="form-input" value={editLabor} onChange={e => setEditLabor(e.target.value)} />
@@ -550,33 +597,92 @@ export const WorkOrdersPage = () => {
                                     </FormField>
                                 </div>
                                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>Monto total a cobrar:</span>
-                                    <span style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--primary)' }}>{formatCurrency((parseFloat(editLabor) || 0) + (parseFloat(editParts) || 0))}</span>
+                                    <div>
+                                        <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>Total a cobrar:</div>
+                                        <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--primary)' }}>{formatCurrency((parseFloat(editLabor) || 0) + (parseFloat(editParts) || 0))}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Vehículo:</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700 }}>{wo?.vehicles?.license_plate}</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <FormField label="¿Emitir Factura AFIP para el Cierre de Caja?">
-                                <select className="form-select" value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
-                                    <option value="INTERNAL">Ticket Interno (No Fiscal)</option>
-                                    <option value="FACTURA_B">Factura Electrónica B (AFIP)</option>
-                                    <option value="FACTURA_A">Factura Electrónica A (AFIP)</option>
-                                </select>
-                                <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: 8 }}>
-                                    Al confirmar, el monto se registrará como ingreso en la caja diaria.
-                                </small>
-                            </FormField>
-
-                            {invoiceType === 'FACTURA_A' && (
-                                <FormField label="CUIT del Cliente" style={{ marginTop: 12 }}>
-                                    <input
-                                        className="form-input"
-                                        placeholder="20123456789"
-                                        value={customerCuit}
-                                        onChange={e => setCustomerCuit(e.target.value.replace(/\D/g, ''))}
-                                        maxLength={11}
-                                    />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                <SectionHeader icon="payments" title="Forma de Pago" />
+                                <FormField label="Seleccionar Método">
+                                    <select className="form-select" value={finalPaymentMethod} onChange={e => setFinalPaymentMethod(e.target.value)}>
+                                        <option value="EFECTIVO">Efectivo 💵</option>
+                                        <option value="DEBITO">Débito 💳</option>
+                                        <option value="CREDITO">Crédito 💳</option>
+                                        <option value="TRANSFERENCIA">Transferencia 📱</option>
+                                        <option value="COMBINADO">Combinado 🔀</option>
+                                    </select>
                                 </FormField>
-                            )}
+
+                                {finalPaymentMethod === 'COMBINADO' && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                                        <FormField label="Efectivo">
+                                            <input type="number" className="form-input" value={finalCombinedAmounts.EFECTIVO} onChange={e => setFinalCombinedAmounts({...finalCombinedAmounts, EFECTIVO: e.target.value})} placeholder="0" />
+                                        </FormField>
+                                        <FormField label="Transferencia">
+                                            <input type="number" className="form-input" value={finalCombinedAmounts.TRANSFERENCIA} onChange={e => setFinalCombinedAmounts({...finalCombinedAmounts, TRANSFERENCIA: e.target.value})} placeholder="0" />
+                                        </FormField>
+                                        <FormField label="Débito">
+                                            <input type="number" className="form-input" value={finalCombinedAmounts.DEBITO} onChange={e => setFinalCombinedAmounts({...finalCombinedAmounts, DEBITO: e.target.value})} placeholder="0" />
+                                        </FormField>
+                                        <FormField label="Crédito">
+                                            <input type="number" className="form-input" value={finalCombinedAmounts.CREDITO} onChange={e => setFinalCombinedAmounts({...finalCombinedAmounts, CREDITO: e.target.value})} placeholder="0" />
+                                        </FormField>
+                                    </div>
+                                )}
+
+                                <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                                <SectionHeader icon="engineering" title="Personal y Comisión" />
+                                <FormField label="Mecánico(s) Responsable(s)">
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: 8, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-base)' }}>
+                                        {mechanics.map(m => (
+                                            <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: finalMechanicIds.includes(m.id) ? 'var(--primary-light)' : 'var(--bg-hover)', borderRadius: 20, cursor: 'pointer', fontSize: 12 }}>
+                                                <input type="checkbox" checked={finalMechanicIds.includes(m.id)} onChange={e => {
+                                                    const ids = e.target.checked
+                                                        ? [...finalMechanicIds, m.id]
+                                                        : finalMechanicIds.filter(id => id !== m.id);
+                                                    setFinalMechanicIds(ids);
+                                                }} />
+                                                {m.name}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </FormField>
+
+                                <FormField label="% Comisión para esta OT">
+                                    <input className="form-input" type="number" step="0.1" value={finalCommissionRate} onChange={e => setFinalCommissionRate(e.target.value)} placeholder="Ej: 15" />
+                                </FormField>
+
+                                <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                                <SectionHeader icon="receipt" title="Comprobante Fiscal" />
+                                <FormField label="¿Emitir Factura AFIP?">
+                                    <select className="form-select" value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
+                                        <option value="INTERNAL">Ticket Interno (No Fiscal)</option>
+                                        <option value="FACTURA_B">Factura Electrónica B (AFIP)</option>
+                                        <option value="FACTURA_A">Factura Electrónica A (AFIP)</option>
+                                    </select>
+                                </FormField>
+
+                                {invoiceType === 'FACTURA_A' && (
+                                    <FormField label="CUIT del Cliente">
+                                        <input
+                                            className="form-input"
+                                            placeholder="20123456789"
+                                            value={customerCuit}
+                                            onChange={e => setCustomerCuit(e.target.value.replace(/\D/g, ''))}
+                                            maxLength={11}
+                                        />
+                                    </FormField>
+                                )}
+                            </div>
 
                             <FormRow style={{ marginTop: 24, justifyContent: 'flex-end' }}>
                                 <button className="btn btn-ghost" onClick={() => setFinalizeWO(null)} disabled={isFinalizing}>Cancelar</button>
@@ -684,19 +790,55 @@ export const WorkOrdersPage = () => {
                 )}
 
                 {editingWO && (
-                    <Modal title="Editar Presupuesto de la Orden" onClose={() => setEditingWO(null)} width="400px"
+                    <Modal title={`Editar Orden #${MOCK.workOrders.find(w => w.id === editingWO)?.order_number}`} onClose={() => setEditingWO(null)} width="500px"
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setEditingWO(null)}>Cancelar</button><button className="btn btn-primary" onClick={handleSaveEditPrices}>Guardar Cambios</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <FormField label="Mano de Obra ($)">
-                                <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700, color: 'var(--success)' }} value={editLabor} onChange={e => setEditLabor(e.target.value)} />
-                            </FormField>
-                            <FormField label="Repuestos Extras ($)">
-                                <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700 }} value={editParts} onChange={e => setEditParts(e.target.value)} />
-                            </FormField>
-                            <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', textAlign: 'right' }}>
+                            <SectionHeader icon="attach_money" title="Presupuesto" />
+                            <FormRow>
+                                <FormField label="Mano de Obra ($)">
+                                    <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700, color: 'var(--success)' }} value={editLabor} onChange={e => setEditLabor(e.target.value)} />
+                                </FormField>
+                                <FormField label="Repuestos Extras ($)">
+                                    <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700 }} value={editParts} onChange={e => setEditParts(e.target.value)} />
+                                </FormField>
+                            </FormRow>
+                            
+                            <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', textAlign: 'right', border: '1px solid var(--border)' }}>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Monto Total Estimado:</div>
                                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{formatCurrency((parseFloat(editLabor) || 0) + (parseFloat(editParts) || 0))}</div>
                             </div>
+
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                            <SectionHeader icon="engineering" title="Personal Asignado" />
+                            <FormField label="Seleccionar Técnico(s)">
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: 8, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-base)' }}>
+                                    {mechanics.map(m => (
+                                        <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: finalMechanicIds.includes(m.id) ? 'var(--primary-light)' : 'var(--bg-hover)', borderRadius: 20, cursor: 'pointer', fontSize: 12 }}>
+                                            <input type="checkbox" checked={finalMechanicIds.includes(m.id)} onChange={e => {
+                                                const ids = e.target.checked
+                                                    ? [...finalMechanicIds, m.id]
+                                                    : finalMechanicIds.filter(id => id !== m.id);
+                                                setFinalMechanicIds(ids);
+                                            }} />
+                                            {m.name}
+                                        </label>
+                                    ))}
+                                </div>
+                            </FormField>
+
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+
+                            <SectionHeader icon="payments" title="Forma de Pago Preferida" />
+                            <FormField label="Método">
+                                <select className="form-select" value={finalPaymentMethod} onChange={e => setFinalPaymentMethod(e.target.value)}>
+                                    <option value="EFECTIVO">Efectivo 💵</option>
+                                    <option value="DEBITO">Débito 💳</option>
+                                    <option value="CREDITO">Crédito 💳</option>
+                                    <option value="TRANSFERENCIA">Transferencia 📱</option>
+                                    <option value="COMBINADO">Combinado (Ver al finalizar) 🔀</option>
+                                </select>
+                            </FormField>
                         </div>
                     </Modal>
                 )}
