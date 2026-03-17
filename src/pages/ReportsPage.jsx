@@ -13,7 +13,7 @@ import {
 } from '../components/ui';
 
 export const ReportsPage = () => {
-    const { data: MOCK, getEmployeeProductivity, getClientVehicles } = useApp();
+    const { data: MOCK, getEmployeeProductivity, getClientVehicles, getDetailedEmployeeStats } = useApp();
     const { employees } = useAuth();
     const [tab, setTab] = useState('revenue');
 
@@ -171,22 +171,43 @@ export const ReportsPage = () => {
                                     <GlassCard key={emp.id} style={{ padding: 16 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                                             <strong style={{ fontSize: 14 }}>{emp.name}</strong>
-                                            <StatusBadge status="En Box" labelOverride={emp.role.toUpperCase()} />
+                                            <StatusBadge status="Producción" labelOverride={emp.role.toUpperCase()} />
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                                                <span style={{ color: 'var(--text-muted)' }}>Trabajos:</span>
-                                                <strong>{prod.count}</strong>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                                                <span style={{ color: 'var(--text-muted)' }}>Generado (MO):</span>
-                                                <strong>{formatCurrency(prod.total_labor)}</strong>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
-                                                <span style={{ fontWeight: 600, fontSize: 13 }}>Comisión:</span>
-                                                <strong style={{ color: 'var(--primary)', fontSize: 14 }}>{formatCurrency(prod.commission)}</strong>
-                                            </div>
-                                        </div>
+                                        {(() => {
+                                            const stats = getDetailedEmployeeStats(emp.id);
+                                            return (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                                        <span style={{ color: 'var(--text-muted)' }}>Horas (Turno):</span>
+                                                        <strong>{stats.totalHours}h</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                                        <span style={{ color: 'var(--text-muted)' }}>Trabajos:</span>
+                                                        <strong>{stats.productionCount}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                                        <span style={{ color: 'var(--text-muted)' }}>Total Generado:</span>
+                                                        <strong>{formatCurrency(stats.totalProductionAmount)}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
+                                                        <span style={{ fontWeight: 600, fontSize: 13 }}>Comisión:</span>
+                                                        <strong style={{ color: 'var(--primary)', fontSize: 14 }}>{formatCurrency(prod.commission)}</strong>
+                                                    </div>
+                                                    
+                                                    <details style={{ marginTop: 8 }}>
+                                                        <summary style={{ fontSize: 11, cursor: 'pointer', color: 'var(--primary)', fontWeight: 700 }}>Ver Actividad Detallada</summary>
+                                                        <div style={{ marginTop: 8, maxHeight: 150, overflowY: 'auto', fontSize: 11 }}>
+                                                            {stats.productionList.map((item, idx) => (
+                                                                <div key={idx} style={{ padding: '4px 0', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span>{new Date(item.date).toLocaleDateString('es-AR')} - {item.type}</span>
+                                                                    <strong>{formatCurrency(item.amount)}</strong>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </details>
+                                                </div>
+                                            );
+                                        })()}
                                     </GlassCard>
                                 );
                             })}
