@@ -1135,6 +1135,7 @@ export const AppProvider = ({ children }) => {
             addSupplier,
             updateSupplier,
             addWorkOrder,
+            deleteWorkOrder,
             addItemsToWorkOrder,
             updateWorkOrder,
             addPayment,
