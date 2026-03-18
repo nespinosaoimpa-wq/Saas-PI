@@ -768,20 +768,24 @@ export const AppProvider = ({ children }) => {
     };
 
     const deleteWorkOrder = async (id) => {
-        // En un taller real, borrar una OT implica borrar sus assignments e items
-        // O simplemente marcarla como CANCELADA. El usuario pidió BORRAR.
         try {
+            console.log("Iniciando borrado de OT:", id);
+            
             const { error: err1 } = await supabase.from('payments').delete().eq('work_order_id', id);
-            if (err1) throw new Error("Pagos:" + err1.message);
+            if (err1) throw new Error("Pagos: " + err1.message);
 
             const { error: err2 } = await supabase.from('work_order_assignments').delete().eq('work_order_id', id);
-            if (err2) throw new Error("Asignaciones:" + err2.message);
+            if (err2) throw new Error("Asignaciones: " + err2.message);
 
             const { error: err3 } = await supabase.from('work_order_items').delete().eq('work_order_id', id);
-            if (err3) throw new Error("Items:" + err3.message);
+            if (err3) throw new Error("Items: " + err3.message);
 
-            const { error: err4 } = await supabase.from('work_orders').delete().eq('id', id);
-            if (err4) throw new Error("OT:" + err4.message);
+            const { data, error: err4 } = await supabase.from('work_orders').delete().eq('id', id).select();
+            if (err4) throw new Error("OT: " + err4.message);
+            
+            if (!data || data.length === 0) {
+                 throw new Error("No se pudo borrar. Es posible que no tengas permisos (RLS) o el ID (" + id + ") no exista.");
+            }
 
             setData(prev => ({
                 ...prev,
@@ -789,9 +793,12 @@ export const AppProvider = ({ children }) => {
                 assignments: (prev.assignments || []).filter(a => a.work_order_id !== id),
                 payments: (prev.payments || []).filter(p => p.work_order_id !== id)
             }));
+            
+            alert('OT eliminada exitosamente.');
             return true;
         } catch (e) {
             console.error("Error deleting work order", e);
+            alert("No se pudo eliminar la OT: " + e.message);
             throw e;
         }
     };
