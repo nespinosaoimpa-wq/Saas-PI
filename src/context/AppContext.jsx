@@ -771,11 +771,17 @@ export const AppProvider = ({ children }) => {
         // En un taller real, borrar una OT implica borrar sus assignments e items
         // O simplemente marcarla como CANCELADA. El usuario pidió BORRAR.
         try {
-            await supabase.from('payments').delete().eq('work_order_id', id);
-            await supabase.from('work_order_assignments').delete().eq('work_order_id', id);
-            await supabase.from('work_order_items').delete().eq('work_order_id', id);
-            const { error } = await supabase.from('work_orders').delete().eq('id', id);
-            if (error) throw error;
+            const { error: err1 } = await supabase.from('payments').delete().eq('work_order_id', id);
+            if (err1) throw new Error("Pagos:" + err1.message);
+
+            const { error: err2 } = await supabase.from('work_order_assignments').delete().eq('work_order_id', id);
+            if (err2) throw new Error("Asignaciones:" + err2.message);
+
+            const { error: err3 } = await supabase.from('work_order_items').delete().eq('work_order_id', id);
+            if (err3) throw new Error("Items:" + err3.message);
+
+            const { error: err4 } = await supabase.from('work_orders').delete().eq('id', id);
+            if (err4) throw new Error("OT:" + err4.message);
 
             setData(prev => ({
                 ...prev,

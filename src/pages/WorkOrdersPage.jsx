@@ -135,11 +135,15 @@ export const WorkOrdersPage = () => {
 
     const selectedMechanics = mechanics.filter(m => newOrder.mechanic_ids.includes(m.id));
 
+    const [isCreatingOT, setIsCreatingOT] = useState(false);
+
     const handleCreateWorkOrder = async () => {
         if (!newOrder.client_id || !newOrder.vehicle_id || !newOrder.description) {
             alert('Por favor completá Cliente, Vehículo y Descripción.');
             return;
         }
+        setIsCreatingOT(true);
+        try {
 
         const createdWO = await addWorkOrder({
             ...newOrder,
@@ -156,9 +160,14 @@ export const WorkOrdersPage = () => {
         setClientSearch('');
         setSelectedProducts([]);
         setProductSearch('');
-        // Opcional: imprimir el ticket de ingreso inmediatamente
-        if (createdWO) {
-            setPrintWO(createdWO);
+            // Opcional: imprimir el ticket de ingreso inmediatamente
+            if (createdWO) {
+                setPrintWO(createdWO);
+            }
+        } catch (error) {
+            alert('Error al crear OT: ' + (error.message || 'Error desconocido'));
+        } finally {
+            setIsCreatingOT(false);
         }
     };
 
@@ -373,7 +382,7 @@ export const WorkOrdersPage = () => {
 
                 {showNew && (
                     <Modal title="Nueva Orden de Trabajo" onClose={() => setShowNew(false)} width="800px"
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleCreateWorkOrder}><Icon name="print" size={16} /> Crear OT</button></Fragment>}>
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)} disabled={isCreatingOT}>Cancelar</button><button className="btn btn-primary" onClick={handleCreateWorkOrder} disabled={isCreatingOT}><Icon name="print" size={16} /> {isCreatingOT ? 'Creando...' : 'Crear OT'}</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {newOrder.client_id ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
