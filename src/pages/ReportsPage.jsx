@@ -165,7 +165,7 @@ export const ReportsPage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                         <SectionHeader icon="engineering" title="Rendimiento del Personal" />
                         <div className="grid-auto-cards-sm">
-                            {(employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero').map(emp => {
+                            {(employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero' || e.role === 'cajero').map(emp => {
                                 const prod = getEmployeeProductivity(emp.id);
                                 return (
                                     <GlassCard key={emp.id} style={{ padding: 16 }}>
@@ -243,11 +243,11 @@ export const ReportsPage = () => {
                             <DataTable
                                 columns={[
                                     { key: 'name', label: 'Empleado', render: r => <strong>{r.name}</strong> },
-                                    { key: 'count', label: 'OTs', render: r => getEmployeeProductivity(r.id).count },
-                                    { key: 'labor', label: 'Mano de Obra', render: r => formatCurrency(getEmployeeProductivity(r.id).total_labor) },
+                                    { key: 'count', label: 'OTs/Ventas', render: r => getEmployeeProductivity(r.id).count },
+                                    { key: 'labor', label: 'Generado', render: r => formatCurrency(getEmployeeProductivity(r.id).total_labor) },
                                     { key: 'comm', label: 'A Pagar', render: r => <strong style={{ color: 'var(--success)' }}>{formatCurrency(getEmployeeProductivity(r.id).commission)}</strong> }
                                 ]}
-                                data={(employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero')}
+                                data={(employees || []).filter(e => e.role === 'mecanico' || e.role === 'gomero' || e.role === 'cajero')}
                             />
                         </GlassCard>
                     </div>

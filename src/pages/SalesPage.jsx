@@ -167,7 +167,7 @@ export const SalesPage = () => {
                 cae: afipData.cae,
                 cae_due_date: afipData.caeDueDate,
                 receipt_number: afipData.receiptText
-            } : null, user?.id);
+            } : null, user?.id, extraProfit);
 
             const saleData = {
                 items: [...cart],

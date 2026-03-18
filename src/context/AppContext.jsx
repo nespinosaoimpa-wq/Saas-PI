@@ -931,7 +931,7 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Punto de Venta — processSale
     // ==========================================
-    const processSale = async (cart, payMethod, afipData = null, employeeId = null) => {
+    const processSale = async (cart, payMethod, afipData = null, employeeId = null, cashierProfit = 0) => {
         const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
         const today = new Date().toISOString().split('T')[0];
 
@@ -946,6 +946,7 @@ export const AppProvider = ({ children }) => {
                 type: 'VENTA',
                 reference: null,
                 employee_id: employeeId || null,
+                cashier_profit_amount: cashierProfit,
                 cae: afipData?.cae || null,
                 cae_due_date: afipData?.cae_due_date || null,
                 receipt_number: afipData?.receipt_number || null
@@ -988,16 +989,15 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Comisiones
     // ==========================================
-    const getCommissions = (technicianId) => {
+    const getCommissions = (employeeId) => {
         // 1. Comisiones por Órdenes de Trabajo (OT)
-        const assignments = (data.assignments || []).filter(a => a.mechanic_id === technicianId);
+        const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
         const otCommissions = assignments.reduce((sum, a) => {
             const wo = data.workOrders?.find(w => w.id === a.work_order_id);
             if (wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado')) {
-                const labor = parseFloat(wo.labor_base_price) || 0;
-                // Buscar tasa real del empleado
-                const emp = (data.employees || []).find(e => e.id === technicianId);
-                const rate = emp ? parseFloat(emp.commission_rate) : (parseFloat(a.labor_commission_percent) || 10);
+                const labor = parseFloat(wo.labor_cost) || 0;
+                const emp = (data.employees || []).find(e => e.id === employeeId);
+                const rate = wo.applied_commission_rate ? parseFloat(wo.applied_commission_rate) : (emp ? parseFloat(emp.commission_rate) : 0);
                 return sum + (labor * (rate / 100));
             }
             return sum;
@@ -1005,10 +1005,15 @@ export const AppProvider = ({ children }) => {
 
         // 2. Comisiones por Servicios Rápidos (Gomería)
         const quickCommissions = (data.employeeEarnings || [])
-            .filter(e => e.employee_id === technicianId && e.quick_service_id)
+            .filter(e => e.employee_id === employeeId && e.quick_service_id)
             .reduce((sum, e) => sum + (parseFloat(e.amount_earned) || 0), 0);
 
-        return otCommissions + quickCommissions;
+        // 3. Comisiones de Cajero (Ventas POS)
+        const cashierCommissions = (data.payments || [])
+            .filter(p => p.employee_id === employeeId && p.type === 'VENTA')
+            .reduce((sum, p) => sum + (parseFloat(p.cashier_profit_amount) || 0), 0);
+
+        return otCommissions + quickCommissions + cashierCommissions;
     };
 
     const getDetailedEmployeeStats = (employeeId) => {
@@ -1057,7 +1062,19 @@ export const AppProvider = ({ children }) => {
                 status: 'Finalizado'
             }));
 
-        const combinedProduction = [...otProduction, ...quickProduction].sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Producción de Cajeros (Ventas POS)
+        const posProduction = (data.payments || [])
+            .filter(p => p.employee_id === employeeId && p.type === 'VENTA')
+            .map(p => ({
+                id: p.id,
+                date: p.date || p.created_at,
+                type: 'PUNTO DE VENTA',
+                description: p.description || 'Venta de Mostrador',
+                amount: parseFloat(p.amount) || 0,
+                status: 'Finalizado'
+            }));
+
+        const combinedProduction = [...otProduction, ...quickProduction, ...posProduction].sort((a, b) => new Date(b.date) - new Date(a.date));
         const totalProductionAmount = combinedProduction.reduce((sum, item) => sum + item.amount, 0);
 
         return {
@@ -1070,20 +1087,10 @@ export const AppProvider = ({ children }) => {
     };
 
     const getEmployeeProductivity = (employeeId) => {
-        const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
-        const finished = assignments.filter(a => {
-            const wo = data.workOrders?.find(w => w.id === a.work_order_id);
-            return wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado');
-        });
-
-        const totalGenerated = finished.reduce((sum, a) => {
-            const wo = data.workOrders?.find(w => w.id === a.work_order_id);
-            return sum + (parseFloat(wo.labor_cost) || 0);
-        }, 0);
-
+        const stats = getDetailedEmployeeStats(employeeId);
         return {
-            count: finished.length,
-            total_labor: totalGenerated,
+            count: stats.productionCount,
+            total_labor: stats.totalProductionAmount,
             commission: getCommissions(employeeId)
         };
     };
