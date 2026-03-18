@@ -314,7 +314,7 @@ export const WorkOrdersPage = () => {
                                 }}
                                 onViewVehicle={setVehicleSheet}
                                 rightAction={
-                                    (wo.status === 'Pendiente' || wo.status === 'En Box') && ['admin', 'cajero'].includes(user.role) ? (
+                                    (wo.status === 'Pendiente' || wo.status === 'En Box' || user.role === 'admin') ? (
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button
                                                 className="btn btn-primary btn-sm"
@@ -332,14 +332,16 @@ export const WorkOrdersPage = () => {
                                             >
                                                 + PRODUCTO
                                             </button>
-                                            <button
-                                                className="btn btn-success btn-sm"
-                                                onClick={(e) => handleFinalizeClick(e, wo.id)}
-                                                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
-                                                title="Finalizar y registrar cobro de la orden"
-                                            >
-                                                FINALIZAR
-                                            </button>
+                                            { (wo.status === 'Pendiente' || wo.status === 'En Box') && (
+                                                <button
+                                                    className="btn btn-success btn-sm"
+                                                    onClick={(e) => handleFinalizeClick(e, wo.id)}
+                                                    style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700 }}
+                                                    title="Finalizar y registrar cobro de la orden"
+                                                >
+                                                    FINALIZAR
+                                                </button>
+                                            )}
                                             { user.role === 'admin' && (
                                                 <button
                                                     className="btn btn-ghost btn-sm"

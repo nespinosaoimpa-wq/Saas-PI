@@ -50,23 +50,35 @@ export const DailyWorkPage = () => {
         });
     };
 
+    const [finalizeOT, setFinalizeOT] = useState(null);
+    const [otPaymentMethod, setOtPaymentMethod] = useState('EFECTIVO');
+    const [otCombinedAmounts, setOtCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', CREDITO: '', DEBITO: '' });
+
     const handlePhotoCapture = (woId, file) => {
         if (!file) return;
-        // Muestra aviso temporalmente simulando guardado de imagen
         alert(`📸 Foto capturada correctamente para la OT. Guardada como: ${file.name}`);
     };
 
-    const handleFinishOrder = (id) => {
-        if (window.confirm('¿Confirmar finalización del trabajo?')) {
-            const updates = {
-                status: 'Finalizado',
-                completed_at: new Date().toISOString()
-            };
-            if (observationsState[id]) {
-                updates.mechanic_notes = observationsState[id];
-            }
-            updateWorkOrder(id, updates);
+    const handleFinishClick = (id) => {
+        setFinalizeOT(id);
+        setOtPaymentMethod('EFECTIVO');
+        setOtCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', CREDITO: '', DEBITO: '' });
+    };
+
+    const confirmFinalizeOT = () => {
+        if (!finalizeOT) return;
+        const updates = {
+            status: 'Finalizado',
+            completed_at: new Date().toISOString()
+        };
+        if (observationsState[finalizeOT]) {
+            updates.mechanic_notes = observationsState[finalizeOT];
         }
+        updateWorkOrder(finalizeOT, updates, {
+            method: otPaymentMethod,
+            combinedAmounts: otPaymentMethod === 'COMBINADO' ? otCombinedAmounts : null
+        });
+        setFinalizeOT(null);
     };
 
     const DEFAULT_QUICK_ACTIONS = [
@@ -344,7 +356,7 @@ export const DailyWorkPage = () => {
 
                                     <div style={{ display: 'flex', gap: 10 }}>
                                         { !['mecanico', 'gomero'].includes(user?.role || 'mecanico') && (
-                                            <button className="btn btn-success" style={{ flex: 1, height: 46, fontSize: 14, fontWeight: 700 }} onClick={() => handleFinishOrder(wo.id)} title="Finalizar el trabajo y pasarlo a cobros">
+                                            <button className="btn btn-success" style={{ flex: 1, height: 46, fontSize: 14, fontWeight: 700 }} onClick={() => handleFinishClick(wo.id)} title="Finalizar el trabajo y registrar cobro">
                                                 <Icon name="check_circle" size={20} /> FINALIZAR TRABAJO
                                             </button>
                                         )}
@@ -689,6 +701,39 @@ export const DailyWorkPage = () => {
             )}
 
             {/* Modal de POS Express (Inventario) */}
+            {finalizeOT && (
+                <Modal title="Finalizar e Ingresar a Caja" onClose={() => setFinalizeOT(null)}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>
+                            Al finalizar este trabajo, se registrará el ingreso correspondiente en caja automáticamente.
+                        </p>
+                        <FormField label="Método de Pago">
+                            <select className="form-select" value={otPaymentMethod} onChange={e => setOtPaymentMethod(e.target.value)}>
+                                <option value="EFECTIVO">Efectivo 💵</option>
+                                <option value="DEBITO">Débito 💳</option>
+                                <option value="CREDITO">Crédito 💳</option>
+                                <option value="TRANSFERENCIA">Transferencia 📱</option>
+                                <option value="COMBINADO">Combinado 🔀</option>
+                            </select>
+                        </FormField>
+
+                        {otPaymentMethod === 'COMBINADO' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                                <FormField label="Efectivo"><input type="number" className="form-input" value={otCombinedAmounts.EFECTIVO} onChange={e => setOtCombinedAmounts({...otCombinedAmounts, EFECTIVO: e.target.value})} /></FormField>
+                                <FormField label="Transferencia"><input type="number" className="form-input" value={otCombinedAmounts.TRANSFERENCIA} onChange={e => setOtCombinedAmounts({...otCombinedAmounts, TRANSFERENCIA: e.target.value})} /></FormField>
+                                <FormField label="Débito"><input type="number" className="form-input" value={otCombinedAmounts.DEBITO} onChange={e => setOtCombinedAmounts({...otCombinedAmounts, DEBITO: e.target.value})} /></FormField>
+                                <FormField label="Crédito"><input type="number" className="form-input" value={otCombinedAmounts.CREDITO} onChange={e => setOtCombinedAmounts({...otCombinedAmounts, CREDITO: e.target.value})} /></FormField>
+                            </div>
+                        )}
+
+                        <FormRow style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+                            <button className="btn btn-ghost" onClick={() => setFinalizeOT(null)}>Cancelar</button>
+                            <button className="btn btn-success" onClick={confirmFinalizeOT}>Confirmar Finalización</button>
+                        </FormRow>
+                    </div>
+                </Modal>
+            )}
+
             {showExpressPOS && (
                 <Modal title="Agregar Producto de Inventario" onClose={() => setShowExpressPOS(false)} width="500px">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
