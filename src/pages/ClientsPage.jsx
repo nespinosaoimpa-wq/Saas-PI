@@ -166,7 +166,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                         <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <strong style={{ color: 'var(--text-primary)' }}>Tel:</strong> {selectedClient?.phone || '-'}
                                             {selectedClient?.phone && (
-                                                <a href={getWhatsAppUrl(selectedClient.phone, `Hola ${selectedClient.first_name || ''}, nos comunicamos de PIRIPI PRO...`)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: '#25D366' }}>
+                                                <a href={getWhatsAppUrl(selectedClient.phone, `Hola ${selectedClient.first_name || ''}, nos comunicamos de PIRIPI SANTA FE...`)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: '#25D366' }}>
                                                     <Icon name="whatshot" size={16} /> WhatsApp
                                                 </a>
                                             )}

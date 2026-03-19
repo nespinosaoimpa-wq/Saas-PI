@@ -30,13 +30,10 @@ export const PrintableTicket = ({ workOrder, onClose }) => {
                 {/* Área imprimible */}
                 <div className="ticket-paper">
                     <div className="ticket-header">
-                        <h2>PIRIPI PRO</h2>
+                        <h2>PIRIPI SANTA FE</h2>
                         <p>Lubricentro y Gomería</p>
-                        <p>CUIT: 30-12345678-9</p>
-                        <p>Av. Siempre Viva 123, Mar del Plata</p>
+                        <p>Santa Fe, Argentina</p>
                     </div>
-
-                    <div className="ticket-divider" />
 
                     <div className="ticket-divider" />
 
@@ -67,23 +64,40 @@ export const PrintableTicket = ({ workOrder, onClose }) => {
                         <table>
                             <thead>
                                 <tr>
+                                    <th>CANT</th>
                                     <th>DESCRIPCIÓN</th>
                                     <th style={{ textAlign: 'right' }}>IMPORTE</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>{workOrder.description || 'Servicio realizado'}</td>
-                                    <td style={{ textAlign: 'right' }}>{formatCurrency(totalPrice)}</td>
-                                </tr>
-                                {laborCost > 0 && (
+                                {/* Si hay items detallados, los mostramos */}
+                                {workOrder.items && workOrder.items.length > 0 ? (
+                                    workOrder.items.map((item, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px dashed #eee' }}>
+                                            <td style={{ textAlign: 'center' }}>{item.quantity || 1}</td>
+                                            <td>{item.description || item.name}</td>
+                                            <td style={{ textAlign: 'right' }}>{formatCurrency(item.total_price || (item.unit_price * item.quantity) || 0)}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td>1</td>
+                                        <td>{workOrder.description || 'Servicio realizado'}</td>
+                                        <td style={{ textAlign: 'right' }}>{formatCurrency(totalPrice)}</td>
+                                    </tr>
+                                )}
+
+                                {/* Mostrar Mano de Obra por separado si existe y no está en items (retrocompatibilidad) */}
+                                {laborCost > 0 && (!workOrder.items || workOrder.items.length === 0) && (
                                     <tr style={{ fontSize: '0.85em', color: '#666' }}>
+                                        <td></td>
                                         <td style={{ paddingLeft: 16 }}>— Mano de Obra</td>
                                         <td style={{ textAlign: 'right' }}>{formatCurrency(laborCost)}</td>
                                     </tr>
                                 )}
-                                {partsCost > 0 && (
+                                {partsCost > 0 && (!workOrder.items || workOrder.items.length === 0) && (
                                     <tr style={{ fontSize: '0.85em', color: '#666' }}>
+                                        <td></td>
                                         <td style={{ paddingLeft: 16 }}>— Repuestos / Materiales</td>
                                         <td style={{ textAlign: 'right' }}>{formatCurrency(partsCost)}</td>
                                     </tr>

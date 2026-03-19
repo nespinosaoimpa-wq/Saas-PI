@@ -281,7 +281,7 @@ export const DailyWorkPage = () => {
                 .price { font-size: 22px; font-weight: bold; margin: 10px 0; }
             </style></head>
             <body>
-                <h2>PIRIPI PRO</h2>
+                <h2>PIRIPI SANTA FE</h2>
                 <p>Lubricentro & Gomería</p>
                 <div class="line"></div>
                 <p><strong>SERVICIO EXPRESS</strong></p>

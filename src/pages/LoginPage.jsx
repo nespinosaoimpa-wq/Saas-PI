@@ -112,7 +112,7 @@ export function LoginPage() {
                         <img src="/logo-piripi.png" alt="Piripi Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
                     </div>
                     <h1 style={{ fontSize: 'clamp(28px, 4vh, 42px)', letterSpacing: -1.5, color: '#ffffff', fontWeight: 900, marginBottom: 4 }}>
-                        PIRIPI <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>PRO</span>
+                        PIRIPI <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SANTA FE</span>
                     </h1>
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'clamp(14px, 1.8vh, 18px)', fontWeight: 500, letterSpacing: 0.5 }}>Sistema de Gestión Integral</p>
                 </div>

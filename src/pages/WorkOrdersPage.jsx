@@ -371,7 +371,12 @@ export const WorkOrdersPage = () => {
                                 }
                                 onClick={() => {
                                     if (wo.status === 'Finalizado' || wo.status === 'Cobrado') {
-                                        setPrintWO(wo);
+                                        // Adjuntar items al objeto de la OT para que el ticket pueda mostrarlos
+                                        const woWithItems = {
+                                            ...wo,
+                                            items: MOCK.workOrderItems?.filter(i => i.work_order_id === wo.id) || []
+                                        };
+                                        setPrintWO(woWithItems);
                                     }
                                 }}
                             />

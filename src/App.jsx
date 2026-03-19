@@ -183,7 +183,7 @@ function App() {
                     <div className="sidebar-brand-icon">
                         <Icon name="precision_manufacturing" />
                     </div>
-                    <h1>PIRIPI <strong>PRO</strong></h1>
+                    <h1>PIRIPI <strong>SANTA FE</strong></h1>
                 </div>
 
                 <nav className="sidebar-nav">

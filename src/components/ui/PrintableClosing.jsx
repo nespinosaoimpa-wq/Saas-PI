@@ -17,7 +17,7 @@ export const PrintableClosing = ({ closing, onClose }) => {
         }} className="printable-area">
             <div style={{ maxWidth: '400px', margin: '0 auto', border: '1px solid #eee', padding: '20px' }}>
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                    <h2 style={{ margin: 0 }}>PIRIPI PRO</h2>
+                    <h2 style={{ margin: 0 }}>PIRIPI SANTA FE</h2>
                     <p style={{ margin: '4px 0', fontSize: 14 }}>RESUMEN DE CIERRE DE CAJA</p>
                     <div style={{ height: 1, background: '#000', margin: '10px 0' }} />
                 </div>

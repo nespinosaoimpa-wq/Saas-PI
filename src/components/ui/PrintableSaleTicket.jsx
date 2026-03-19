@@ -16,10 +16,9 @@ export const PrintableSaleTicket = ({ sale, onClose }) => {
 
                 <div className="ticket-paper">
                     <div className="ticket-header">
-                        <h2>PIRIPI PRO</h2>
+                        <h2>PIRIPI SANTA FE</h2>
                         <p>Lubricentro y Gomería</p>
-                        <p>CUIT: 30-12345678-9</p>
-                        <p>Av. Siempre Viva 123, Mar del Plata</p>
+                        <p>Santa Fe, Argentina</p>
                     </div>
 
                     <div className="ticket-divider" />
