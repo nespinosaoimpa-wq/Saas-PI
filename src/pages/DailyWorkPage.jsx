@@ -20,6 +20,10 @@ export const DailyWorkPage = () => {
     const [selectedQueueClient, setSelectedQueueClient] = useState(null);
     const [newQueueName, setNewQueueName] = useState('');
 
+    // Cart Item Price Edit State
+    const [editingCartItemIdx, setEditingCartItemIdx] = useState(null);
+    const [editingCartPrice, setEditingCartPrice] = useState('');
+
     // Custom Service State
     const [showCustomModal, setShowCustomModal] = useState(false);
     const [customService, setCustomService] = useState({ label: '', price: '' });
@@ -113,6 +117,18 @@ export const DailyWorkPage = () => {
 
     const removeFromCart = (index) => {
         setCart(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const startEditCartPrice = (idx, currentPrice) => {
+        setEditingCartItemIdx(idx);
+        setEditingCartPrice(currentPrice.toString());
+    };
+
+    const saveEditCartPrice = () => {
+        if (editingCartItemIdx === null) return;
+        const newPrice = parseFloat(editingCartPrice) || 0;
+        setCart(prev => prev.map((item, i) => i === editingCartItemIdx ? { ...item, currentPrice: newPrice } : item));
+        setEditingCartItemIdx(null);
     };
 
     const openPaymentModal = () => {
@@ -439,7 +455,10 @@ export const DailyWorkPage = () => {
                                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, marginBottom: 4 }}>
                                         <span>{item.label} {item.isDiscounted && <small style={{ color: 'var(--success)', fontWeight: 700 }}>(50% desc)</small>}</span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <strong>{formatCurrency(item.currentPrice)}</strong>
+                                            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => startEditCartPrice(idx, item.currentPrice)}>
+                                                <strong>{formatCurrency(item.currentPrice)}</strong>
+                                                <Icon name="edit" size={14} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
+                                            </div>
                                             <button onClick={() => removeFromCart(idx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 0 }}>
                                                 <Icon name="delete" size={14} />
                                             </button>
@@ -792,6 +811,36 @@ export const DailyWorkPage = () => {
                         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 16 }}>
                             Podés entregarle el ticket impreso al cliente para que lo abone en caja.
                         </p>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Modal de Edición de Precio en Carrito */}
+            {editingCartItemIdx !== null && (
+                <Modal 
+                    title="Modificar Precio de Venta" 
+                    onClose={() => setEditingCartItemIdx(null)}
+                    footer={
+                        <React.Fragment>
+                            <button className="btn btn-ghost" onClick={() => setEditingCartItemIdx(null)}>Cancelar</button>
+                            <button className="btn btn-primary" onClick={saveEditCartPrice}>Confirmar Nuevo Precio</button>
+                        </React.Fragment>
+                    }
+                >
+                    <div style={{ padding: '0 20px' }}>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+                            Ingresá el precio especial para este servicio: <strong>{cart[editingCartItemIdx]?.label}</strong>
+                        </p>
+                        <FormField label="Precio Especial ($)">
+                            <input 
+                                type="number" 
+                                className="form-input" 
+                                autoFocus
+                                value={editingCartPrice} 
+                                onChange={e => setEditingCartPrice(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && saveEditCartPrice()}
+                            />
+                        </FormField>
                     </div>
                 </Modal>
             )}
