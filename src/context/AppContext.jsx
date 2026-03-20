@@ -2,11 +2,26 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { MOCK } from '../data/data';
 import * as XLSX from 'xlsx';
+import { useAuth } from './AuthContext';
 
 const AppContext = createContext();
 
 
 export const AppProvider = ({ children }) => {
+    const { user } = useAuth();
+
+    const logAudit = async (action, details = null) => {
+        if (!user) return;
+        try {
+            await supabase.from('audit_logs').insert([{
+                employee_id: user.id,
+                action,
+                details,
+                path: window.location?.pathname || '/'
+            }]);
+        } catch (e) { console.error('Error de auditoría:', e); }
+    };
+
     const [data, setData] = useState({
         clients: [],
         vehicles: [],
@@ -391,6 +406,7 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error creating client", error); throw error; }
 
+        logAudit('Crear Cliente', { client_name: clientData.first_name + ' ' + clientData.last_name, dni: clientData.dni });
 
         setData(prev => ({ ...prev, clients: [...prev.clients, newClient] }));
         return newClient;
@@ -400,6 +416,9 @@ export const AppProvider = ({ children }) => {
         const { data: updated, error } = await supabase
             .from('clients').update(updates).eq('id', id).select().single();
         if (error) { console.error("Error updating client", error); throw error; }
+        
+        logAudit('Actualizar Cliente', { client_id: id, updates });
+        
         setData(prev => ({ ...prev, clients: prev.clients.map(c => c.id === id ? { ...c, ...updated } : c) }));
         return updated;
     };
@@ -408,6 +427,9 @@ export const AppProvider = ({ children }) => {
         const { error } = await supabase
             .from('clients').delete().eq('id', id);
         if (error) { console.error("Error deleting client", error); throw error; }
+        
+        logAudit('Borrar Cliente', { client_id: id });
+        
         setData(prev => ({ ...prev, clients: prev.clients.filter(c => c.id !== id) }));
         return true;
     };
@@ -433,6 +455,7 @@ export const AppProvider = ({ children }) => {
             .single();
 
         if (error) { console.error("Error creating vehicle", error); throw error; }
+        logAudit('Crear Vehículo', { license_plate: vehicleData.license_plate, brand: vehicleData.brand });
         setData(prev => ({ ...prev, vehicles: [...prev.vehicles, newVehicle] }));
         return newVehicle;
     };
@@ -441,6 +464,7 @@ export const AppProvider = ({ children }) => {
         const { data: updated, error } = await supabase
             .from('vehicles').update(updates).eq('id', id).select().single();
         if (error) { console.error("Error updating vehicle", error); throw error; }
+        logAudit('Actualizar Vehículo', { vehicle_id: id, updates });
         setData(prev => ({ ...prev, vehicles: prev.vehicles.map(v => v.id === id ? { ...v, ...updated } : v) }));
         return updated;
     };
@@ -601,6 +625,8 @@ export const AppProvider = ({ children }) => {
             }
 
 
+            logAudit('Crear Orden de Trabajo', { order_number: newWo.order_number, total_price: woData.total_price });
+
             await loadData();
             return newWo;
         }
@@ -731,6 +757,8 @@ export const AppProvider = ({ children }) => {
                 }
             }
 
+            logAudit('Actualizar Orden de Trabajo', { work_order_id: id, status: updates.status, ...updates });
+
             setData(prev => ({
                 ...prev,
                 workOrders: prev.workOrders.map(wo => wo.id === id ? { ...wo, ...updates } : wo)
@@ -794,6 +822,8 @@ export const AppProvider = ({ children }) => {
                 payments: (prev.payments || []).filter(p => p.work_order_id !== id)
             }));
             
+            logAudit('Borrar Orden de Trabajo', { work_order_id: id });
+            
             alert('OT eliminada exitosamente.');
             return true;
         } catch (e) {
@@ -850,6 +880,9 @@ export const AppProvider = ({ children }) => {
 
 
         setData(prev => ({ ...prev, payments: [newPayment, ...prev.payments] }));
+        
+        logAudit('Registrar Pago/Ingreso', { amount: paymentData.amount, method: paymentData.method, description: paymentData.description });
+        
         return newPayment;
     };
 
@@ -899,6 +932,8 @@ export const AppProvider = ({ children }) => {
         if (error) { console.error("Error deleting payment", error); throw error; }
 
         setData(prev => ({ ...prev, payments: prev.payments.filter(p => p.id !== id) }));
+        
+        logAudit('Eliminar Pago/Movimiento', { payment_id: id });
     };
 
     const performCashClose = async (closeData) => {
@@ -941,6 +976,9 @@ export const AppProvider = ({ children }) => {
 
         // Reload all data so the view refreshes with the marked payments
         await loadData();
+        
+        logAudit('Cierre de Caja Realizado', { date: today, actual_cash: closeData.actual_cash, difference: closeData.difference });
+        
         return closing;
     };
 
@@ -987,8 +1025,11 @@ export const AppProvider = ({ children }) => {
             }
         }
 
-        // 3. Refresh data
+        // 3. Informar
         await loadData();
+        
+        logAudit('Procesar Venta POS', { total, payMethod, items_count: cart.length });
+        
         return total;
     };
 

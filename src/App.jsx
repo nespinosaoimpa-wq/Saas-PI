@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { useApp } from './context/AppContext';
 
 import { useAuth } from './context/AuthContext';
@@ -19,6 +20,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SalesPage } from './pages/SalesPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
+import { ProgrammerAuditPage } from './pages/ProgrammerAuditPage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -34,6 +36,7 @@ const PAGE_TITLES = {
     reports: { title: 'Reportes & Estadísticas', sub: 'Análisis de Rentabilidad y Rendimiento' },
     users: { title: 'Gestión de Personal', sub: 'Control de Usuarios, Roles y Permisos' },
     settings: { title: 'Configuración', sub: 'Ajustes del Sistema y Facturación AFIP' },
+    audit: { title: 'Auditoría del Sistema', sub: 'Registro de Actividad y Uso de la Plataforma' },
 };
 
 const PAGES = {
@@ -50,6 +53,7 @@ const PAGES = {
     reports: ReportsPage,
     users: UsersPage,
     settings: AdminSettingsPage,
+    audit: ProgrammerAuditPage,
 };
 
 function App() {
@@ -57,6 +61,9 @@ function App() {
     const { user, logout } = useAuth();
     const [page, setPage] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    // Modo programador persistente
+    const [showAuditAdmin, setShowAuditAdmin] = useState(() => localStorage.getItem('piripi_dev_mode') === 'true');
+    const [logoClicks, setLogoClicks] = useState(0);
     const [scannedItem, setScannedItem] = useState(null);
     const [scannedQuantity, setScannedQuantity] = useState(1);
     const [showCameraScanner, setShowCameraScanner] = useState(false);
@@ -65,6 +72,68 @@ function App() {
     const { addTimeLog } = useApp();
     const [showTimeModal, setShowTimeModal] = useState(false);
     const [timePin, setTimePin] = useState('');
+
+    // Escucha de teclado para acceso secreto (Ctrl + Alt + A)
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') {
+                const newState = !showAuditAdmin;
+                setShowAuditAdmin(newState);
+                localStorage.setItem('piripi_dev_mode', newState);
+                alert(`Modo Programador ${newState ? 'ACTIVADO' : 'DESACTIVADO'}`);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showAuditAdmin]);
+
+    const handleLogoClick = () => {
+        const newCount = logoClicks + 1;
+        setLogoClicks(newCount);
+        if (newCount >= 7) {
+            const newState = !showAuditAdmin;
+            setShowAuditAdmin(newState);
+            localStorage.setItem('piripi_dev_mode', newState);
+            alert(`🔓 Acceso de Programador ${newState ? 'Habilitado' : 'Deshabilitado'}`);
+            setLogoClicks(0);
+        }
+    };
+
+    // --- TRACKING GLOBAL DEL MAPA DE CALOR ---
+    React.useEffect(() => {
+        const handleClick = async (e) => {
+            if (!user) return;
+            const target = e.target.closest('button, a, [role="button"], .nav-item, .card');
+            if (target) {
+                // Generar un ID descriptivo para el botón:
+                let btnId = target.id || target.getAttribute('aria-label') || target.textContent?.trim()?.substring(0, 30) || target.className || 'Botón Desconocido';
+                if (!btnId || btnId.trim() === '') return;
+                
+                try {
+                    // Buscar si ya existe el log para esta pagina y boton
+                    const loc = window.location.pathname;
+                    const { data } = await supabase.from('button_clicks').select('id, count').eq('button_id', btnId).eq('page', loc).single();
+                    
+                    if (data) {
+                        await supabase.from('button_clicks').update({ count: data.count + 1 }).eq('id', data.id);
+                    } else {
+                        await supabase.from('button_clicks').insert([{
+                            button_id: btnId,
+                            page: loc,
+                            employee_id: user.id,
+                            count: 1
+                        }]);
+                    }
+                } catch (err) {
+                    console.log('Ignorando error de métricas (tracking)', err.message);
+                }
+            }
+        };
+
+        // Usa capture flag para agarrar clicks incluso si hay `stopPropagation()` en los componentes React
+        document.addEventListener('click', handleClick, true);
+        return () => document.removeEventListener('click', handleClick, true);
+    }, [user]);
 
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
@@ -131,6 +200,7 @@ function App() {
         { section: 'Configuración' },
         { key: 'users', label: 'Personal y Accesos', icon: 'admin_panel_settings' },
         { key: 'settings', label: 'Sistema / AFIP', icon: 'settings' },
+        { key: 'audit', label: 'Auditoría', icon: 'security' },
     ];
 
     const handleNavigate = (key) => {
@@ -147,6 +217,8 @@ function App() {
             case 'users':
             case 'settings':
                 return user.role === 'admin';
+            case 'audit':
+                return user.role === 'admin' && showAuditAdmin;
             case 'inventory':
             case 'dashboard':
             case 'sales':
@@ -179,7 +251,7 @@ function App() {
 
             {/* Sidebar */}
             <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-                <div className="sidebar-brand">
+                <div className="sidebar-brand" onClick={handleLogoClick} style={{ cursor: 'default', userSelect: 'none' }}>
                     <div className="sidebar-brand-icon">
                         <Icon name="precision_manufacturing" />
                     </div>
