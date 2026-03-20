@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './lib/supabase';
 import { useApp } from './context/AppContext';
 
 import { useAuth } from './context/AuthContext';
