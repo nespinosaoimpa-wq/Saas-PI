@@ -103,7 +103,7 @@ function App() {
     React.useEffect(() => {
         const handleClick = async (e) => {
             if (!user) return;
-            const target = e.target.closest('button, a, [role="button"], .nav-item, .card');
+            const target = e.target.closest('button, a, [role="button"], .nav-item, .card, .quick-action-card');
             if (target) {
                 // Generar un ID descriptivo para el botón:
                 let btnId = target.id || target.getAttribute('aria-label') || target.textContent?.trim()?.substring(0, 30) || target.className || 'Botón Desconocido';

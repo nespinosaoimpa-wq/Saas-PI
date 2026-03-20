@@ -44,6 +44,16 @@ export const DailyWorkPage = () => {
     const [cart, setCart] = useState([]);
     const [manualDiscount, setManualDiscount] = useState(0);
 
+    const updateCartQty = (idx, newQty) => {
+        setCart(prev => prev.map((item, i) => {
+            if (i === idx) {
+                const price = item.inventory_item ? (item.inventory_item.sell_price * newQty) : item.price;
+                return { ...item, qty: newQty, currentPrice: price };
+            }
+            return item;
+        }));
+    };
+
     const toggleCheck = (woId, itemKey) => {
         setChecklistState(prev => {
             const current = prev[woId] || [];
@@ -162,8 +172,7 @@ export const DailyWorkPage = () => {
         const labels = cart.map(c => c.label).join(', ');
         
         addQuickService(
-            { id: 'cart', label: labels, price: subtotal }, 
-            false, 
+            cart.map(item => ({ ...item, price: item.currentPrice, qty: item.qty || 1 })), 
             selectedMechanicId || user?.id,
             selectedQueueClient?.client_id || null,
             selectedQueueClient?.vehicle_id || null,
@@ -451,14 +460,47 @@ export const DailyWorkPage = () => {
                                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>CARRITO DE SERVICIOS</div>
                                     {selectedQueueClient && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Para: {selectedQueueClient.name}</span>}
                                 </div>
-                                {cart.map((item, idx) => (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, marginBottom: 4 }}>
-                                        <span>{item.label} {item.isDiscounted && <small style={{ color: 'var(--success)', fontWeight: 700 }}>(50% desc)</small>}</span>
+                                 {cart.map((item, idx) => (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, marginBottom: 8, padding: '4px 0', borderBottom: '1px solid rgba(var(--primary-rgb), 0.05)' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 600 }}>{item.label}</div>
+                                            {item.inventory_item && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                                    {item.inventory_item.stock_type === 'VOLUME' ? (
+                                                        <button 
+                                                            className="btn btn-ghost btn-sm" 
+                                                            style={{ fontSize: 10, padding: '2px 6px', height: 22 }}
+                                                            onClick={() => {
+                                                                const type = confirm('Haga clic en ACEPTAR para ingresar MILILITROS o CANCELAR para ingresar DINERO ($)') ? 'ML' : 'MONEY';
+                                                                if (type === 'ML') {
+                                                                    const ml = prompt('Ingrese cantidad en mililitros:', ((item.qty || 1) * 1000).toString());
+                                                                    if (ml && !isNaN(ml)) updateCartQty(idx, parseFloat(ml) / 1000);
+                                                                } else {
+                                                                    const money = prompt('Ingrese monto en DINERO ($):');
+                                                                    if (money && !isNaN(money)) updateCartQty(idx, parseFloat(money) / (item.inventory_item.sell_price || 1));
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Icon name="straighten" size={12} /> {((item.qty || 1) * 1000).toFixed(0)} ml / ${formatCurrency(item.currentPrice)}
+                                                        </button>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                            <button className="btn btn-ghost" style={{ padding: '0 4px', height: 20 }} onClick={() => updateCartQty(idx, Math.max(1, (item.qty || 1) - 1))}>-</button>
+                                                            <span style={{ fontSize: 11, fontWeight: 700 }}>{item.qty || 1} un.</span>
+                                                            <button className="btn btn-ghost" style={{ padding: '0 4px', height: 20 }} onClick={() => updateCartQty(idx, (item.qty || 1) + 1)}>+</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => startEditCartPrice(idx, item.currentPrice)}>
-                                                <strong>{formatCurrency(item.currentPrice)}</strong>
-                                                <Icon name="edit" size={14} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
-                                            </div>
+                                            {!item.inventory_item && (
+                                                <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => startEditCartPrice(idx, item.currentPrice)}>
+                                                    <strong>{formatCurrency(item.currentPrice)}</strong>
+                                                    <Icon name="edit" size={14} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
+                                                </div>
+                                            )}
+                                            {item.inventory_item && <strong>{formatCurrency(item.currentPrice)}</strong>}
                                             <button onClick={() => removeFromCart(idx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 0 }}>
                                                 <Icon name="delete" size={14} />
                                             </button>

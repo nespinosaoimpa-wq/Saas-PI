@@ -310,8 +310,17 @@ export const SalesPage = () => {
                                                         onChange={(e) => {
                                                             const val = e.target.value;
                                                             if (val === 'custom') {
-                                                                const ml = prompt('Ingrese cantidad en mililitros (ej: 750):', (ci.qty * 1000).toString());
-                                                                if (ml && !isNaN(ml)) setManualQty(ci.id, parseFloat(ml) / 1000);
+                                                                const type = confirm('Haga clic en ACEPTAR para ingresar MILILITROS o CANCELAR para ingresar DINERO ($)') ? 'ML' : 'MONEY';
+                                                                if (type === 'ML') {
+                                                                    const ml = prompt('Ingrese cantidad en mililitros (ej: 750):', (ci.qty * 1000).toString());
+                                                                    if (ml && !isNaN(ml)) setManualQty(ci.id, parseFloat(ml) / 1000);
+                                                                } else {
+                                                                    const money = prompt('Ingrese el monto en DINERO ($) deseado (ej: 5000):');
+                                                                    if (money && !isNaN(money)) {
+                                                                        const calculatedQty = parseFloat(money) / (ci.sell_price || 1);
+                                                                        setManualQty(ci.id, calculatedQty);
+                                                                    }
+                                                                }
                                                             } else {
                                                                 setManualQty(ci.id, parseFloat(val));
                                                             }

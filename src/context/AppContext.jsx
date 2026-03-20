@@ -212,27 +212,29 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = async (action, isSecondOrMore = false, mechanicId = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }, overrideTotal = null) => {
-        const finalPrice = overrideTotal !== null ? overrideTotal : (isSecondOrMore ? action.price * 0.5 : action.price);
+    const addQuickService = async (itemsOrAction, mechanicId = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }, overrideTotal = null) => {
+        const items = Array.isArray(itemsOrAction) ? itemsOrAction : [itemsOrAction];
+        const labels = items.map(i => i.label).join(', ');
+        const subtotal = items.reduce((sum, i) => sum + (i.price || i.currentPrice || 0), 0);
+        const finalPrice = overrideTotal !== null ? overrideTotal : subtotal;
 
         try {
-            // 1. Intentar persistir en tabla de servicios rápidos (puede no existir)
+            // 1. Intentar persistir en tabla de servicios rápidos
             let newService = null;
             try {
-                const { data, error } = await supabase.from('daily_quick_services').insert([{
-                    service_type: action.label,
+                const { data: qData, error } = await supabase.from('daily_quick_services').insert([{
+                    service_type: labels,
                     price: finalPrice,
                     mechanic_id: mechanicId,
                     client_id: clientId,
-                    vehicle_id: vehicleId,
-                    notes: isSecondOrMore ? 'Descuento por cantidad aplicado' : null
+                    vehicle_id: vehicleId
                 }]).select().single();
-                if (!error) newService = data;
+                if (!error) newService = qData;
             } catch (e) {
                 console.warn('Tabla daily_quick_services no disponible, continuando...', e.message);
             }
 
-            // 2. Registrar pago automático en caja (siempre funciona)
+            // 2. Registrar pago automático en caja
             if (finalPrice > 0) {
                 if (paymentOptions.method === 'COMBINADO' && paymentOptions.combinedAmounts) {
                     for (const [method, amount] of Object.entries(paymentOptions.combinedAmounts)) {
@@ -241,7 +243,7 @@ export const AppProvider = ({ children }) => {
                             await addPayment({
                                 amount: amt,
                                 method: method,
-                                description: `Gomería Express (${method}): ${action.label}`,
+                                description: `Gomería Express (${method}): ${labels}`,
                                 type: 'INGRESO',
                                 reference: 'DIRECTO',
                                 employee_id: mechanicId || null
@@ -252,22 +254,41 @@ export const AppProvider = ({ children }) => {
                     await addPayment({
                         amount: finalPrice,
                         method: paymentOptions.method,
-                        description: `Gomería Express: ${action.label}`,
+                        description: `Gomería Express: ${labels}`,
                         type: 'INGRESO',
                         reference: 'DIRECTO',
                         employee_id: mechanicId || null
                     });
                 }
-
             }
 
-            // 3. Actualizar estado local
+            // 3. DESCONTAR STOCK si hay productos de inventario
+            for (const item of items) {
+                const invItem = item.inventory_item || (data.inventory || []).find(i => i.id === item.id);
+                if (invItem) {
+                    const qty = item.qty || 1;
+                    if (invItem.stock_type === 'UNIT') {
+                        await supabase.from('inventory').update({
+                            stock_quantity: Math.max(0, (invItem.stock_quantity || 0) - qty)
+                        }).eq('id', invItem.id);
+                    } else if (invItem.stock_type === 'VOLUME') {
+                        const mlToDeduct = Math.round(qty * 1000);
+                        await supabase.from('inventory').update({
+                            stock_ml: Math.max(0, (invItem.stock_ml || 0) - mlToDeduct)
+                        }).eq('id', invItem.id);
+                    }
+                }
+            }
+
+            // 4. Actualizar estado local
             setData(prev => ({
                 ...prev,
-                dailyQuickServices: [newService || { id: Date.now().toString(), service_type: action.label, price: finalPrice, mechanic_id: mechanicId, created_at: new Date().toISOString() }, ...(prev.dailyQuickServices || [])],
-                activityLog: [{ label: action.label, price: finalPrice, timestamp: new Date().toISOString(), mechanic_id: mechanicId }, ...(prev.activityLog || [])]
+                dailyQuickServices: [newService || { id: Date.now().toString(), service_type: labels, price: finalPrice, mechanic_id: mechanicId, created_at: new Date().toISOString() }, ...(prev.dailyQuickServices || [])],
+                activityLog: [{ label: labels, price: finalPrice, timestamp: new Date().toISOString(), mechanic_id: mechanicId }, ...(prev.activityLog || [])]
             }));
 
+            await loadData(); // Reload inventory
+            logAudit('Gomería Express', { service: labels, total: finalPrice, items_count: items.length });
         } catch (e) {
             console.error("Error registering express service", e);
             alert("Error al registrar servicio rápido: " + e.message);
@@ -508,6 +529,7 @@ export const AppProvider = ({ children }) => {
             .single();
 
         if (error) { console.error("Error creating supplier", error); throw error; }
+        logAudit('Crear Proveedor', { supplier_name: supplierData.name });
         setData(prev => ({ ...prev, suppliers: [...prev.suppliers, newSupplier] }));
         return newSupplier;
     };
@@ -527,6 +549,7 @@ export const AppProvider = ({ children }) => {
             .single();
 
         if (error) { console.error("Error updating supplier", error); throw error; }
+        logAudit('Actualizar Proveedor', { supplier_id: id, updates });
         setData(prev => ({ ...prev, suppliers: prev.suppliers.map(s => s.id === id ? { ...s, ...updated } : s) }));
         return updated;
     };
@@ -537,7 +560,7 @@ export const AppProvider = ({ children }) => {
     const addInventoryItem = async (itemData) => {
         const { data: newItem, error } = await supabase.from('inventory').insert([itemData]).select().single();
         if (error) { console.error("Error creating inventory item", error); throw error; }
-
+        logAudit('Crear Item de Inventario', { product: itemData.name, barcode: itemData.barcode });
 
         setData(prev => ({ ...prev, inventory: [...prev.inventory, newItem] }));
         return newItem;
@@ -553,7 +576,7 @@ export const AppProvider = ({ children }) => {
         }
 
         const updated = data[0];
-
+        logAudit('Actualizar Item de Inventario', { product_id: id, updates });
 
         setData(prev => ({ ...prev, inventory: prev.inventory.map(i => i.id === id ? { ...i, ...updated } : i) }));
         return updated;
@@ -563,7 +586,7 @@ export const AppProvider = ({ children }) => {
         const item = data.inventory.find(i => i.id === id);
         const { error } = await supabase.from('inventory').delete().eq('id', id);
         if (error) { console.error("Error deleting inventory item", error); throw error; }
-
+        logAudit('Borrar Item de Inventario', { product_id: id, product_name: item?.name });
 
         setData(prev => ({ ...prev, inventory: prev.inventory.filter(i => i.id !== id) }));
     };
@@ -678,6 +701,7 @@ export const AppProvider = ({ children }) => {
             }
 
             await loadData();
+            logAudit('Agregar Productos a OT', { work_order_id: woId, products_count: products.length });
             return true;
         } catch (error) {
             console.error("Error adding items to WO", error);
@@ -772,6 +796,7 @@ export const AppProvider = ({ children }) => {
     const addPromotion = async (promoData) => {
         const { data: newPromo, error } = await supabase.from('promotions').insert([promoData]).select().single();
         if (error) { console.error("Error creating promotion", error); throw error; }
+        logAudit('Crear Promoción', { coupon: promoData.coupon_code || promoData.title });
         setData(prev => ({ ...prev, promotions: [newPromo, ...prev.promotions] }));
         return newPromo;
     };
@@ -779,12 +804,14 @@ export const AppProvider = ({ children }) => {
     const deletePromotion = async (id) => {
         const { error } = await supabase.from('promotions').delete().eq('id', id);
         if (error) { console.error("Error deleting promotion", error); throw error; }
+        logAudit('Borrar Promoción', { promo_id: id });
         setData(prev => ({ ...prev, promotions: prev.promotions.filter(p => p.id !== id) }));
     };
 
     const addAppointment = async (aptData) => {
         const { data: newApt, error } = await supabase.from('appointments').insert([aptData]).select().single();
         if (error) { console.error("Error creating appointment", error); throw error; }
+        logAudit('Crear Turno', { date: aptData.date, client: aptData.client_name });
         setData(prev => ({ ...prev, appointments: [...prev.appointments, newApt].sort((a, b) => a.date.localeCompare(b.date)) }));
         return newApt;
     };
@@ -905,6 +932,7 @@ export const AppProvider = ({ children }) => {
         if (error) { console.error("Error adding withdrawal", error); throw error; }
 
         setData(prev => ({ ...prev, payments: [newWithdrawal, ...prev.payments] }));
+        logAudit('Retiro de Efectivo', { amount: Math.abs(parseFloat(withdrawalData.amount)), description: withdrawalData.description });
         return newWithdrawal;
     };
 
@@ -1040,6 +1068,7 @@ export const AppProvider = ({ children }) => {
             .eq('id', assignmentId);
 
         if (error) { console.error("Error updating commission", error); throw error; }
+        logAudit('Actualizar Comisión de Mecánico', { assignment_id: assignmentId, updates });
         await loadData();
     };
 

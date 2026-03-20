@@ -151,7 +151,7 @@ export const WorkOrdersPage = () => {
             parts_cost: partsManualCost + productsCost,
             total_price: totalPrice,
             products: selectedProducts,
-            applied_commission_rate: parseFloat(newOrder.applied_commission_rate) || (selectedMechanics.length > 0 ? selectedMechanics[0].commission_rate : 0)
+            applied_commission_rate: (newOrder.applied_commission_rate !== '' ? parseFloat(newOrder.applied_commission_rate) : null) ?? (selectedMechanics.length > 0 ? selectedMechanics[0].commission_rate : 0)
         });
 
         alert('✅ Orden de Trabajo creada con éxito.');
