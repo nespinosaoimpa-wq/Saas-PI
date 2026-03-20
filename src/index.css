@@ -1546,6 +1546,15 @@ body {
   }
 }
 
+@media (max-width: 1150px) {
+  .header-btn span:not(.material-symbols-outlined) {
+    display: none;
+  }
+  .header-actions .header-btn {
+    padding: 8px 12px;
+  }
+}
+
 /* Mobile / Tablet */
 @media (max-width: 1024px) {
   .sidebar {
@@ -1647,14 +1656,6 @@ body {
 
   .stat-card-value {
     font-size: 22px;
-  }
-
-  .header-btn span:not(.material-symbols-outlined) {
-    display: none;
-  }
-
-  .header-actions .header-btn {
-    padding: 8px 12px;
   }
 
   .queue-card {

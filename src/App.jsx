@@ -346,10 +346,12 @@ function App() {
                             <Icon name="qr_code_scanner" size={16} />
                             Lector Láser
                         </button>
-                        <button className="header-btn primary" onClick={() => handleNavigate('work_orders')}>
-                            <Icon name="add_circle" size={16} />
-                            Nueva OT
-                        </button>
+                        {isVisible('work_orders') && (
+                            <button className="header-btn primary" onClick={() => handleNavigate('work_orders')}>
+                                <Icon name="add_circle" size={16} />
+                                <span>Nueva OT</span>
+                            </button>
+                        )}
                     </div>
                 </header>
 
