@@ -21,6 +21,7 @@ export const HelpPage = () => {
             image: '/assets/manual/ot_list.png',
             bullets: [
                 'Filtros (Activas / Finalizadas / Todas): Permite ver solo lo que se está trabajando o el historial.',
+                'Estados: "Pendiente" significa que el vehículo está en cola de espera. "En Box" es cuando ya se está trabajando en él.',
                 'Botón Exportar Excel: Descarga un reporte completo de tus OTs para contabilidad.'
             ]
         },
