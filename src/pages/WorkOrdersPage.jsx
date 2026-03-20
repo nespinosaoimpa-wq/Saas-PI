@@ -274,7 +274,8 @@ export const WorkOrdersPage = () => {
                 labor_cost: labor,
                 parts_cost: parts,
                 total_price: labor + parts,
-                payment_method: finalPaymentMethod
+                payment_method: finalPaymentMethod,
+                applied_commission_rate: parseFloat(finalCommissionRate) || 0
             }, {
                 method: finalPaymentMethod
             }, null, finalMechanicIds);
@@ -818,6 +819,10 @@ export const WorkOrdersPage = () => {
                                     <input type="number" className="form-input" style={{ fontSize: 18, fontWeight: 700 }} value={editParts} onChange={e => setEditParts(e.target.value)} />
                                 </FormField>
                             </FormRow>
+
+                            <FormField label="% Comisión para esta OT">
+                                <input className="form-input" type="number" step="0.1" value={finalCommissionRate} onChange={e => setFinalCommissionRate(e.target.value)} placeholder="Ej: 15" />
+                            </FormField>
                             
                             <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', textAlign: 'right', border: '1px solid var(--border)' }}>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Monto Total Estimado:</div>

@@ -21,6 +21,7 @@ import { UsersPage } from './pages/UsersPage';
 import { SalesPage } from './pages/SalesPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { ProgrammerAuditPage } from './pages/ProgrammerAuditPage';
+import { HelpPage } from './pages/HelpPage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -37,6 +38,7 @@ const PAGE_TITLES = {
     users: { title: 'Gestión de Personal', sub: 'Control de Usuarios, Roles y Permisos' },
     settings: { title: 'Configuración', sub: 'Ajustes del Sistema y Facturación AFIP' },
     audit: { title: 'Auditoría del Sistema', sub: 'Registro de Actividad y Uso de la Plataforma' },
+    help: { title: 'Centro de Ayuda', sub: 'Manual, Guías y Soporte Técnico' },
 };
 
 const PAGES = {
@@ -54,6 +56,7 @@ const PAGES = {
     users: UsersPage,
     settings: AdminSettingsPage,
     audit: ProgrammerAuditPage,
+    help: HelpPage,
 };
 
 function App() {
@@ -201,6 +204,7 @@ function App() {
         { key: 'users', label: 'Personal y Accesos', icon: 'admin_panel_settings' },
         { key: 'settings', label: 'Sistema / AFIP', icon: 'settings' },
         { key: 'audit', label: 'Auditoría', icon: 'security' },
+        { key: 'help', label: 'Centro de Ayuda', icon: 'help_center' },
     ];
 
     const handleNavigate = (key) => {
@@ -225,6 +229,7 @@ function App() {
             case 'cash':
             case 'clients':
             case 'calendar':
+            case 'help':
                 return ['admin', 'cajero'].includes(user.role);
             case 'work_orders':
             case 'daily_work':

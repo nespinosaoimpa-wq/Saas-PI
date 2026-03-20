@@ -715,14 +715,26 @@ export const AppProvider = ({ children }) => {
             // Update assignments if mechanicIds provided
             if (mechanicIds) {
                 try {
-                    // 1. Delete old assignments
+                    // 1. Obtener asignaciones actuales para preservar porcentajes manuales
+                    const currentAssignments = data.assignments?.filter(a => a.work_order_id === id) || [];
+                    
+                    // 2. Eliminar antiguas
                     await supabase.from('work_order_assignments').delete().eq('work_order_id', id);
-                    // 2. Insert new ones
-                    const assignments = mechanicIds.map(mid => ({
-                        work_order_id: id,
-                        mechanic_id: mid,
-                        labor_commission_percent: updates.applied_commission_rate || 0
-                    }));
+                    
+                    // 3. Insertar nuevas preservando el porcentaje si el mecánico es el mismo
+                    const assignments = mechanicIds.map(mid => {
+                        const existing = currentAssignments.find(ca => ca.mechanic_id === mid);
+                        // BUGFIX: Asegurar que el 0 se preserve y no se tome como falsy
+                        const hasPrevious = existing?.labor_commission_percent !== undefined && existing?.labor_commission_percent !== null;
+                        const preservedRate = hasPrevious ? existing.labor_commission_percent : (updates.applied_commission_rate || 0);
+                        
+                        return {
+                            work_order_id: id,
+                            mechanic_id: mid,
+                            labor_commission_percent: preservedRate
+                        };
+                    });
+                    
                     if (assignments.length > 0) {
                         await supabase.from('work_order_assignments').insert(assignments);
                     }

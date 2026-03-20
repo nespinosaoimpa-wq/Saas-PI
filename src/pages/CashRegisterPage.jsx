@@ -110,7 +110,7 @@ export const CashRegisterPage = () => {
     };
 
     const handleEditCommSubmit = async () => {
-        if (!editingComm.rate || isNaN(editingComm.rate)) {
+        if (editingComm.rate === '' || isNaN(editingComm.rate)) {
             alert('Ingresá un porcentaje válido');
             return;
         }
@@ -415,7 +415,11 @@ export const CashRegisterPage = () => {
 
                         const allEntries = relevantWOs.map(wo => {
                             const vehicle = MOCK.vehicles.find(v => v.id === wo.vehicle_id);
-                            const commRate = wo._assignment?.labor_commission_percent || wo.applied_commission_rate || tech.commission_rate || 0;
+                            // BUGFIX: Si labor_commission_percent es 0 (o cualquier número), usarlo. No usar || para evitar fallbacks erróneos con el valor falsy 0.
+                            const assignmentRate = wo._assignment?.labor_commission_percent;
+                            const commRate = (assignmentRate !== undefined && assignmentRate !== null) 
+                                ? assignmentRate 
+                                : (wo.applied_commission_rate || tech.commission_rate || 0);
                             return {
                                 assignmentId: wo._assignment?.id,
                                 wo_number: wo.order_number,
