@@ -78,7 +78,8 @@ export const HelpPage = () => {
     ];
 
     return (
-        <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="page-content">
+            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <div className="card" style={{ padding: '32px', marginBottom: '24px', textAlign: 'center', background: 'linear-gradient(135deg, var(--bg-card), var(--bg-hover))' }}>
                 <Icon name="help_center" size={64} style={{ color: 'var(--primary)', marginBottom: '16px' }} />
                 <h1 style={{ fontSize: '32px', marginBottom: '12px' }}>Centro de Ayuda Piripi Pro</h1>
@@ -130,6 +131,7 @@ export const HelpPage = () => {
                     <button className="btn btn-primary">Contactar Soporte</button>
                     <button className="btn btn-ghost">Reportar un Problema</button>
                 </div>
+            </div>
             </div>
         </div>
     );
