@@ -128,8 +128,12 @@ export const HelpPage = () => {
                 <h3>¿Necesitas más ayuda?</h3>
                 <p style={{ color: 'var(--text-muted)' }}>Contacta al soporte técnico para capacitaciones personalizadas o reportes de bugs.</p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '20px' }}>
-                    <button className="btn btn-primary">Contactar Soporte</button>
-                    <button className="btn btn-ghost">Reportar un Problema</button>
+                    <button className="btn btn-primary" onClick={() => window.open('https://wa.me/5493415555555?text=Hola!%20Necesito%20ayuda%20con%20Piripi%20Pro', '_blank')}>
+                        <Icon name="chat" size={18} /> Contactar Soporte
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => window.open('mailto:soporte@piripisantafe.com?subject=Reporte%20de%20Problema%20-%20Piripi%20Pro', '_blank')}>
+                        <Icon name="bug_report" size={18} /> Reportar un Problema
+                    </button>
                 </div>
             </div>
             </div>
