@@ -60,6 +60,15 @@ export const AppProvider = ({ children }) => {
             throw new Error('PIN incorrecto. Empleado no encontrado.');
         }
 
+        // Anti-duplicate cooldown: bloquear si el mismo empleado fichó hace menos de 60 segundos
+        const lastLog = timeTrackingLogs.find(l => l.employee_id === emp.id && l.type === type);
+        if (lastLog) {
+            const elapsed = (Date.now() - new Date(lastLog.timestamp).getTime()) / 1000;
+            if (elapsed < 60) {
+                throw new Error(`Ya se registró ${type === 'IN' ? 'ENTRADA' : 'SALIDA'} para ${emp.name} hace ${Math.round(elapsed)} segundos. Esperá al menos 1 minuto.`);
+            }
+        }
+
         const now = new Date();
         const newLogData = {
             employee_id: emp.id,
@@ -188,8 +197,11 @@ export const AppProvider = ({ children }) => {
             channel = supabase
                 .channel('db-changes')
                 .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-
-                    loadData();
+                    // Debounce: esperar 2 segundos antes de recargar para evitar recargas excesivas
+                    if (window._realtimeDebounce) clearTimeout(window._realtimeDebounce);
+                    window._realtimeDebounce = setTimeout(() => {
+                        loadData();
+                    }, 2000);
                 })
                 .subscribe();
         } catch (e) {

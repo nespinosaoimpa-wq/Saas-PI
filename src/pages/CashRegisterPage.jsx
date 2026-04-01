@@ -1,4 +1,5 @@
 import React, { useState, Fragment } from 'react';
+import { useSubmitGuard } from '../hooks/useSubmitGuard';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -39,18 +40,27 @@ export const CashRegisterPage = () => {
 
     const technicians = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
 
+    // Anti doble-click guards
+    const { isProcessing: isRegisteringPayment, guardedSubmit: guardedPayment } = useSubmitGuard();
+    const { isProcessing: isRegisteringWithdrawal, guardedSubmit: guardedWithdrawal } = useSubmitGuard();
+    const { isProcessing: isClosingCash, guardedSubmit: guardedCashClose } = useSubmitGuard();
+    const { isProcessing: isEditingPayment, guardedSubmit: guardedEditPayment } = useSubmitGuard();
+    const { isProcessing: isEditingComm, guardedSubmit: guardedEditComm } = useSubmitGuard();
+
     const handleRegisterPayment = () => {
         if (!newPayment.amount || isNaN(newPayment.amount)) {
             alert('Ingresá un monto válido');
             return;
         }
-        addPayment({
-            ...newPayment,
-            amount: parseFloat(newPayment.amount),
-            employee_id: user?.id
+        guardedPayment(async () => {
+            await addPayment({
+                ...newPayment,
+                amount: parseFloat(newPayment.amount),
+                employee_id: user?.id
+            });
+            setShowNew(false);
+            setNewPayment({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
         });
-        setShowNew(false);
-        setNewPayment({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
     };
 
     const handleRegisterWithdrawal = () => {
@@ -58,13 +68,15 @@ export const CashRegisterPage = () => {
             alert('Ingresá un monto válido para el egreso');
             return;
         }
-        addWithdrawal({
-            amount: parseFloat(newWithdrawal.amount),
-            description: newWithdrawal.description || 'Retiro de caja',
-            employee_id: user?.id
+        guardedWithdrawal(async () => {
+            await addWithdrawal({
+                amount: parseFloat(newWithdrawal.amount),
+                description: newWithdrawal.description || 'Retiro de caja',
+                employee_id: user?.id
+            });
+            setShowWithdrawal(false);
+            setNewWithdrawal({ amount: '', description: '' });
         });
-        setShowWithdrawal(false);
-        setNewWithdrawal({ amount: '', description: '' });
     };
 
     const handleDeletePayment = async (id) => {
@@ -78,20 +90,22 @@ export const CashRegisterPage = () => {
     };
 
     const handlePerformClose = async () => {
-        const cash_expected = cash;
-        const diff = parseFloat(closingCash || 0) - cash_expected;
-        const res = await performCashClose({
-            cash_expected,
-            cash_real: parseFloat(closingCash || 0),
-            difference: diff,
-            transfer_total: transfer,
-            card_total: card,
-            total_day: cash + transfer + card,
-            employee_id: user.id
+        guardedCashClose(async () => {
+            const cash_expected = cash;
+            const diff = parseFloat(closingCash || 0) - cash_expected;
+            const res = await performCashClose({
+                cash_expected,
+                cash_real: parseFloat(closingCash || 0),
+                difference: diff,
+                transfer_total: transfer,
+                card_total: card,
+                total_day: cash + transfer + card,
+                employee_id: user.id
+            });
+            setLastClosing({ ...res, employee_name: user.name });
+            setShowClose(false);
+            setClosingCash('');
         });
-        setLastClosing({ ...res, employee_name: user.name });
-        setShowClose(false);
-        setClosingCash('');
     };
 
     const handleEditPaymentSubmit = async () => {
@@ -99,14 +113,16 @@ export const CashRegisterPage = () => {
             alert('Ingresá un monto válido');
             return;
         }
-        await updatePayment(editingPayment.id, {
-            amount: parseFloat(editingPayment.amount),
-            method: editingPayment.method,
-            description: editingPayment.description,
-            reference: editingPayment.reference || null
+        guardedEditPayment(async () => {
+            await updatePayment(editingPayment.id, {
+                amount: parseFloat(editingPayment.amount),
+                method: editingPayment.method,
+                description: editingPayment.description,
+                reference: editingPayment.reference || null
+            });
+            setShowEdit(false);
+            setEditingPayment({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
         });
-        setShowEdit(false);
-        setEditingPayment({ id: '', amount: '', method: 'EFECTIVO', description: '', reference: '' });
     };
 
     const handleEditCommSubmit = async () => {
@@ -114,11 +130,13 @@ export const CashRegisterPage = () => {
             alert('Ingresá un porcentaje válido');
             return;
         }
-        await updateAssignmentCommission(editingComm.assignmentId, {
-            labor_commission_percent: parseFloat(editingComm.rate)
+        guardedEditComm(async () => {
+            await updateAssignmentCommission(editingComm.assignmentId, {
+                labor_commission_percent: parseFloat(editingComm.rate)
+            });
+            setShowCommEdit(false);
+            setEditingComm({ assignmentId: '', rate: '', labor_cost: 0, order_number: '' });
         });
-        setShowCommEdit(false);
-        setEditingComm({ assignmentId: '', rate: '', labor_cost: 0, order_number: '' });
     };
 
     const handleOpenCommEdit = (entry) => {
@@ -264,7 +282,7 @@ export const CashRegisterPage = () => {
 
                 {showNew && (
                     <Modal title="Registrar Cobro" onClose={() => setShowNew(false)}
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleRegisterPayment}>Registrar</button></Fragment>}>
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowNew(false)} disabled={isRegisteringPayment}>Cancelar</button><button className="btn btn-primary" onClick={handleRegisterPayment} disabled={isRegisteringPayment}>{isRegisteringPayment ? 'Registrando...' : 'Registrar'}</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <FormField label="Monto">
                                 <input className="form-input" type="number" placeholder="$0.00" value={newPayment.amount} onChange={e => setNewPayment({ ...newPayment, amount: e.target.value })} />
@@ -296,7 +314,7 @@ export const CashRegisterPage = () => {
 
                 {showEdit && (
                     <Modal title="Editar Movimiento" onClose={() => setShowEdit(false)}
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEdit(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleEditPaymentSubmit}>Actualizar</button></Fragment>}>
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEdit(false)} disabled={isEditingPayment}>Cancelar</button><button className="btn btn-primary" onClick={handleEditPaymentSubmit} disabled={isEditingPayment}>{isEditingPayment ? 'Actualizando...' : 'Actualizar'}</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <FormField label="Monto">
                                 <input className="form-input" type="number" placeholder="$0.00" value={editingPayment.amount} onChange={e => setEditingPayment({ ...editingPayment, amount: e.target.value })} />
@@ -322,7 +340,7 @@ export const CashRegisterPage = () => {
 
                 {showCommEdit && (
                     <Modal title={`Ajustar Comisión - OT #${editingComm.order_number}`} onClose={() => setShowCommEdit(false)}
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowCommEdit(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleEditCommSubmit}>Guardar Cambios</button></Fragment>}>
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowCommEdit(false)} disabled={isEditingComm}>Cancelar</button><button className="btn btn-primary" onClick={handleEditCommSubmit} disabled={isEditingComm}>{isEditingComm ? 'Guardando...' : 'Guardar Cambios'}</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -353,7 +371,7 @@ export const CashRegisterPage = () => {
 
                 {showClose && (
                     <Modal title="Cierre de Caja Diario" onClose={() => setShowClose(false)}
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowClose(false)}>Cancelar</button><button className="btn btn-primary" onClick={handlePerformClose}>Confirmar Cierre</button></Fragment>}>
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowClose(false)} disabled={isClosingCash}>Cancelar</button><button className="btn btn-primary" onClick={handlePerformClose} disabled={isClosingCash}>{isClosingCash ? 'Cerrando...' : 'Confirmar Cierre'}</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -388,7 +406,7 @@ export const CashRegisterPage = () => {
 
                 {showWithdrawal && (
                     <Modal title="Retiro / Egreso de Caja" onClose={() => setShowWithdrawal(false)}
-                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowWithdrawal(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleRegisterWithdrawal}>Confirmar Retiro</button></Fragment>}>
+                        footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowWithdrawal(false)} disabled={isRegisteringWithdrawal}>Cancelar</button><button className="btn btn-primary" onClick={handleRegisterWithdrawal} disabled={isRegisteringWithdrawal}>{isRegisteringWithdrawal ? 'Registrando...' : 'Confirmar Retiro'}</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <FormField label="Monto a retirar *">
                                 <input className="form-input" type="number" placeholder="$0.00" value={newWithdrawal.amount} onChange={e => setNewWithdrawal({ ...newWithdrawal, amount: e.target.value })} />

@@ -75,6 +75,8 @@ function App() {
     const { addTimeLog } = useApp();
     const [showTimeModal, setShowTimeModal] = useState(false);
     const [timePin, setTimePin] = useState('');
+    const [isClockingIn, setIsClockingIn] = useState(false);
+    const [isClockingOut, setIsClockingOut] = useState(false);
 
     // Escucha de teclado para acceso secreto (Ctrl + Alt + A)
     React.useEffect(() => {
@@ -433,29 +435,31 @@ function App() {
                                 />
                             </FormField>
                             <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-                                <button className="btn btn-success" style={{ flex: 1, padding: '16px 0', fontSize: 16, fontWeight: 700 }} onClick={() => {
+                                <button className="btn btn-success" disabled={isClockingIn || isClockingOut} style={{ flex: 1, padding: '16px 0', fontSize: 16, fontWeight: 700 }} onClick={async () => {
                                     if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
+                                    setIsClockingIn(true);
                                     try {
-                                        const res = addTimeLog(timePin, 'IN');
+                                        const res = await addTimeLog(timePin, 'IN');
                                         const empName = res?.emp?.name || res?.name || 'Empleado';
                                         alert(`✅ ¡ENTRADA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}\n\nPuede seguir trabajando normalmente.`);
                                         setShowTimeModal(false);
                                         setTimePin('');
-                                    } catch (e) { alert(e.message); }
+                                    } catch (e) { alert(e.message); } finally { setIsClockingIn(false); }
                                 }}>
-                                    ENTRADA
+                                    {isClockingIn ? 'Procesando...' : 'ENTRADA'}
                                 </button>
-                                <button className="btn btn-danger" style={{ flex: 1, padding: '16px 0', fontSize: 16, fontWeight: 700 }} onClick={() => {
+                                <button className="btn btn-danger" disabled={isClockingIn || isClockingOut} style={{ flex: 1, padding: '16px 0', fontSize: 16, fontWeight: 700 }} onClick={async () => {
                                     if (timePin.length < 4) return alert('El PIN debe tener 4 dígitos');
+                                    setIsClockingOut(true);
                                     try {
-                                        const res = addTimeLog(timePin, 'OUT');
+                                        const res = await addTimeLog(timePin, 'OUT');
                                         const empName = res?.emp?.name || res?.name || 'Empleado';
                                         alert(`👋 ¡SALIDA REGISTRADA!\nEmpleado: ${empName}\nHora: ${res.time}\n\n¡Hasta pronto!`);
                                         setShowTimeModal(false);
                                         setTimePin('');
-                                    } catch (e) { alert(e.message); }
+                                    } catch (e) { alert(e.message); } finally { setIsClockingOut(false); }
                                 }}>
-                                    SALIDA
+                                    {isClockingOut ? 'Procesando...' : 'SALIDA'}
                                 </button>
                             </div>
                         </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSubmitGuard } from '../hooks/useSubmitGuard';
 import { formatCurrency, MOCK as STATIC_MOCK } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +8,10 @@ import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormFiel
 export const DailyWorkPage = () => {
     const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions } = useApp();
     const { user } = useAuth();
+
+    // Anti doble-click guards
+    const { isProcessing: isExpressProcessing, guardedSubmit: guardedExpressSubmit } = useSubmitGuard();
+    const { isProcessing: isOTFinalizing, guardedSubmit: guardedOTFinalize } = useSubmitGuard();
 
     const myOrders = MOCK.workOrders.filter(wo => wo.status === 'En Box');
     // Using user.id as per the user's latest update in saas-app
@@ -81,18 +86,20 @@ export const DailyWorkPage = () => {
 
     const confirmFinalizeOT = () => {
         if (!finalizeOT) return;
-        const updates = {
-            status: 'Finalizado',
-            completed_at: new Date().toISOString()
-        };
-        if (observationsState[finalizeOT]) {
-            updates.mechanic_notes = observationsState[finalizeOT];
-        }
-        updateWorkOrder(finalizeOT, updates, {
-            method: otPaymentMethod,
-            combinedAmounts: otPaymentMethod === 'COMBINADO' ? otCombinedAmounts : null
+        guardedOTFinalize(async () => {
+            const updates = {
+                status: 'Finalizado',
+                completed_at: new Date().toISOString()
+            };
+            if (observationsState[finalizeOT]) {
+                updates.mechanic_notes = observationsState[finalizeOT];
+            }
+            await updateWorkOrder(finalizeOT, updates, {
+                method: otPaymentMethod,
+                combinedAmounts: otPaymentMethod === 'COMBINADO' ? otCombinedAmounts : null
+            });
+            setFinalizeOT(null);
         });
-        setFinalizeOT(null);
     };
 
     const DEFAULT_QUICK_ACTIONS = [
@@ -167,39 +174,39 @@ export const DailyWorkPage = () => {
             }
         }
 
-        // Registrar cada servicio del carrito (o uno consolidado, según prefieras)
-        // Por simplicidad para el historial, registramos uno consolidado con el detalle
-        const labels = cart.map(c => c.label).join(', ');
-        
-        addQuickService(
-            cart.map(item => ({ ...item, price: item.currentPrice, qty: item.qty || 1 })), 
-            selectedMechanicId || user?.id,
-            selectedQueueClient?.client_id || null,
-            selectedQueueClient?.vehicle_id || null,
-            { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null },
-            finalTotal 
-        );
+        guardedExpressSubmit(async () => {
+            const labels = cart.map(c => c.label).join(', ');
+            
+            await addQuickService(
+                cart.map(item => ({ ...item, price: item.currentPrice, qty: item.qty || 1 })), 
+                selectedMechanicId || user?.id,
+                selectedQueueClient?.client_id || null,
+                selectedQueueClient?.vehicle_id || null,
+                { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null },
+                finalTotal 
+            );
 
-        if (selectedQueueClient) {
-            setGomeriaQueue(prev => prev.map(q => {
-                if (q.id === selectedQueueClient.id) {
-                    return { ...q, services: [...q.services, ...cart] };
-                }
-                return q;
-            }));
-            setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, ...cart] }));
-        }
+            if (selectedQueueClient) {
+                setGomeriaQueue(prev => prev.map(q => {
+                    if (q.id === selectedQueueClient.id) {
+                        return { ...q, services: [...q.services, ...cart] };
+                    }
+                    return q;
+                }));
+                setSelectedQueueClient(prev => ({ ...prev, services: [...prev.services, ...cart] }));
+            }
 
-        setLastTicket({
-            id: `T-${Date.now()}`,
-            label: labels,
-            price: finalTotal,
-            timestamp: new Date().toLocaleString('es-AR')
+            setLastTicket({
+                id: `T-${Date.now()}`,
+                label: labels,
+                price: finalTotal,
+                timestamp: new Date().toLocaleString('es-AR')
+            });
+
+            setCart([]);
+            setPendingAction(null);
+            setShowTicketModal(true);
         });
-
-        setCart([]);
-        setPendingAction(null);
-        setShowTicketModal(true);
     };
 
     const handleQuickAction = (action) => {
@@ -625,7 +632,7 @@ export const DailyWorkPage = () => {
                 <Modal title={`Cobrar Servicio: ${pendingAction.label}`} onClose={() => setPendingAction(null)} footer={
                     <React.Fragment>
                         <button className="btn btn-ghost" onClick={() => setPendingAction(null)}>Cancelar</button>
-                        <button className="btn btn-success" onClick={confirmQuickAction} title="Confirmar el cobro y generar el ticket">Confirmar y Ticket</button>
+                        <button className="btn btn-success" onClick={confirmQuickAction} disabled={isExpressProcessing} title="Confirmar el cobro y generar el ticket">{isExpressProcessing ? 'Procesando...' : 'Confirmar y Ticket'}</button>
                     </React.Fragment>
                 }>
                     <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', marginBottom: 16 }}>
@@ -678,7 +685,7 @@ export const DailyWorkPage = () => {
                         >
                             <option value="">Seleccionar Gomero...</option>
                             {(MOCK.employees || [])
-                                .filter(e => e.role === 'mechanic' || e.role === 'gomero' || e.role === 'admin' || !e.role)
+                                .filter(e => e.role === 'mechanic' || e.role === 'gomero' || e.role === 'mecanico' || e.role === 'admin')
                                 .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
                                 .map(emp => (
                                     <option key={emp.id} value={emp.id}>{emp.full_name || emp.name}</option>
@@ -789,7 +796,7 @@ export const DailyWorkPage = () => {
 
                         <FormRow style={{ justifyContent: 'flex-end', marginTop: 12 }}>
                             <button className="btn btn-ghost" onClick={() => setFinalizeOT(null)}>Cancelar</button>
-                            <button className="btn btn-success" onClick={confirmFinalizeOT}>Confirmar Finalización</button>
+                            <button className="btn btn-success" onClick={confirmFinalizeOT} disabled={isOTFinalizing}>{isOTFinalizing ? 'Procesando...' : 'Confirmar Finalización'}</button>
                         </FormRow>
                     </div>
                 </Modal>
