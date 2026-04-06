@@ -23,6 +23,9 @@ export const DashboardPage = () => {
     const [selectedTank, setSelectedTank] = React.useState(null);
     const [sellAmount, setSellAmount] = React.useState('');
     const [sellLiters, setSellLiters] = React.useState('');
+    const [paymentMethod, setPaymentMethod] = React.useState('EFECTIVO');
+    const [posMode, setPosMode] = React.useState('DIRECT'); // 'DIRECT' or 'CART'
+    const [combinedAmounts, setCombinedAmounts] = React.useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
     const [isProcessingSale, setIsProcessingSale] = React.useState(false);
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
@@ -116,18 +119,39 @@ export const DashboardPage = () => {
                 throw new Error("No hay suficiente aceite en el tanque");
             }
 
-            const cartItem = {
-                ...selectedTank,
-                qty: liters
-            };
+            // Determine final liters and price
+            let finalLiters = liters;
+            let finalPrice = liters * selectedTank.sell_price;
 
-            await processSale([cartItem], 'EFECTIVO', null, user.id);
-            alert(`✅ Venta realizada: ${liters.toFixed(3)}L de ${selectedTank.name}`);
+            if (posMode === 'CART') {
+                addToPosCart({
+                    id: selectedTank.id,
+                    label: selectedTank.name,
+                    price: selectedTank.sell_price,
+                    qty: finalLiters,
+                    inventory_item: selectedTank
+                });
+                alert('Producto añadido al carrito del punto de venta.');
+                setSelectedTank(null);
+                setSellAmount('');
+                setSellLiters('');
+                return;
+            }
+
+            // Direct Sale
+            await addQuickService(
+                { label: selectedTank.name, price: finalPrice, qty: finalLiters, id: selectedTank.id, inventory_item: selectedTank },
+                null, null, null,
+                { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null }
+            );
+
+            alert(`Venta registrada correctamente por ${formatCurrency(finalPrice)} (${paymentMethod})`);
             setSelectedTank(null);
             setSellAmount('');
             setSellLiters('');
         } catch (e) {
-            alert(e.message);
+            console.error("Quick sell error", e);
+            alert("Error en venta rápida: " + e.message);
         } finally {
             setIsProcessingSale(false);
         }
@@ -368,9 +392,6 @@ export const DashboardPage = () => {
                                             value={sellAmount}
                                             onChange={e => setSellAmount(e.target.value)}
                                         />
-                                        <button className="btn btn-primary" onClick={() => handleQuickSell('MONTO')} disabled={isProcessingSale || !sellAmount}>
-                                            Vender
-                                        </button>
                                     </div>
                                 </FormField>
                             </FormRow>
@@ -385,12 +406,54 @@ export const DashboardPage = () => {
                                             value={sellLiters}
                                             onChange={e => setSellLiters(e.target.value)}
                                         />
-                                        <button className="btn btn-primary" onClick={() => handleQuickSell('LITROS')} disabled={isProcessingSale || !sellLiters}>
-                                            Vender
-                                        </button>
                                     </div>
                                 </FormField>
                             </FormRow>
+
+                            <div className="divider">Opciones de Venta</div>
+
+                            <FormRow>
+                                <FormField label="Modo">
+                                    <div className="btn-group">
+                                        <button className={`btn btn-sm ${posMode === 'DIRECT' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setPosMode('DIRECT')}>Venta Directa</button>
+                                        <button className={`btn btn-sm ${posMode === 'CART' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setPosMode('CART')}>Ir al Carrito</button>
+                                    </div>
+                                </FormField>
+                            </FormRow>
+
+                            {posMode === 'DIRECT' && (
+                                <Fragment>
+                                    <FormRow>
+                                        <FormField label="Medio de Pago">
+                                            <select className="form-input" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                                                <option value="EFECTIVO">EFECTIVO</option>
+                                                <option value="DEBITO">DÉBITO</option>
+                                                <option value="CREDITO">CRÉDITO</option>
+                                                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                                                <option value="COMBINADO">COMBINADO</option>
+                                            </select>
+                                        </FormField>
+                                    </FormRow>
+
+                                    {paymentMethod === 'COMBINADO' && (
+                                        <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                            <input type="number" className="form-input btn-sm" placeholder="Efectivo" value={combinedAmounts.EFECTIVO} onChange={e => setCombinedAmounts({ ...combinedAmounts, EFECTIVO: e.target.value })} />
+                                            <input type="number" className="form-input btn-sm" placeholder="Tarjeta" value={combinedAmounts.TARJETA} onChange={e => setCombinedAmounts({ ...combinedAmounts, TARJETA: e.target.value })} />
+                                            <input type="number" className="form-input btn-sm" placeholder="Transf." value={combinedAmounts.TRANSFERENCIA} onChange={e => setCombinedAmounts({ ...combinedAmounts, TRANSFERENCIA: e.target.value })} />
+                                        </div>
+                                    )}
+                                </Fragment>
+                            )}
+
+                            <button
+                                className={`btn ${posMode === 'CART' ? 'btn-warning' : 'btn-primary'} btn-lg`}
+                                style={{ marginTop: 20 }}
+                                onClick={() => handleQuickSell(sellAmount ? 'MONTO' : 'LITROS')}
+                                disabled={isProcessingSale || (!sellAmount && !sellLiters)}
+                            >
+                                <Icon name={posMode === 'CART' ? 'add_shopping_cart' : 'point_of_sale'} size={20} />
+                                {posMode === 'CART' ? 'Agregar al Carrito' : 'Finalizar Venta Directa'}
+                            </button>
                         </div>
 
                         {sellAmount && selectedTank && (

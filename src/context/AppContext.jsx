@@ -50,6 +50,53 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     const [timeTrackingLogs, setTimeTrackingLogs] = useState([]);
 
+    // ==========================================
+    // Carrito de Ventas & Cola de Trabajo
+    // ==========================================
+    const [posCart, setPosCart] = useState(() => {
+        const saved = localStorage.getItem('piripi_pos_cart');
+        return saved ? JSON.parse(saved) : [];
+    });
+    
+    const [gomeriaQueue, setGomeriaQueue] = useState(() => {
+        const saved = localStorage.getItem('piripi_gomeria_queue');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('piripi_pos_cart', JSON.stringify(posCart));
+    }, [posCart]);
+
+    useEffect(() => {
+        localStorage.setItem('piripi_gomeria_queue', JSON.stringify(gomeriaQueue));
+    }, [gomeriaQueue]);
+
+    const addToPosCart = (item) => {
+        setPosCart(prev => {
+            const existing = prev.findIndex(i => i.id === item.id && !item.isCustom);
+            if (existing !== -1) {
+                return prev.map((i, idx) => idx === existing ? { ...i, qty: (i.qty || 1) + (item.qty || 1), currentPrice: i.price * ((i.qty || 1) + (item.qty || 1)) } : i);
+            }
+            return [...prev, { ...item, qty: item.qty || 1, currentPrice: item.price * (item.qty || 1) }];
+        });
+    };
+
+    const removeFromPosCart = (idx) => {
+        setPosCart(prev => prev.filter((_, i) => i !== idx));
+    };
+
+    const clearPosCart = () => setPosCart([]);
+
+    const addToQueue = (name) => {
+        const newItem = { id: Date.now(), name, services: [], created_at: new Date().toISOString() };
+        setGomeriaQueue(prev => [...prev, newItem]);
+        return newItem;
+    };
+
+    const removeFromQueue = (id) => {
+        setGomeriaQueue(prev => prev.filter(q => q.id !== id));
+    };
+
     const addTimeLog = async (pin, type) => {
         if (!pin) throw new Error('Debe ingresar un PIN');
         
@@ -1249,7 +1296,17 @@ export const AppProvider = ({ children }) => {
             deletePromotion,
             addAppointment,
             deleteAppointment,
-            generateAFIPInvoice
+            generateAFIPInvoice,
+            // POS Global
+            posCart,
+            setPosCart,
+            addToPosCart,
+            removeFromPosCart,
+            clearPosCart,
+            gomeriaQueue,
+            setGomeriaQueue,
+            addToQueue,
+            removeFromQueue
         }}>
             {children}
         </AppContext.Provider>

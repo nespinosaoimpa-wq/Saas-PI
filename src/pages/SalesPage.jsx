@@ -13,9 +13,8 @@ import {
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 
 export const SalesPage = () => {
-    const { data: MOCK, processSale, exportToExcel } = useApp();
+    const { data: MOCK, processSale, exportToExcel, posCart: cart, setPosCart: setCart } = useApp();
     const { user } = useAuth();
-    const [cart, setCart] = useState([]);
     const [manualCode, setManualCode] = useState('');
     const [showCamera, setShowCamera] = useState(false);
     const [payMethod, setPayMethod] = useState('EFECTIVO');
@@ -85,9 +84,9 @@ export const SalesPage = () => {
         setCart(prev => {
             const existing = prev.find(ci => ci.id === item.id);
             if (existing) {
-                return prev.map(ci => ci.id === item.id ? { ...ci, qty: ci.qty + 1 } : ci);
+                return prev.map(ci => ci.id === item.id ? { ...ci, qty: ci.qty + 1, currentPrice: (item.sell_price || 0) * (ci.qty + 1) } : ci);
             }
-            return [...prev, { ...item, qty: 1 }];
+            return [...prev, { ...item, qty: 1, currentPrice: item.sell_price || 0 }];
         });
     };
 

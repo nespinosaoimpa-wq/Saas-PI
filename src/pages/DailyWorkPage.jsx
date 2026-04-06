@@ -6,7 +6,12 @@ import { useAuth } from '../context/AuthContext';
 import { SectionHeader, GlassCard, StatusBadge, CheckItem, Icon, Modal, FormField, FormRow } from '../components/ui';
 
 export const DailyWorkPage = () => {
-    const { data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions } = useApp();
+    const { 
+        data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions,
+        posCart: cart, setPosCart: setCart, 
+        gomeriaQueue, setGomeriaQueue,
+        addToQueue: globalAddToQueue, removeFromQueue: globalRemoveFromQueue
+    } = useApp();
     const { user } = useAuth();
 
     // Anti doble-click guards
@@ -21,7 +26,6 @@ export const DailyWorkPage = () => {
     const [editPrice, setEditPrice] = useState('');
     const [showTicketModal, setShowTicketModal] = useState(false);
     const [lastTicket, setLastTicket] = useState(null);
-    const [gomeriaQueue, setGomeriaQueue] = useState([]);
     const [selectedQueueClient, setSelectedQueueClient] = useState(null);
     const [newQueueName, setNewQueueName] = useState('');
 
@@ -46,7 +50,6 @@ export const DailyWorkPage = () => {
     const [observationsState, setObservationsState] = useState({});
 
     // Carrito de Servicios Gomería
-    const [cart, setCart] = useState([]);
     const [manualDiscount, setManualDiscount] = useState(0);
 
     const updateCartQty = (idx, newQty) => {
@@ -237,14 +240,13 @@ export const DailyWorkPage = () => {
 
     const addToQueue = () => {
         if (!newQueueName.trim()) return;
-        const newItem = { id: Date.now(), name: newQueueName, services: [] };
-        setGomeriaQueue(prev => [...prev, newItem]);
+        const newItem = globalAddToQueue(newQueueName);
         setNewQueueName('');
         if (!selectedQueueClient) setSelectedQueueClient(newItem);
     };
 
     const removeFromQueue = (id) => {
-        setGomeriaQueue(prev => prev.filter(q => q.id !== id));
+        globalRemoveFromQueue(id);
         if (selectedQueueClient?.id === id) {
             setSelectedQueueClient(null);
             setCart([]);
