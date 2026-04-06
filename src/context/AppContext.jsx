@@ -104,7 +104,7 @@ export const AppProvider = ({ children }) => {
 
     const getActiveEmployees = () => {
         const active = [];
-        const employees = data.employees || [];
+        const employees = (data.employees || []).filter(emp => emp.is_active !== false);
 
         employees.forEach(emp => {
             const lastLog = timeTrackingLogs.find(l => l.employee_id === emp.id);

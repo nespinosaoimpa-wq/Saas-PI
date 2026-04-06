@@ -159,7 +159,7 @@ export const DashboardPage = () => {
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                             <div style={{ width: 60, height: 80 }}>
-                                                <LiquidGauge percent={percent} label={formatML(tank.stock_ml)} />
+                                                <LiquidGauge current_ml={tank.stock_ml} max_ml={capacity} />
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{tank.name}</div>
