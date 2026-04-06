@@ -26,6 +26,7 @@ export const UsersPage = () => {
     const [error, setError] = useState('');
     const [viewType, setViewType] = useState('accounts'); // 'accounts', 'attendance', 'performance'
     const [selectedEmployeeForStats, setSelectedEmployeeForStats] = useState(null);
+    const [bonusPercent, setBonusPercent] = useState('0.3');
     const { getDetailedEmployeeStats } = useApp();
 
     useEffect(() => {
@@ -265,6 +266,23 @@ export const UsersPage = () => {
                                         <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Mano de Obra (Prod)</div>
                                         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>
                                             {formatCurrency(getDetailedEmployeeStats(selectedEmployeeForStats.id).totalProductionAmount)}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(var(--success-rgb), 0.1)', padding: '4px 12px', borderRadius: 20 }}>
+                                        <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--success)', fontWeight: 600 }}>Ganancia Extra:</div>
+                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            <input 
+                                                type="number" 
+                                                step="0.1" 
+                                                style={{ width: 45, background: 'none', border: 'none', color: 'var(--success)', fontWeight: 'bold', fontSize: 14, textAlign: 'right', borderBottom: '1px dashed var(--success)', outline: 'none' }}
+                                                value={bonusPercent}
+                                                onChange={(e) => setBonusPercent(e.target.value)}
+                                            />
+                                            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--success)', paddingRight: 8 }}>%</span>
+                                            <div style={{ width: 1, height: 20, background: 'rgba(var(--success-rgb), 0.3)', marginRight: 8 }}></div>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--success)' }}>
+                                                {formatCurrency(getDetailedEmployeeStats(selectedEmployeeForStats.id).totalProductionAmount * (parseFloat(bonusPercent) || 0) / 100)}
+                                            </div>
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
