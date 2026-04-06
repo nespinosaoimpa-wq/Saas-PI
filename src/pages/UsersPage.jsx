@@ -27,7 +27,42 @@ export const UsersPage = () => {
     const [viewType, setViewType] = useState('accounts'); // 'accounts', 'attendance', 'performance'
     const [selectedEmployeeForStats, setSelectedEmployeeForStats] = useState(null);
     const [bonusPercent, setBonusPercent] = useState('0.3');
+    const [periodFilter, setPeriodFilter] = useState('month');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const { getDetailedEmployeeStats } = useApp();
+
+    useEffect(() => {
+        const now = new Date();
+        let start = new Date();
+        
+        if (periodFilter === 'today') {
+            start.setHours(0, 0, 0, 0);
+        } else if (periodFilter === 'week') {
+            const day = now.getDay();
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            start.setDate(diff);
+            start.setHours(0, 0, 0, 0);
+        } else if (periodFilter === 'fortnight') {
+            if (now.getDate() <= 15) {
+                start.setDate(1);
+            } else {
+                start.setDate(16);
+            }
+            start.setHours(0, 0, 0, 0);
+        } else if (periodFilter === 'month') {
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+        }
+
+        if (periodFilter !== 'custom' && periodFilter !== 'all') {
+            setStartDate(start.toISOString().split('T')[0]);
+            setEndDate(now.toISOString().split('T')[0]);
+        } else if (periodFilter === 'all') {
+            setStartDate('');
+            setEndDate('');
+        }
+    }, [periodFilter]);
 
     useEffect(() => {
         const uniqueEmployees = contextEmployees.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
@@ -248,55 +283,97 @@ export const UsersPage = () => {
                 )}
 
                 {viewType === 'performance' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <div style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(var(--primary-rgb), 0.05)', padding: 12, borderRadius: 8 }}>
-                            <Icon name="search" size={20} style={{ color: 'var(--primary)' }} />
-                            <select 
-                                className="form-select" 
-                                style={{ flex: 1, maxWidth: 300 }}
-                                onChange={(e) => setSelectedEmployeeForStats(employees.find(emp => emp.id === e.target.value))}
-                                value={selectedEmployeeForStats?.id || ''}
-                            >
-                                <option value="">Selecciona un empleado para ver su historial...</option>
-                                {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.role})</option>)}
-                            </select>
-                            {selectedEmployeeForStats && (
-                                <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Mano de Obra (Prod)</div>
-                                        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>
-                                            {formatCurrency(getDetailedEmployeeStats(selectedEmployeeForStats.id).totalProductionAmount)}
-                                        </div>
+                    <React.Fragment>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(var(--primary-rgb), 0.05)', padding: 16, borderRadius: 12 }}>
+                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                <Icon name="search" size={20} style={{ color: 'var(--primary)' }} />
+                                <select 
+                                    className="form-select" 
+                                    style={{ flex: 1, maxWidth: 300 }}
+                                    onChange={(e) => setSelectedEmployeeForStats(employees.find(emp => emp.id === e.target.value))}
+                                    value={selectedEmployeeForStats?.id || ''}
+                                >
+                                    <option value="">Selecciona un empleado para ver su historial...</option>
+                                    {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.role})</option>)}
+                                </select>
+                                
+                                <div style={{ display: 'flex', gap: 4, background: 'var(--bg-card)', padding: 4, borderRadius: 8, border: '1px solid var(--border)' }}>
+                                    {[
+                                        { id: 'today', label: 'Hoy' },
+                                        { id: 'week', label: 'Semana' },
+                                        { id: 'fortnight', label: 'Quincena' },
+                                        { id: 'month', label: 'Mes' },
+                                        { id: 'all', label: 'Todo' },
+                                        { id: 'custom', label: 'Manual' }
+                                    ].map(p => (
+                                        <button 
+                                            key={p.id}
+                                            onClick={() => setPeriodFilter(p.id)}
+                                            style={{ 
+                                                padding: '4px 10px', fontSize: 11, border: 'none', borderRadius: 4, cursor: 'pointer',
+                                                background: periodFilter === p.id ? 'var(--primary)' : 'transparent',
+                                                color: periodFilter === p.id ? 'white' : 'var(--text-primary)',
+                                                fontWeight: periodFilter === p.id ? 700 : 500
+                                            }}
+                                        >
+                                            {p.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {periodFilter === 'custom' && (
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <input type="date" className="form-input" style={{ width: 130, padding: '4px 8px' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                                        <span style={{ fontSize: 12 }}>a</span>
+                                        <input type="date" className="form-input" style={{ width: 130, padding: '4px 8px' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(var(--success-rgb), 0.1)', padding: '4px 12px', borderRadius: 20 }}>
-                                        <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--success)', fontWeight: 600 }}>Ganancia Extra:</div>
-                                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                                            <input 
-                                                type="number" 
-                                                step="0.1" 
-                                                style={{ width: 45, background: 'none', border: 'none', color: 'var(--success)', fontWeight: 'bold', fontSize: 14, textAlign: 'right', borderBottom: '1px dashed var(--success)', outline: 'none' }}
-                                                value={bonusPercent}
-                                                onChange={(e) => setBonusPercent(e.target.value)}
-                                            />
-                                            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--success)', paddingRight: 8 }}>%</span>
-                                            <div style={{ width: 1, height: 20, background: 'rgba(var(--success-rgb), 0.3)', marginRight: 8 }}></div>
-                                            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--success)' }}>
-                                                {formatCurrency(getDetailedEmployeeStats(selectedEmployeeForStats.id).totalProductionAmount * (parseFloat(bonusPercent) || 0) / 100)}
+                                )}
+                            </div>
+
+                            {selectedEmployeeForStats && (
+                                <div style={{ display: 'flex', gap: 16, borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+                                    <div style={{ flex: 1, display: 'flex', gap: 20 }}>
+                                        <div style={{ textAlign: 'left' }}>
+                                            <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Mano de Obra (Neto)</div>
+                                            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>
+                                                {formatCurrency(getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).totalProductionAmount)}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(var(--success-rgb), 0.1)', padding: '6px 16px', borderRadius: 12, border: '1px solid rgba(var(--success-rgb), 0.2)' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <div style={{ fontSize: 9, textTransform: 'uppercase', color: 'var(--success)', fontWeight: 700, letterSpacing: 0.5 }}>Ganancia Extra:</div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.05" 
+                                                        style={{ width: 45, background: 'none', border: 'none', color: 'var(--success)', fontWeight: 'bold', fontSize: 16, textAlign: 'right', borderBottom: '1.5px dashed var(--success)', outline: 'none' }}
+                                                        value={bonusPercent}
+                                                        onChange={(e) => setBonusPercent(e.target.value)}
+                                                    />
+                                                    <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--success)' }}>%</span>
+                                                </div>
+                                            </div>
+                                            <div style={{ width: 1, height: 24, background: 'rgba(var(--success-rgb), 0.3)' }}></div>
+                                            <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--success)' }}>
+                                                {formatCurrency(getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).totalProductionAmount * (parseFloat(bonusPercent) || 0) / 100)}
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'left' }}>
+                                            <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Horas Totales</div>
+                                            <div style={{ fontSize: 20, fontWeight: 800 }}>
+                                                {getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).totalHours}h
                                             </div>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Horas Totales</div>
-                                        <div style={{ fontSize: 18, fontWeight: 800 }}>
-                                            {getDetailedEmployeeStats(selectedEmployeeForStats.id).totalHours}h
-                                        </div>
-                                    </div>
+                                    <button className="btn btn-ghost" onClick={() => exportToExcel('performance')} style={{ alignSelf: 'center' }}>
+                                        <Icon name="download" size={18} /> Planilla Pago
+                                    </button>
                                 </div>
                             )}
                         </div>
 
                         {selectedEmployeeForStats ? (
-                            <div className="page-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                            <div className="page-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 20 }}>
                                 <GlassCard title="Producción y Servicios">
                                     <DataTable
                                         columns={[
@@ -305,7 +382,7 @@ export const UsersPage = () => {
                                             { key: 'desc', label: 'Servicio', render: r => <div style={{ fontSize: 11 }}>{r.description} {r.order_number && <strong>#{r.order_number}</strong>}</div> },
                                             { key: 'amount', label: 'M.O.', render: r => <span style={{ fontWeight: 700 }}>{formatCurrency(r.amount)}</span> }
                                         ]}
-                                        data={getDetailedEmployeeStats(selectedEmployeeForStats.id).productionList}
+                                        data={getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).productionList}
                                     />
                                 </GlassCard>
                                 <GlassCard title="Fichaje Individual">
@@ -319,18 +396,20 @@ export const UsersPage = () => {
                                                 </span>
                                             )}
                                         ]}
-                                        data={getDetailedEmployeeStats(selectedEmployeeForStats.id).attendanceLogs}
+                                        data={getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).attendanceLogs}
                                     />
                                 </GlassCard>
                             </div>
                         ) : (
-                            <EmptyState 
-                                icon="person_search" 
-                                title="No hay empleado seleccionado" 
-                                description="Seleccioná un miembro del equipo para auditar su rendimiento, horas trabajadas y trabajos realizados."
-                            />
+                            <div style={{ marginTop: 20 }}>
+                                <EmptyState 
+                                    icon="person_search" 
+                                    title="No hay empleado seleccionado" 
+                                    description="Seleccioná un miembro del equipo para auditar su rendimiento, horas trabajadas y trabajos realizados."
+                                />
+                            </div>
                         )}
-                    </div>
+                    </React.Fragment>
                 )}
 
                 {showNew && (
