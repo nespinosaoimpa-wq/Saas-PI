@@ -213,7 +213,14 @@ export const DailyWorkPage = () => {
     };
 
     const handleQuickAction = (action) => {
-        initiateQuickAction(action);
+        let actionToRun = { ...action };
+        if (action.inventory_item_id) {
+            const linkedItem = (MOCK.inventory || []).find(i => i.id === action.inventory_item_id);
+            if (linkedItem) {
+                actionToRun.inventory_item = linkedItem;
+            }
+        }
+        initiateQuickAction(actionToRun);
     };
 
     const addToCartFromPOS = (product) => {
@@ -735,6 +742,20 @@ export const DailyWorkPage = () => {
                         </FormRow>
                         <FormField label="Color del Icono">
                             <input type="color" className="form-input" style={{ height: 40 }} value={configAction.color.startsWith('var') ? '#3b82f6' : configAction.color} onChange={e => setConfigAction({...configAction, color: e.target.value})} />
+                        </FormField>
+                        <FormField label="Vincular a Producto (Descontará Stock)">
+                            <select 
+                                className="form-select" 
+                                value={configAction.inventory_item_id || ''} 
+                                onChange={e => setConfigAction({...configAction, inventory_item_id: e.target.value})}
+                            >
+                                <option value="">-- Sin Vincular (Sólo Servicio) --</option>
+                                {(MOCK.inventory || []).map(inv => (
+                                    <option key={inv.id} value={inv.id}>
+                                        {inv.name} (Stock: {inv.stock_type === 'UNIT' ? inv.stock_quantity : (inv.stock_ml/1000).toFixed(1) + 'L'})
+                                    </option>
+                                ))}
+                            </select>
                         </FormField>
                     </div>
                 </Modal>
