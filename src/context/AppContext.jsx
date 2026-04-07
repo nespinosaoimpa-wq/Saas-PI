@@ -1173,9 +1173,25 @@ export const AppProvider = ({ children }) => {
         return otCommissions + quickCommissions + cashierCommissions;
     };
 
-    const getDetailedEmployeeStats = (employeeId) => {
-        const logs = (timeTrackingLogs || []).filter(l => l.employee_id === employeeId);
+    const getDetailedEmployeeStats = (employeeId, filters = {}) => {
+        const { startDate, endDate } = filters;
         
+        let logs = (timeTrackingLogs || []).filter(l => l.employee_id === employeeId);
+        
+        // Aplicar filtros de fecha si existen
+        if (startDate || endDate) {
+            logs = logs.filter(l => {
+                const logDate = new Date(l.timestamp);
+                if (startDate && logDate < new Date(startDate)) return false;
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (logDate > end) return false;
+                }
+                return true;
+            });
+        }
+
         // Calcular horas trabajadas
         let totalMs = 0;
         const processedLogs = [...logs].reverse(); // De más viejo a más nuevo
@@ -1196,40 +1212,83 @@ export const AppProvider = ({ children }) => {
         const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
         const otProduction = assignments.map(a => {
             const wo = data.workOrders?.find(w => w.id === a.work_order_id);
+            const date = wo?.completed_at || wo?.created_at;
+            
+            // Filtro de fecha para OTs
+            if (startDate || endDate) {
+                const itemDate = new Date(date);
+                if (startDate && itemDate < new Date(startDate)) return null;
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (itemDate > end) return null;
+                }
+            }
+
             return {
                 id: a.id,
-                date: wo?.completed_at || wo?.created_at,
+                date,
                 type: 'OT',
                 description: wo?.description || 'Órden de Trabajo',
                 order_number: wo?.order_number,
                 amount: parseFloat(wo?.labor_cost) || 0,
                 status: wo?.status
             };
-        }).filter(item => item.status === 'Finalizado' || item.status === 'Cobrado');
+        }).filter(item => item && (item.status === 'Finalizado' || item.status === 'Cobrado'));
 
         // Producción en Gomería
         const quickProduction = (data.dailyQuickServices || [])
             .filter(s => s.mechanic_id === employeeId)
-            .map(s => ({
-                id: s.id,
-                date: s.created_at,
-                type: 'GOMERÍA',
-                description: s.service_type || 'Servicio Rápido',
-                amount: parseFloat(s.price) || 0,
-                status: 'Finalizado'
-            }));
+            .map(s => {
+                const date = s.created_at;
+                
+                // Filtro de fecha para Gomería
+                if (startDate || endDate) {
+                    const itemDate = new Date(date);
+                    if (startDate && itemDate < new Date(startDate)) return null;
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        if (itemDate > end) return null;
+                    }
+                }
+
+                return {
+                    id: s.id,
+                    date,
+                    type: 'GOMERÍA',
+                    description: s.service_type || 'Servicio Rápido',
+                    amount: parseFloat(s.price) || 0,
+                    status: 'Finalizado'
+                };
+            }).filter(item => item !== null);
 
         // Producción de Cajeros (Ventas POS)
         const posProduction = (data.payments || [])
             .filter(p => p.employee_id === employeeId && p.type === 'VENTA')
-            .map(p => ({
-                id: p.id,
-                date: p.date || p.created_at,
-                type: 'PUNTO DE VENTA',
-                description: p.description || 'Venta de Mostrador',
-                amount: parseFloat(p.amount) || 0,
-                status: 'Finalizado'
-            }));
+            .map(p => {
+                const date = p.date || p.created_at;
+                
+                // Filtro de fecha para POS
+                if (startDate || endDate) {
+                    const itemDate = new Date(date);
+                    if (startDate && itemDate < new Date(startDate)) return null;
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        if (itemDate > end) return null;
+                    }
+                }
+
+                return {
+                    id: p.id,
+                    date,
+                    type: 'PUNTO DE VENTA',
+                    description: p.description || 'Venta de Mostrador',
+                    amount: parseFloat(p.amount) || 0,
+                    status: 'Finalizado'
+                };
+            }).filter(item => item !== null);
 
         const combinedProduction = [...otProduction, ...quickProduction, ...posProduction].sort((a, b) => new Date(b.date) - new Date(a.date));
         const totalProductionAmount = combinedProduction.reduce((sum, item) => sum + item.amount, 0);
