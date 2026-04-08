@@ -186,7 +186,8 @@ export const AppProvider = ({ children }) => {
             const [
                 clients, vehicles, workOrders, inventory, suppliers, boxes,
                 vehicleNotes, payments, cashClosings, appointments, promotions,
-                assignments, employees, workOrderItems, dailyQuickServices, attendance_logs
+                assignments, employees, workOrderItems, dailyQuickServices, attendance_logs,
+                employeeEarnings
             ] = await Promise.all([
                 fetchTable('clients'),
                 fetchTable('vehicles'),
@@ -203,7 +204,8 @@ export const AppProvider = ({ children }) => {
                 fetchTable('employees'),
                 fetchTable('work_order_items'),
                 fetchTable('daily_quick_services'),
-                supabase.from('attendance_logs').select('*').order('timestamp', { ascending: false }).then(r => r.data || [])
+                supabase.from('attendance_logs').select('*').order('timestamp', { ascending: false }).then(r => r.data || []),
+                fetchTable('employee_earnings')
             ]);
 
 
@@ -219,9 +221,10 @@ export const AppProvider = ({ children }) => {
                 employees: employees.length ? employees : MOCK.employees || [],
                 workOrderItems: workOrderItems.length ? workOrderItems : [],
                 dailyQuickServices: dailyQuickServices.length ? dailyQuickServices : [],
+                employeeEarnings: employeeEarnings.length ? employeeEarnings : [],
                 // Tablas opcionales (pueden no existir)
                 vehicleHealth: [], brands: [],
-                dailyWorkLog: [], serviceHistory: [], employeeEarnings: [],
+                dailyWorkLog: [], serviceHistory: [], 
                 activityLog: []
             });
             setTimeTrackingLogs(attendance_logs);
