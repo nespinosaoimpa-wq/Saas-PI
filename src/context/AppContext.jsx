@@ -271,11 +271,20 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = async (itemsOrAction, mechanicId = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }, overrideTotal = null) => {
+    const addQuickService = async (itemsOrAction, mechanicIds = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }, overrideTotal = null) => {
         const items = Array.isArray(itemsOrAction) ? itemsOrAction : [itemsOrAction];
         const labels = items.map(i => i.label).join(', ');
+        
+        // Convertir mechanicIds a array si viene como un solo ID (compatibilidad)
+        const assignedMechanicIds = Array.isArray(mechanicIds) ? mechanicIds : (mechanicIds ? [mechanicIds] : []);
+        const primaryMechanicId = assignedMechanicIds.length > 0 ? assignedMechanicIds[0] : null;
+
         const subtotal = items.reduce((sum, i) => sum + (i.price || i.currentPrice || 0), 0);
         const finalPrice = overrideTotal !== null ? overrideTotal : subtotal;
+
+        // Calcular base de mano de obra (items que no son de inventario)
+        const laborItems = items.filter(item => !item.inventory_item && !(data.inventory || []).find(i => i.id === item.id));
+        const laborTotal = laborItems.reduce((sum, i) => sum + (i.price || i.currentPrice || 0), 0);
 
         try {
             // 1. Intentar persistir en tabla de servicios rápidos
@@ -284,17 +293,46 @@ export const AppProvider = ({ children }) => {
                 const { data: qData, error } = await supabase.from('daily_quick_services').insert([{
                     service_type: labels,
                     price: finalPrice,
-                    mechanic_id: mechanicId,
+                    mechanic_id: primaryMechanicId, // Guardamos el primero como principal
                     client_id: clientId,
                     vehicle_id: vehicleId
                 }]).select().single();
                 if (!error) newService = qData;
+
+                // 1.1 Registrar asignaciones múltiples y comisiones
+                if (!error && newService && assignedMechanicIds.length > 0) {
+                    const dividedLabor = laborTotal / assignedMechanicIds.length;
+                    
+                    for (const mId of assignedMechanicIds) {
+                        const emp = (data.employees || []).find(e => e.id === mId);
+                        const rate = emp ? (parseFloat(emp.commission_rate) || 0) : 0;
+                        const amountEarned = dividedLabor * (rate / 100);
+
+                        // Registrar en tabla intermedia (nueva)
+                        await supabase.from('quick_service_assignments').insert([{
+                            quick_service_id: newService.id,
+                            employee_id: mId,
+                            commission_amount: amountEarned
+                        }]);
+
+                        // Registrar en historial de ganancias
+                        if (amountEarned > 0) {
+                            await supabase.from('employee_earnings').insert([{
+                                employee_id: mId,
+                                quick_service_id: newService.id,
+                                amount_earned: amountEarned,
+                                description: `Comisión Gomería (${assignedMechanicIds.length} operarios): ${labels}`
+                            }]);
+                        }
+                    }
+                }
             } catch (e) {
-                console.warn('Tabla daily_quick_services no disponible, continuando...', e.message);
+                console.warn('Tablas de gomería no disponibles, continuando...', e.message);
             }
 
             // 2. Registrar pago automático en caja
             if (finalPrice > 0) {
+                const cashierId = primaryMechanicId || null;
                 if (paymentOptions.method === 'COMBINADO' && paymentOptions.combinedAmounts) {
                     for (const [method, amount] of Object.entries(paymentOptions.combinedAmounts)) {
                         const amt = parseFloat(amount);
@@ -305,7 +343,7 @@ export const AppProvider = ({ children }) => {
                                 description: `Gomería Express (${method}): ${labels}`,
                                 type: 'INGRESO',
                                 reference: 'DIRECTO',
-                                employee_id: mechanicId || null
+                                employee_id: cashierId
                             });
                         }
                     }
@@ -316,7 +354,7 @@ export const AppProvider = ({ children }) => {
                         description: `Gomería Express: ${labels}`,
                         type: 'INGRESO',
                         reference: 'DIRECTO',
-                        employee_id: mechanicId || null
+                        employee_id: cashierId
                     });
                 }
             }
@@ -342,12 +380,12 @@ export const AppProvider = ({ children }) => {
             // 4. Actualizar estado local
             setData(prev => ({
                 ...prev,
-                dailyQuickServices: [newService || { id: Date.now().toString(), service_type: labels, price: finalPrice, mechanic_id: mechanicId, created_at: new Date().toISOString() }, ...(prev.dailyQuickServices || [])],
-                activityLog: [{ label: labels, price: finalPrice, timestamp: new Date().toISOString(), mechanic_id: mechanicId }, ...(prev.activityLog || [])]
+                dailyQuickServices: [newService || { id: Date.now().toString(), service_type: labels, price: finalPrice, mechanic_id: primaryMechanicId, created_at: new Date().toISOString() }, ...(prev.dailyQuickServices || [])],
+                activityLog: [{ label: labels, price: finalPrice, timestamp: new Date().toISOString(), mechanic_id: primaryMechanicId }, ...(prev.activityLog || [])]
             }));
 
             await loadData(); // Reload inventory
-            logAudit('Gomería Express', { service: labels, total: finalPrice, items_count: items.length });
+            logAudit('Gomería Express', { service: labels, total: finalPrice, mechanics_count: assignedMechanicIds.length });
         } catch (e) {
             console.error("Error registering express service", e);
             alert("Error al registrar servicio rápido: " + e.message);

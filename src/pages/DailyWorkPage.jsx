@@ -124,7 +124,7 @@ export const DailyWorkPage = () => {
 
     const [pendingAction, setPendingAction] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
-    const [selectedMechanicId, setSelectedMechanicId] = useState(user?.role === 'mechanic' || user?.role === 'gomero' ? user.id : '');
+    const [selectedMechanicIds, setSelectedMechanicIds] = useState([]);
     const [combinedAmounts, setCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
 
     const initiateQuickAction = (action) => {
@@ -157,7 +157,10 @@ export const DailyWorkPage = () => {
         setPaymentMethod('EFECTIVO');
         setCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
         setManualDiscount(0);
-        setSelectedMechanicId(user?.role === 'mechanic' || user?.role === 'gomero' ? user.id : '');
+        
+        // Predeterminar al usuario actual si es mecánico/gomero
+        const defaultId = user?.role === 'mechanic' || user?.role === 'gomero' || user?.role === 'mecanico' ? user.id : null;
+        setSelectedMechanicIds(defaultId ? [defaultId] : []);
     };
 
     const confirmQuickAction = () => {
@@ -182,7 +185,7 @@ export const DailyWorkPage = () => {
             
             await addQuickService(
                 cart.map(item => ({ ...item, price: item.currentPrice, qty: item.qty || 1 })), 
-                selectedMechanicId || user?.id,
+                selectedMechanicIds,
                 selectedQueueClient?.client_id || null,
                 selectedQueueClient?.vehicle_id || null,
                 { method: paymentMethod, combinedAmounts: paymentMethod === 'COMBINADO' ? combinedAmounts : null },
@@ -679,20 +682,44 @@ export const DailyWorkPage = () => {
                         </select>
                     </FormField>
 
-                    <FormField label="¿Qué Gomero realizó el trabajo?">
-                        <select 
-                            className="form-select" 
-                            value={selectedMechanicId} 
-                            onChange={e => setSelectedMechanicId(e.target.value)}
-                        >
-                            <option value="">Seleccionar Gomero...</option>
+                    <FormField label="¿Qué operarios realizaron el trabajo? (Podés seleccionar varios)">
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1fr 1fr', 
+                            gap: 10, 
+                            padding: 12, 
+                            background: 'var(--bg-hover)', 
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)'
+                        }}>
                             {(MOCK.employees || [])
                                 .filter(e => e.role === 'mechanic' || e.role === 'gomero' || e.role === 'mecanico' || e.role === 'admin')
                                 .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
                                 .map(emp => (
-                                    <option key={emp.id} value={emp.id}>{emp.full_name || emp.name}</option>
+                                    <label key={emp.id} style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: 8, 
+                                        cursor: 'pointer',
+                                        fontSize: 13,
+                                        fontWeight: selectedMechanicIds.includes(emp.id) ? 700 : 500,
+                                        color: selectedMechanicIds.includes(emp.id) ? 'var(--primary)' : 'var(--text-primary)'
+                                    }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedMechanicIds.includes(emp.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedMechanicIds(prev => [...prev, emp.id]);
+                                                } else {
+                                                    setSelectedMechanicIds(prev => prev.filter(id => id !== emp.id));
+                                                }
+                                            }}
+                                        />
+                                        {emp.full_name || emp.name}
+                                    </label>
                                 ))}
-                        </select>
+                        </div>
                     </FormField>
 
                     {paymentMethod === 'COMBINADO' && (
