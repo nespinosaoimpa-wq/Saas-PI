@@ -379,7 +379,12 @@ export const UsersPage = () => {
                                         columns={[
                                             { key: 'date', label: 'Fecha/Hora', render: r => <span style={{ fontSize: 11 }}>{new Date(r.date).toLocaleString('es-AR')}</span> },
                                             { key: 'type', label: 'Tipo', render: r => <span className="badge badge-active" style={{ fontSize: 9 }}>{r.type}</span> },
-                                            { key: 'desc', label: 'Servicio', render: r => <div style={{ fontSize: 11 }}>{r.description} {r.order_number && <strong>#{r.order_number}</strong>}</div> },
+                                            { key: 'desc', label: 'Servicio', render: r => (
+                                                <div style={{ fontSize: 11 }}>
+                                                    {r.description} {r.order_number && <strong>#{r.order_number}</strong>}
+                                                    {r.isShared && <span style={{ color: 'var(--primary)', fontSize: 10, marginLeft: 6, fontWeight: 700 }}>[COMPARTIDO]</span>}
+                                                </div>
+                                            ) },
                                             { key: 'amount', label: 'M.O.', render: r => <span style={{ fontWeight: 700 }}>{formatCurrency(r.amount)}</span> }
                                         ]}
                                         data={getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).productionList}

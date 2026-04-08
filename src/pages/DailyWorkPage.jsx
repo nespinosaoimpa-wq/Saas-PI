@@ -124,6 +124,7 @@ export const DailyWorkPage = () => {
 
     const [pendingAction, setPendingAction] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
+    // Soporte para múltiples mecánicos: cambiamos de ID único a Array de IDs
     const [selectedMechanicIds, setSelectedMechanicIds] = useState([]);
     const [combinedAmounts, setCombinedAmounts] = useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
 
@@ -157,9 +158,8 @@ export const DailyWorkPage = () => {
         setPaymentMethod('EFECTIVO');
         setCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
         setManualDiscount(0);
-        
-        // Predeterminar al usuario actual si es mecánico/gomero
-        const defaultId = user?.role === 'mechanic' || user?.role === 'gomero' || user?.role === 'mecanico' ? user.id : null;
+        // Predeterminar al usuario actual si es mecánico/gomero/gomero
+        const defaultId = (user?.role === 'mechanic' || user?.role === 'gomero' || user?.role === 'mecanico') ? user.id : null;
         setSelectedMechanicIds(defaultId ? [defaultId] : []);
     };
 

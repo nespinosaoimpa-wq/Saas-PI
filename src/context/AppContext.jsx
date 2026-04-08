@@ -186,8 +186,8 @@ export const AppProvider = ({ children }) => {
             const [
                 clients, vehicles, workOrders, inventory, suppliers, boxes,
                 vehicleNotes, payments, cashClosings, appointments, promotions,
-                assignments, employees, workOrderItems, dailyQuickServices, attendance_logs,
-                employeeEarnings
+                assignments, employees, workOrderItems, dailyQuickServices, attendance_logs, 
+                quickServiceAssignments, employeeEarnings
             ] = await Promise.all([
                 fetchTable('clients'),
                 fetchTable('vehicles'),
@@ -205,7 +205,8 @@ export const AppProvider = ({ children }) => {
                 fetchTable('work_order_items'),
                 fetchTable('daily_quick_services'),
                 supabase.from('attendance_logs').select('*').order('timestamp', { ascending: false }).then(r => r.data || []),
-                fetchTable('employee_earnings')
+                fetchTable('employee_earnings'),
+                fetchTable('daily_quick_service_assignments')
             ]);
 
 
@@ -222,6 +223,7 @@ export const AppProvider = ({ children }) => {
                 workOrderItems: workOrderItems.length ? workOrderItems : [],
                 dailyQuickServices: dailyQuickServices.length ? dailyQuickServices : [],
                 employeeEarnings: employeeEarnings.length ? employeeEarnings : [],
+                quickServiceAssignments: quickServiceAssignments || [],
                 // Tablas opcionales (pueden no existir)
                 vehicleHealth: [], brands: [],
                 dailyWorkLog: [], serviceHistory: [], 
@@ -274,7 +276,7 @@ export const AppProvider = ({ children }) => {
         (i && i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml)
     );
 
-    const addQuickService = async (itemsOrAction, mechanicIds = null, clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }, overrideTotal = null) => {
+    const addQuickService = async (itemsOrAction, mechanicIds = [], clientId = null, vehicleId = null, paymentOptions = { method: 'EFECTIVO', combinedAmounts: null }, overrideTotal = null) => {
         const items = Array.isArray(itemsOrAction) ? itemsOrAction : [itemsOrAction];
         const labels = items.map(i => i.label).join(', ');
         
@@ -288,6 +290,9 @@ export const AppProvider = ({ children }) => {
         // Calcular base de mano de obra (items que no son de inventario)
         const laborItems = items.filter(item => !item.inventory_item && !(data.inventory || []).find(i => i.id === item.id));
         const laborTotal = laborItems.reduce((sum, i) => sum + (i.price || i.currentPrice || 0), 0);
+        
+        // Si se pasó un solo ID (compatibilidad), convertirlo a array
+        const finalMechanicIds = assignedMechanicIds;
 
         try {
             // 1. Intentar persistir en tabla de servicios rápidos
@@ -300,37 +305,39 @@ export const AppProvider = ({ children }) => {
                     client_id: clientId,
                     vehicle_id: vehicleId
                 }]).select().single();
-                if (!error) newService = qData;
 
-                // 1.1 Registrar asignaciones múltiples y comisiones
-                if (!error && newService && assignedMechanicIds.length > 0) {
-                    const dividedLabor = laborTotal / assignedMechanicIds.length;
-                    
-                    for (const mId of assignedMechanicIds) {
-                        const emp = (data.employees || []).find(e => e.id === mId);
-                        const rate = emp ? (parseFloat(emp.commission_rate) || 0) : 0;
-                        const amountEarned = dividedLabor * (rate / 100);
+                if (!error && qData) {
+                    newService = qData;
+                    // 1.1 Registrar asignaciones múltiples y comisiones
+                    if (finalMechanicIds.length > 0) {
+                        const dividedLabor = laborTotal / finalMechanicIds.length;
+                        
+                        // Tabla intermedia de asignaciones
+                        const assignments = finalMechanicIds.map(mId => ({
+                            quick_service_id: qData.id,
+                            employee_id: mId
+                        }));
+                        await supabase.from('daily_quick_service_assignments').insert(assignments);
 
-                        // Registrar en tabla intermedia (nueva)
-                        await supabase.from('quick_service_assignments').insert([{
-                            quick_service_id: newService.id,
-                            employee_id: mId,
-                            commission_amount: amountEarned
-                        }]);
+                        // Historial de ganancias
+                        for (const mId of finalMechanicIds) {
+                            const emp = (data.employees || []).find(e => e.id === mId);
+                            const rate = emp ? (parseFloat(emp.commission_rate) || 0) : 0;
+                            const amountEarned = dividedLabor * (rate / 100);
 
-                        // Registrar en historial de ganancias
-                        if (amountEarned > 0) {
-                            await supabase.from('employee_earnings').insert([{
-                                employee_id: mId,
-                                quick_service_id: newService.id,
-                                amount_earned: amountEarned,
-                                description: `Comisión Gomería (${assignedMechanicIds.length} operarios): ${labels}`
-                            }]);
+                            if (amountEarned > 0) {
+                                await supabase.from('employee_earnings').insert([{
+                                    employee_id: mId,
+                                    quick_service_id: qData.id,
+                                    amount_earned: amountEarned,
+                                    description: `Comisión Gomería (${finalMechanicIds.length} operarios): ${labels}`
+                                }]);
+                            }
                         }
                     }
                 }
             } catch (e) {
-                console.warn('Tablas de gomería no disponibles, continuando...', e.message);
+                console.warn('Tabla daily_quick_services no disponible o error en asignaciones, continuando...', e.message);
             }
 
             // 2. Registrar pago automático en caja
@@ -362,7 +369,7 @@ export const AppProvider = ({ children }) => {
                 }
             }
 
-            // 3. DESCONTAR STOCK si hay productos de inventario
+            // 3. DESCONTAR STOCK
             for (const item of items) {
                 const invItem = item.inventory_item || (data.inventory || []).find(i => i.id === item.id);
                 if (invItem) {
@@ -388,12 +395,13 @@ export const AppProvider = ({ children }) => {
             }));
 
             await loadData(); // Reload inventory
-            logAudit('Gomería Express', { service: labels, total: finalPrice, mechanics_count: assignedMechanicIds.length });
+            logAudit('Gomería Express', { service: labels, total: finalPrice, mechanics_count: finalMechanicIds.length });
         } catch (e) {
             console.error("Error registering express service", e);
             alert("Error al registrar servicio rápido: " + e.message);
         }
     };
+
 
     const exportToExcel = (dataType) => {
         let rows = [];
@@ -1202,10 +1210,20 @@ export const AppProvider = ({ children }) => {
         }, 0);
 
         // 2. Comisiones por Servicios Rápidos (Gomería)
-        const quickCommissions = (data.employeeEarnings || [])
-            .filter(e => e.employee_id === employeeId && e.quick_service_id)
-            .reduce((sum, e) => sum + (parseFloat(e.amount_earned) || 0), 0);
+        const emp = (data.employees || []).find(e => e.id === employeeId);
+        const commissionRate = emp ? parseFloat(emp.commission_rate) || 0 : 0;
+        
+        const quickAssignments = (data.quickServiceAssignments || []).filter(a => a.employee_id === employeeId);
+        const quickCommissions = quickAssignments.reduce((sum, a) => {
+            const qs = (data.dailyQuickServices || []).find(s => s.id === a.quick_service_id);
+            if (!qs) return sum;
 
+            const siblingAssignments = (data.quickServiceAssignments || []).filter(sa => sa.quick_service_id === qs.id);
+            const mechanicsCount = Math.max(1, siblingAssignments.length);
+            const share = (parseFloat(qs.price) || 0) / mechanicsCount;
+            
+            return sum + (share * (commissionRate / 100));
+        }, 0);
         // 3. Comisiones de Cajero (Ventas POS)
         const cashierCommissions = (data.payments || [])
             .filter(p => p.employee_id === employeeId && p.type === 'VENTA')
@@ -1278,31 +1296,39 @@ export const AppProvider = ({ children }) => {
         }).filter(item => item && (item.status === 'Finalizado' || item.status === 'Cobrado'));
 
         // Producción en Gomería
-        const quickProduction = (data.dailyQuickServices || [])
-            .filter(s => s.mechanic_id === employeeId)
-            .map(s => {
-                const date = s.created_at;
-                
-                // Filtro de fecha para Gomería
-                if (startDate || endDate) {
-                    const itemDate = new Date(date);
-                    if (startDate && itemDate < new Date(startDate)) return null;
-                    if (endDate) {
-                        const end = new Date(endDate);
-                        end.setHours(23, 59, 59, 999);
-                        if (itemDate > end) return null;
-                    }
-                }
+        const quickAssignments = (data.quickServiceAssignments || []).filter(a => a.employee_id === employeeId);
+        const quickProduction = quickAssignments.map(a => {
+            const s = (data.dailyQuickServices || []).find(qs => qs.id === a.quick_service_id);
+            if (!s) return null;
 
-                return {
-                    id: s.id,
-                    date,
-                    type: 'GOMERÍA',
-                    description: s.service_type || 'Servicio Rápido',
-                    amount: parseFloat(s.price) || 0,
-                    status: 'Finalizado'
-                };
-            }).filter(item => item !== null);
+            const date = s.created_at;
+            
+            // Filtro de fecha para Gomería
+            if (startDate || endDate) {
+                const itemDate = new Date(date);
+                if (startDate && itemDate < new Date(startDate)) return null;
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (itemDate > end) return null;
+                }
+            }
+
+            // Cálculo proporcional: si hay N mecánicos en el servicio, este recibe 1/N del monto
+            const siblingAssignments = (data.quickServiceAssignments || []).filter(sa => sa.quick_service_id === s.id);
+            const mechanicsCount = Math.max(1, siblingAssignments.length);
+            const share = (parseFloat(s.price) || 0) / mechanicsCount;
+
+            return {
+                id: s.id,
+                date,
+                type: 'GOMERÍA',
+                description: s.service_type || 'Servicio Rápido',
+                amount: share,
+                status: 'Finalizado',
+                isShared: mechanicsCount > 1
+            };
+        }).filter(item => item !== null);
 
         // Producción de Cajeros (Ventas POS)
         const posProduction = (data.payments || [])
