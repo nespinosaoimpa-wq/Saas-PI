@@ -27,6 +27,8 @@ export const SalesPage = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [discountValue, setDiscountValue] = useState(0);
     const [discountType, setDiscountType] = useState('PERCENT'); // PERCENT or FIXED
+    const [showCustomModal, setShowCustomModal] = useState(false);
+    const [customItem, setCustomItem] = useState({ name: '', price: '' });
     const codeInputRef = useRef(null);
 
     // Buscar producto por código o nombre o marca
@@ -105,6 +107,23 @@ export const SalesPage = () => {
     const handleCameraScan = (code) => {
         addToCart(code);
         setShowCamera(false);
+    };
+
+    const handleAddCustom = () => {
+        if (!customItem.name || !customItem.price) return alert('Por favor complete nombre y precio');
+        
+        const newItem = {
+            id: 'manual-' + Date.now(),
+            name: customItem.name,
+            sell_price: parseFloat(customItem.price),
+            qty: 1,
+            is_manual: true,
+            stock_type: 'UNIT'
+        };
+
+        setCart(prev => [...prev, newItem]);
+        setShowCustomModal(false);
+        setCustomItem({ name: '', price: '' });
     };
 
     const updateQty = (id, delta) => {
@@ -252,6 +271,9 @@ export const SalesPage = () => {
                         </button>
                         <button className="btn btn-ghost" onClick={() => setShowCamera(true)} style={{ padding: '12px 16px' }} title="Escanear código de barras con la cámara">
                             <Icon name="photo_camera" size={20} />
+                        </button>
+                        <button className="btn btn-warning" onClick={() => setShowCustomModal(true)} style={{ padding: '12px 20px', fontWeight: 700 }} title="Agregar producto manual (No existe en stock)">
+                            <Icon name="add" size={20} /> Especial
                         </button>
                         <button className="btn btn-ghost" onClick={() => exportToExcel('sales')} style={{ padding: '12px 16px', marginLeft: 'auto' }} title="Exportar historial de ventas a Excel">
                             <Icon name="download" size={20} />
@@ -489,6 +511,39 @@ export const SalesPage = () => {
 
             {printSale && (
                 <PrintableSaleTicket sale={printSale} onClose={() => setPrintSale(null)} />
+            )}
+
+            {showCustomModal && (
+                <Modal title="Agregar Producto Manual" onClose={() => setShowCustomModal(false)} footer={
+                    <Fragment>
+                        <button className="btn btn-ghost" onClick={() => setShowCustomModal(false)}>Cancelar</button>
+                        <button className="btn btn-primary" onClick={handleAddCustom}>Agregar al Carrito</button>
+                    </Fragment>
+                }>
+                    <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
+                            Use esta opción para productos que no están en el inventario o servicios ocasionales.
+                        </p>
+                        <FormField label="Nombre del Producto / Servicio">
+                            <input 
+                                className="form-input" 
+                                placeholder="Ej: 2 Cubiertas Usadas + Colocación" 
+                                value={customItem.name}
+                                onChange={e => setCustomItem({...customItem, name: e.target.value})}
+                                autoFocus
+                            />
+                        </FormField>
+                        <FormField label="Precio de Venta ($)">
+                            <input 
+                                type="number"
+                                className="form-input" 
+                                placeholder="0.00" 
+                                value={customItem.price}
+                                onChange={e => setCustomItem({...customItem, price: e.target.value})}
+                            />
+                        </FormField>
+                    </div>
+                </Modal>
             )}
         </div>
     );

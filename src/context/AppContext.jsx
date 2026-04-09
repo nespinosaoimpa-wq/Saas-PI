@@ -1172,8 +1172,10 @@ export const AppProvider = ({ children }) => {
 
         if (payError) { console.error("Error registering sale", payError); throw payError; }
 
-        // 2. Descontar stock de cada item
+        // 2. Descontar stock de cada item (omitir si es carga manual/especial)
         for (const ci of cart) {
+            if (ci.is_manual) continue;
+            
             if (ci.stock_type === 'UNIT') {
                 await supabase.from('inventory').update({
                     stock_quantity: Math.max(0, (ci.stock_quantity || 0) - ci.qty)

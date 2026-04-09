@@ -19,7 +19,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     const { user } = useAuth();
 
     // Check access
-    const canModify = user?.role === 'admin';
+    const canModify = user?.role === 'admin' || user?.role === 'cajero';
     const canAdd = user?.role === 'admin' || user?.role === 'cajero';
 
     const inventory = MOCK.inventory || [];
