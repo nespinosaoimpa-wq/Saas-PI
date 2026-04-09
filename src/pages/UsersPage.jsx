@@ -17,7 +17,7 @@ import {
 
 export const UsersPage = () => {
     const { employees: contextEmployees, refreshEmployees, user } = useAuth();
-    const { timeTrackingLogs, exportToExcel } = useApp();
+    const { timeTrackingLogs, deleteTimeLog, exportToExcel } = useApp();
     const [employees, setEmployees] = useState(contextEmployees);
     const [editingUser, setEditingUser] = useState(null);
     const [showNew, setShowNew] = useState(false);
@@ -132,6 +132,16 @@ export const UsersPage = () => {
                 await refreshEmployees();
             } catch (e) {
                 console.error(e);
+            }
+        }
+    };
+
+    const handleDeleteLog = async (id) => {
+        if (window.confirm('¿Confirmas que deseas eliminar este registro de asistencia? Esta acción no se puede deshacer.')) {
+            try {
+                await deleteTimeLog(id);
+            } catch (e) {
+                alert('No se pudo eliminar el registro: ' + e.message);
             }
         }
     };
@@ -272,9 +282,14 @@ export const UsersPage = () => {
                                 key: 'actions',
                                 label: '',
                                 render: r => (
-                                    <button className="btn btn-ghost btn-sm" style={{ opacity: 0.3 }} title="Auditoría">
-                                        <Icon name="verified_user" size={16} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', opacity: 0.5 }} onClick={() => handleDeleteLog(r.id)} title="Borrar Registro">
+                                            <Icon name="delete" size={16} />
+                                        </button>
+                                        <button className="btn btn-ghost btn-sm" style={{ opacity: 0.2 }} title="Auditoría">
+                                            <Icon name="verified_user" size={16} />
+                                        </button>
+                                    </div>
                                 )
                             }
                         ]}
@@ -399,7 +414,16 @@ export const UsersPage = () => {
                                                 <span style={{ fontSize: 10, fontWeight: 700, color: r.type === 'IN' ? 'var(--success)' : 'var(--danger)' }}>
                                                     {r.type === 'IN' ? 'ENTRADA' : 'SALIDA'}
                                                 </span>
-                                            )}
+                                            )},
+                                            {
+                                                key: 'actions',
+                                                label: '',
+                                                render: r => (
+                                                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', padding: 0 }} onClick={() => handleDeleteLog(r.id)}>
+                                                        <Icon name="delete" size={14} />
+                                                    </button>
+                                                )
+                                            }
                                         ]}
                                         data={getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).attendanceLogs}
                                     />

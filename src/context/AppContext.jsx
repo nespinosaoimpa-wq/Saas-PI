@@ -149,6 +149,20 @@ export const AppProvider = ({ children }) => {
         };
     };
 
+    const deleteTimeLog = async (id) => {
+        try {
+            const { error } = await supabase.from('attendance_logs').delete().eq('id', id);
+            if (error) throw error;
+            
+            setTimeTrackingLogs(prev => prev.filter(l => l.id !== id));
+            logAudit('Eliminar Fichaje', { log_id: id });
+            return true;
+        } catch (e) {
+            console.error("Error deleting attendance log", e);
+            throw e;
+        }
+    };
+
     const getActiveEmployees = () => {
         const active = [];
         const employees = (data.employees || []).filter(emp => emp.is_active !== false);
@@ -1385,6 +1399,7 @@ export const AppProvider = ({ children }) => {
             loading,
             refreshData: loadData,
             addTimeLog,
+            deleteTimeLog,
             getClient,
             getVehicle,
             getClientVehicles,
