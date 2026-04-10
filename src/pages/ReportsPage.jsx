@@ -94,13 +94,13 @@ export const ReportsPage = () => {
         const payments = (MOCK.payments || []).filter(p => new Date(p.date) >= start);
         const workOrders = (MOCK.workOrders || []).filter(wo => new Date(wo.created_at) >= start);
         
-        const收入 = payments.filter(p => p.type === 'INGRESO' || p.type === 'VENTA').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        const ingresos = payments.filter(p => p.type === 'INGRESO' || p.type === 'VENTA').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
         const gastos = payments.filter(p => p.type === 'EGRESO').reduce((sum, p) => sum + Math.abs(parseFloat(p.amount) || 0), 0);
         
         // Estimación de costo de mercadería vendida (COGS) - basado en un 45% del total si no hay dato exacto
         const cogs = workOrders.reduce((sum, wo) => sum + (parseFloat(wo.parts_cost) || 0), 0);
         
-        return {收入, gastos, cogs, workOrders, payments};
+        return { ingresos, gastos, cogs, workOrders, payments };
     }, [MOCK.payments, MOCK.workOrders, dateRange]);
 
     const REVENUE_CHART = useMemo(() => {
@@ -111,10 +111,10 @@ export const ReportsPage = () => {
         // Simulación de distribución para el gráfico por ahora
         return labels.map((l, i) => ({
             label: l,
-            value: (filteredStats.收入 / labels.length) * (0.8 + Math.random() * 0.4),
+            value: (filteredStats.ingresos / labels.length) * (0.8 + Math.random() * 0.4),
             color: i % 2 === 0 ? 'var(--primary)' : 'var(--accent)'
         }));
-    }, [filteredStats.收入, dateRange]);
+    }, [filteredStats.ingresos, dateRange]);
 
     const maxChartVal = Math.max(...REVENUE_CHART.map(d => d.value)) * 1.2;
 
@@ -166,9 +166,9 @@ export const ReportsPage = () => {
             {tab === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                     <div className="grid-auto-cards">
-                        <ReportWidget icon="payments" label="Ingresos Totales" value={formatCurrency(filteredStats.收入)} sub="Ventas y servicios" trend={12} />
-                        <ReportWidget icon="shopping_bag" label="Ticket Promedio" value={formatCurrency(filteredStats.收入 / (filteredStats.workOrders.length || 1))} sub="Por orden de trabajo" trend={5} color="var(--accent)" />
-                        <ReportWidget icon="account_balance_wallet" label="Utilidad Bruta" value={formatCurrency(filteredStats.收入 - filteredStats.cogs)} sub="Post-insumos" trend={8} color="var(--success)" />
+                        <ReportWidget icon="payments" label="Ingresos Totales" value={formatCurrency(filteredStats.ingresos)} sub="Ventas y servicios" trend={12} />
+                        <ReportWidget icon="shopping_bag" label="Ticket Promedio" value={formatCurrency(filteredStats.ingresos / (filteredStats.workOrders.length || 1))} sub="Por orden de trabajo" trend={5} color="var(--accent)" />
+                        <ReportWidget icon="account_balance_wallet" label="Utilidad Bruta" value={formatCurrency(filteredStats.ingresos - filteredStats.cogs)} sub="Post-insumos" trend={8} color="var(--success)" />
                         <ReportWidget icon="group" label="Nuevos Clientes" value="24" sub="Este periodo" trend={15} color="var(--warning)" />
                     </div>
 
@@ -209,7 +209,7 @@ export const ReportsPage = () => {
             {tab === 'revenue' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                     <div className="grid-auto-cards">
-                        <ReportWidget icon="trending_up" label="Caja Real" value={formatCurrency(filteredStats.收入 - filteredStats.gastos)} sub="Ingresos menos Egresos" color="var(--success)" />
+                        <ReportWidget icon="trending_up" label="Caja Real" value={formatCurrency(filteredStats.ingresos - filteredStats.gastos)} sub="Ingresos menos Egresos" color="var(--success)" />
                         <ReportWidget icon="receipt_long" label="Gastos Operativos" value={formatCurrency(filteredStats.gastos)} sub="Sueldos, Compras, etc" color="var(--danger)" />
                         <ReportWidget icon="inventory" label="Costo de Insumos" value={formatCurrency(filteredStats.cogs)} sub="Valor de reposición" color="var(--warning)" />
                     </div>
