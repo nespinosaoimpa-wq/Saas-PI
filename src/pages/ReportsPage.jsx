@@ -262,7 +262,7 @@ export const ReportsPage = () => {
                                     
                                     <div style={{ marginTop: 20, fontSize: 12, display: 'flex', justifyContent: 'space-between', padding: '0 4px' }}>
                                         <span>Horas Totales:</span>
-                                        <strong style={{ color: 'var(--primary)' }}>{stats.totalHours.toFixed(1)}h</strong>
+                                        <strong style={{ color: 'var(--primary)' }}>{(parseFloat(stats.totalHours) || 0).toFixed(1)}h</strong>
                                     </div>
                                     <div style={{ marginTop: 8, fontSize: 12, display: 'flex', justifyContent: 'space-between', padding: '0 4px' }}>
                                         <span>Servicios Realizados:</span>

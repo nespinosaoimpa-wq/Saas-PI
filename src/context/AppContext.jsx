@@ -1507,7 +1507,7 @@ export const AppProvider = ({ children }) => {
         const totalProductionAmount = combinedProduction.reduce((sum, item) => sum + item.amount, 0);
 
         return {
-            totalHours: totalHours.toFixed(1),
+            totalHours: totalHours,
             attendanceLogs: logs,
             productionList: combinedProduction,
             totalProductionAmount,
