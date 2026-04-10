@@ -1,4 +1,4 @@
-import React, { useState, Fragment, useRef, useEffect } from 'react';
+import React, { useState, Fragment, useRef, useEffect, useMemo } from 'react';
 import { formatCurrency } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +30,18 @@ export const SalesPage = () => {
     const [showCustomModal, setShowCustomModal] = useState(false);
     const [customItem, setCustomItem] = useState({ name: '', price: '' });
     const codeInputRef = useRef(null);
+    
+    // Client selection states
+    const [clientSearch, setClientSearch] = useState('');
+    const [selectedClient, setSelectedClient] = useState(null);
+    
+    // Credit modal states
+    const [showCreditModal, setShowCreditModal] = useState(false);
+    const [creditInitialStep, setCreditInitialStep] = useState(0); // 0 or 1
+    const [creditInitialPayment, setCreditInitialPayment] = useState(0);
+    const [creditInterestRate, setCreditInterestRate] = useState(0);
+    const [creditFrequency, setCreditFrequency] = useState('LIBRE');
+    const [creditNextPaymentDate, setCreditNextPaymentDate] = useState('');
 
     // Buscar producto por código o nombre o marca
     const findProduct = (term) => {
@@ -161,8 +173,28 @@ export const SalesPage = () => {
     const extraProfit = discountedSubtotal * (cashierProfitPercent / 100);
     const total = discountedSubtotal + extraProfit;
 
+    const filteredClients = useMemo(() => {
+        if (!clientSearch) return [];
+        const term = clientSearch.toLowerCase();
+        return (MOCK.clients || []).filter(client => 
+            `${client.first_name} ${client.last_name} ${client.dni}`.toLowerCase().includes(term)
+        ).slice(0, 5);
+    }, [clientSearch, MOCK.clients]);
+
     const handleCheckout = async () => {
         if (cart.length === 0) return alert('El carrito está vacío');
+        
+        if (payMethod === 'CREDITO_CASA' && !selectedClient) {
+            return alert('Debe seleccionar un CLIENTE para realizar una venta con Crédito de la Casa');
+        }
+
+        if (payMethod === 'CREDITO_CASA' && !showCreditModal) {
+            setCreditInitialPayment(0);
+            setCreditInterestRate(0);
+            setCreditNextPaymentDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+            setShowCreditModal(true);
+            return;
+        }
 
         setIsCheckoutLoading(true);
         let afipData = null;
@@ -185,7 +217,13 @@ export const SalesPage = () => {
                 cae: afipData.cae,
                 cae_due_date: afipData.caeDueDate,
                 receipt_number: afipData.receiptText
-            } : null, user?.id, extraProfit);
+            } : null, user?.id, extraProfit, payMethod === 'CREDITO_CASA' ? {
+                client_id: selectedClient.id,
+                initial_payment: creditInitialPayment,
+                interest_rate: creditInterestRate,
+                payment_frequency: creditFrequency,
+                next_payment_date: creditNextPaymentDate
+            } : null);
 
             const saleData = {
                 items: [...cart],
@@ -201,6 +239,9 @@ export const SalesPage = () => {
             setInvoiceType('INTERNAL');
             setCashierProfitPercent(0);
             setDiscountValue(0);
+            setSelectedClient(null);
+            setClientSearch('');
+            setShowCreditModal(false);
         } catch (error) {
             alert('Error en la transacción: ' + error.message);
         } finally {
@@ -275,9 +316,57 @@ export const SalesPage = () => {
                         <button className="btn btn-warning" onClick={() => setShowCustomModal(true)} style={{ padding: '12px 20px', fontWeight: 700 }} title="Agregar producto manual (No existe en stock)">
                             <Icon name="add" size={20} /> Especial
                         </button>
-                        <button className="btn btn-ghost" onClick={() => exportToExcel('sales')} style={{ padding: '12px 16px', marginLeft: 'auto' }} title="Exportar historial de ventas a Excel">
-                            <Icon name="download" size={20} />
-                        </button>
+                    </div>
+
+                    {/* Selector de Cliente para Crédito/Venta Nominal */}
+                    <div style={{ marginBottom: 16, position: 'relative' }}>
+                        {selectedClient ? (
+                            <div style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <Icon name="person" size={20} style={{ color: 'var(--primary)' }} />
+                                    <div>
+                                        <div style={{ fontSize: 13, fontWeight: 700 }}>{selectedClient.first_name} {selectedClient.last_name}</div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>DNI: {selectedClient.dni}</div>
+                                    </div>
+                                </div>
+                                <button className="btn btn-sm btn-ghost" onClick={() => { setSelectedClient(null); setClientSearch(''); }} style={{ color: 'var(--danger)' }}>
+                                    <Icon name="close" size={16} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ position: 'relative' }}>
+                                <Icon name="search" size={18} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-muted)' }} />
+                                <input
+                                    className="form-input"
+                                    placeholder="Buscar cliente para Crédito de la Casa... (Nombre o DNI)"
+                                    value={clientSearch}
+                                    onChange={e => setClientSearch(e.target.value)}
+                                    style={{ paddingLeft: 40, width: '100%' }}
+                                />
+                                {clientSearch && filteredClients.length > 0 && (
+                                    <div className="glass-card" style={{ 
+                                        position: 'absolute', top: '100%', left: 0, right: 0, 
+                                        zIndex: 100, marginTop: 4, padding: 8,
+                                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                                    }}>
+                                        {filteredClients.map(c => (
+                                            <div 
+                                                key={c.id} 
+                                                className="nav-item" 
+                                                style={{ padding: '8px 12px', borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
+                                                onClick={() => {
+                                                    setSelectedClient(c);
+                                                    setClientSearch('');
+                                                }}
+                                            >
+                                                <div style={{ fontSize: 13, fontWeight: 600 }}>{c.first_name} {c.last_name}</div>
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>DNI: {c.dni}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Lista de productos rápidos */}
@@ -446,6 +535,7 @@ export const SalesPage = () => {
                                 <option value="EFECTIVO">💵 Efectivo</option>
                                 <option value="TARJETA">💳 Tarjeta</option>
                                 <option value="TRANSFERENCIA">📲 Transferencia</option>
+                                <option value="CREDITO_CASA">🏠 Crédito de la Casa</option>
                             </select>
                         </FormField>
 
@@ -513,35 +603,84 @@ export const SalesPage = () => {
                 <PrintableSaleTicket sale={printSale} onClose={() => setPrintSale(null)} />
             )}
 
-            {showCustomModal && (
-                <Modal title="Agregar Producto Manual" onClose={() => setShowCustomModal(false)} footer={
-                    <Fragment>
-                        <button className="btn btn-ghost" onClick={() => setShowCustomModal(false)}>Cancelar</button>
-                        <button className="btn btn-primary" onClick={handleAddCustom}>Agregar al Carrito</button>
-                    </Fragment>
-                }>
+            {showCreditModal && (
+                <Modal 
+                    title="Planificación de Crédito de la Casa" 
+                    onClose={() => setShowCreditModal(false)}
+                    footer={
+                        <Fragment>
+                            <button className="btn btn-ghost" onClick={() => setShowCreditModal(false)}>Cancelar</button>
+                            <button className="btn btn-primary" onClick={handleCheckout}>Confirmar y Cobrar</button>
+                        </Fragment>
+                    }
+                >
                     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
-                            Use esta opción para productos que no están en el inventario o servicios ocasionales.
-                        </p>
-                        <FormField label="Nombre del Producto / Servicio">
-                            <input 
-                                className="form-input" 
-                                placeholder="Ej: 2 Cubiertas Usadas + Colocación" 
-                                value={customItem.name}
-                                onChange={e => setCustomItem({...customItem, name: e.target.value})}
-                                autoFocus
-                            />
-                        </FormField>
-                        <FormField label="Precio de Venta ($)">
-                            <input 
-                                type="number"
-                                className="form-input" 
-                                placeholder="0.00" 
-                                value={customItem.price}
-                                onChange={e => setCustomItem({...customItem, price: e.target.value})}
-                            />
-                        </FormField>
+                        <div style={{ padding: 12, background: 'var(--primary-light)', borderRadius: 'var(--radius)', border: '1px solid var(--primary)', color: 'var(--primary-dark)', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center' }}>
+                            <Icon name="info" size={20} />
+                            <div>
+                                <strong>Venta a Crédito:</strong> Estás por registrar una deuda para <strong>{selectedClient?.first_name} {selectedClient?.last_name}</strong> por un total de <strong>{formatCurrency(total)}</strong>.
+                            </div>
+                        </div>
+
+                        <FormRow>
+                            <FormField label="Pago Inicial (Entrega)">
+                                <input 
+                                    type="number" 
+                                    className="form-input" 
+                                    value={creditInitialPayment} 
+                                    onChange={e => setCreditInitialPayment(parseFloat(e.target.value) || 0)}
+                                    placeholder="0.00"
+                                />
+                            </FormField>
+                            <FormField label="% Interés">
+                                <input 
+                                    type="number" 
+                                    className="form-input" 
+                                    value={creditInterestRate} 
+                                    onChange={e => setCreditInterestRate(parseFloat(e.target.value) || 0)}
+                                    placeholder="0"
+                                />
+                            </FormField>
+                        </FormRow>
+
+                        <FormRow>
+                            <FormField label="Frecuencia de Pago">
+                                <select className="form-select" value={creditFrequency} onChange={e => setCreditFrequency(e.target.value)}>
+                                    <option value="LIBRE">Libre (Sin fecha fija)</option>
+                                    <option value="SEMANAL">Semanal (Cada 7 días)</option>
+                                    <option value="QUINCENAL">Quincenal (Cada 15 días)</option>
+                                    <option value="MENSUAL">Mensual (Cada 30 días)</option>
+                                </select>
+                            </FormField>
+                            <FormField label="Próxima Fecha de Pago">
+                                <input 
+                                    type="date" 
+                                    className="form-input" 
+                                    value={creditNextPaymentDate} 
+                                    onChange={e => setCreditNextPaymentDate(e.target.value)}
+                                />
+                            </FormField>
+                        </FormRow>
+
+                        <div style={{ marginTop: 8, padding: 12, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Monto de Venta:</span>
+                                <span>{formatCurrency(total)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Intereses ({creditInterestRate}%):</span>
+                                <span>{formatCurrency(total * (creditInterestRate / 100))}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Entrega Inicial:</span>
+                                <span style={{ color: 'var(--success)', fontWeight: 600 }}>- {formatCurrency(creditInitialPayment)}</span>
+                            </div>
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '8px 0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800 }}>
+                                <span>SALDO DEUDA:</span>
+                                <span style={{ color: 'var(--danger)' }}>{formatCurrency((total * (1 + creditInterestRate / 100)) - creditInitialPayment)}</span>
+                            </div>
+                        </div>
                     </div>
                 </Modal>
             )}

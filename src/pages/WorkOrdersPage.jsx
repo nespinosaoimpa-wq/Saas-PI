@@ -41,6 +41,12 @@ export const WorkOrdersPage = () => {
     const [extraProductSearch, setExtraProductSearch] = useState('');
     const [isAddingProducts, setIsAddingProducts] = useState(false);
     
+    // Credit options for finalization
+    const [finalInitialPayment, setFinalInitialPayment] = useState(0);
+    const [finalInterestRate, setFinalInterestRate] = useState(0);
+    const [finalFrequency, setFinalFrequency] = useState('LIBRE');
+    const [finalNextPaymentDate, setFinalNextPaymentDate] = useState('');
+    
     // New states for price editing
     const [editLabor, setEditLabor] = useState('');
     const [editParts, setEditParts] = useState('');
@@ -64,9 +70,14 @@ export const WorkOrdersPage = () => {
         setFinalPaymentMethod(wo?.payment_method || 'EFECTIVO');
         setFinalCombinedAmounts({ EFECTIVO: '', TRANSFERENCIA: '', DEBITO: '', CREDITO: '' });
         
-        const currentAssignments = MOCK.assignments?.filter(a => a.work_order_id === woId) || [];
         setFinalMechanicIds(currentAssignments.map(a => a.mechanic_id));
         setFinalCommissionRate(wo?.applied_commission_rate || '');
+
+        // Reset credit options
+        setFinalInitialPayment(0);
+        setFinalInterestRate(0);
+        setFinalFrequency('LIBRE');
+        setFinalNextPaymentDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
     };
 
     const confirmFinalize = async () => {
@@ -104,7 +115,13 @@ export const WorkOrdersPage = () => {
             }, {
                 method: finalPaymentMethod,
                 combinedAmounts: finalPaymentMethod === 'COMBINADO' ? finalCombinedAmounts : null
-            }, afipData, finalMechanicIds);
+            }, afipData, finalMechanicIds, finalPaymentMethod === 'CREDITO_CASA' ? {
+                client_id: wo?.client_id,
+                initial_payment: finalInitialPayment,
+                interest_rate: finalInterestRate,
+                payment_frequency: finalFrequency,
+                next_payment_date: finalNextPaymentDate
+            } : null);
 
             setFinalizeWO(null);
             setPrintWO(wo); // Optionally print right after finalizing
@@ -634,6 +651,7 @@ export const WorkOrdersPage = () => {
                                         <option value="CREDITO">Crédito 💳</option>
                                         <option value="TRANSFERENCIA">Transferencia 📱</option>
                                         <option value="COMBINADO">Combinado 🔀</option>
+                                        <option value="CREDITO_CASA">Crédito de la Casa 🏠</option>
                                     </select>
                                 </FormField>
 
@@ -651,6 +669,35 @@ export const WorkOrdersPage = () => {
                                         <FormField label="Crédito">
                                             <input type="number" className="form-input" value={finalCombinedAmounts.CREDITO} onChange={e => setFinalCombinedAmounts({...finalCombinedAmounts, CREDITO: e.target.value})} placeholder="0" />
                                         </FormField>
+                                    </div>
+                                )}
+                                {finalPaymentMethod === 'CREDITO_CASA' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 12, background: 'var(--primary-light)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--primary)' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-dark)', marginBottom: 4 }}>Planificación de Crédito</div>
+                                        <FormRow>
+                                            <FormField label="Entrega Inicial ($)">
+                                                <input type="number" className="form-input" value={finalInitialPayment} onChange={e => setFinalInitialPayment(parseFloat(e.target.value) || 0)} placeholder="0" />
+                                            </FormField>
+                                            <FormField label="% Interés">
+                                                <input type="number" className="form-input" value={finalInterestRate} onChange={e => setFinalInterestRate(parseFloat(e.target.value) || 0)} placeholder="0" />
+                                            </FormField>
+                                        </FormRow>
+                                        <FormRow>
+                                            <FormField label="Frecuencia">
+                                                <select className="form-select" value={finalFrequency} onChange={e => setFinalFrequency(e.target.value)}>
+                                                    <option value="LIBRE">Libre</option>
+                                                    <option value="SEMANAL">Semanal</option>
+                                                    <option value="QUINCENAL">Quincenal</option>
+                                                    <option value="MENSUAL">Mensual</option>
+                                                </select>
+                                            </FormField>
+                                            <FormField label="Próximo Pago">
+                                                <input type="date" className="form-input" value={finalNextPaymentDate} onChange={e => setFinalNextPaymentDate(e.target.value)} />
+                                            </FormField>
+                                        </FormRow>
+                                        <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: 'var(--danger)', marginTop: 4 }}>
+                                            Saldo a Deber: {formatCurrency(((parseFloat(editLabor) || 0) + (parseFloat(editParts) || 0)) * (1 + finalInterestRate / 100) - finalInitialPayment)}
+                                        </div>
                                     </div>
                                 )}
 

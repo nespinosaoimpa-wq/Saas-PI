@@ -41,7 +41,8 @@ export const AppProvider = ({ children }) => {
         dailyQuickServices: [],
         employees: [],
         activityLog: [],
-        workOrderItems: []
+        workOrderItems: [],
+        clientCredits: []
     });
     const [loading, setLoading] = useState(true);
 
@@ -201,7 +202,7 @@ export const AppProvider = ({ children }) => {
                 clients, vehicles, workOrders, inventory, suppliers, boxes,
                 vehicleNotes, payments, cashClosings, appointments, promotions,
                 assignments, employees, workOrderItems, dailyQuickServices, attendance_logs, 
-                quickServiceAssignments, employeeEarnings
+                quickServiceAssignments, employeeEarnings, clientCredits
             ] = await Promise.all([
                 fetchTable('clients'),
                 fetchTable('vehicles'),
@@ -220,7 +221,8 @@ export const AppProvider = ({ children }) => {
                 fetchTable('daily_quick_services'),
                 supabase.from('attendance_logs').select('*').order('timestamp', { ascending: false }).then(r => r.data || []),
                 fetchTable('employee_earnings'),
-                fetchTable('daily_quick_service_assignments')
+                fetchTable('daily_quick_service_assignments'),
+                fetchTable('client_credits')
             ]);
 
 
@@ -238,6 +240,7 @@ export const AppProvider = ({ children }) => {
                 dailyQuickServices: dailyQuickServices.length ? dailyQuickServices : [],
                 employeeEarnings: employeeEarnings.length ? employeeEarnings : [],
                 quickServiceAssignments: quickServiceAssignments || [],
+                clientCredits: clientCredits || [],
                 // Tablas opcionales (pueden no existir)
                 vehicleHealth: [], brands: [],
                 dailyWorkLog: [], serviceHistory: [], 
@@ -831,7 +834,7 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    const updateWorkOrder = async (id, updates, paymentInfo = null, afipData = null, mechanicIds = null) => {
+    const updateWorkOrder = async (id, updates, paymentInfo = null, afipData = null, mechanicIds = null, creditOptions = null) => {
         const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
         if (!error) {
             // Update assignments if mechanicIds provided
@@ -894,6 +897,34 @@ export const AppProvider = ({ children }) => {
                                         });
                                     }
                                 }
+                            } else if (method === 'CREDITO_CASA' && creditOptions) {
+                                const initialPay = parseFloat(creditOptions.initial_payment || 0);
+                                const interest = parseFloat(creditOptions.interest_rate || 0);
+                                const totalWithInterest = wo.total_price * (1 + interest / 100);
+
+                                const creditRecord = await addClientCredit({
+                                    client_id: creditOptions.client_id,
+                                    work_order_id: wo.id,
+                                    total_amount: totalWithInterest,
+                                    initial_payment: initialPay,
+                                    current_balance: totalWithInterest - initialPay,
+                                    interest_rate: interest,
+                                    payment_frequency: creditOptions.payment_frequency,
+                                    next_payment_date: creditOptions.next_payment_date,
+                                    notes: `OT #${wo.order_number}`
+                                });
+
+                                // Registrar el pago inicial (o 0 si no hay) vinculado al crédito
+                                await addPayment({
+                                    amount: initialPay,
+                                    method: 'CREDITO_CASA',
+                                    description: `Crédito OT #${wo.order_number}${initialPay > 0 ? ' (Pago Inicial)' : ''}`,
+                                    type: 'INGRESO',
+                                    reference: 'OT',
+                                    work_order_id: wo.id,
+                                    employee_id: mainMechanicId,
+                                    client_credit_id: creditRecord.id
+                                });
                             } else {
                                 await addPayment({
                                     amount: wo.total_price,
@@ -1015,6 +1046,73 @@ export const AppProvider = ({ children }) => {
     };
 
     // ==========================================
+    // Créditos de la Casa (Cuentas Corrientes)
+    // ==========================================
+    const addClientCredit = async (creditData) => {
+        const { data: newCredit, error } = await supabase
+            .from('client_credits')
+            .insert([{
+                client_id: creditData.client_id,
+                work_order_id: creditData.work_order_id || null,
+                total_amount: parseFloat(creditData.total_amount),
+                initial_payment: parseFloat(creditData.initial_payment || 0),
+                current_balance: parseFloat(creditData.current_balance),
+                interest_rate: parseFloat(creditData.interest_rate || 0),
+                payment_frequency: creditData.payment_frequency || 'LIBRE',
+                next_payment_date: creditData.next_payment_date || null,
+                notes: creditData.notes || ''
+            }])
+            .select()
+            .single();
+
+        if (error) { console.error("Error adding client credit", error); throw error; }
+        
+        setData(prev => ({ 
+            ...prev, 
+            clientCredits: [newCredit, ...prev.clientCredits] 
+        }));
+        
+        logAudit('Crear Crédito de la Casa', { client_id: creditData.client_id, amount: creditData.total_amount });
+        return newCredit;
+    };
+
+    const recordCreditPayment = async (creditId, paymentData) => {
+        // 1. Registrar el pago en la tabla central de pagos (para que figure en caja)
+        const newPayment = await addPayment({
+            ...paymentData,
+            client_credit_id: creditId,
+            type: 'INGRESO',
+            description: paymentData.description || 'Cobro de Cuota/Crédito'
+        });
+
+        // 2. Actualizar el saldo en la tabla de créditos
+        const credit = data.clientCredits.find(c => c.id === creditId);
+        if (!credit) return newPayment;
+
+        const newBalance = Math.max(0, parseFloat(credit.current_balance) - parseFloat(paymentData.amount));
+        const status = newBalance <= 0 ? 'PAGADO' : credit.status;
+
+        const { error: updateError } = await supabase
+            .from('client_credits')
+            .update({ 
+                current_balance: newBalance,
+                status: status
+            })
+            .eq('id', creditId);
+
+        if (updateError) { console.error("Error updating credit balance", updateError); }
+
+        // Actualizar estado local
+        setData(prev => ({
+            ...prev,
+            clientCredits: prev.clientCredits.map(c => c.id === creditId ? { ...c, current_balance: newBalance, status } : c)
+        }));
+
+        logAudit('Registrar Pago de Crédito', { credit_id: creditId, amount: paymentData.amount });
+        return newPayment;
+    };
+
+    // ==========================================
     // Pagos y Caja
     // ==========================================
     const addPayment = async (paymentData) => {
@@ -1032,7 +1130,8 @@ export const AppProvider = ({ children }) => {
                 employee_id: paymentData.employee_id || null,
                 cae: paymentData.cae || null,
                 cae_due_date: paymentData.cae_due_date || null,
-                receipt_number: paymentData.receipt_number || null
+                receipt_number: paymentData.receipt_number || null,
+                client_credit_id: paymentData.client_credit_id || null
             }])
             .select()
             .single();
@@ -1147,9 +1246,11 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Punto de Venta — processSale
     // ==========================================
-    const processSale = async (cart, payMethod, afipData = null, employeeId = null, cashierProfit = 0) => {
+    const processSale = async (cart, payMethod, afipData = null, employeeId = null, cashierProfit = 0, creditOptions = null) => {
         const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
         const today = new Date().toISOString().split('T')[0];
+        
+        let clientId = creditOptions?.client_id || null;
 
         // 1. Registrar el pago
         const { data: payment, error: payError } = await supabase
@@ -1165,14 +1266,43 @@ export const AppProvider = ({ children }) => {
                 cashier_profit_amount: cashierProfit,
                 cae: afipData?.cae || null,
                 cae_due_date: afipData?.cae_due_date || null,
-                receipt_number: afipData?.receipt_number || null
+                receipt_number: afipData?.receipt_number || null,
+                client_credit_id: null // Se actualizará si es crédito
             }])
             .select()
             .single();
 
         if (payError) { console.error("Error registering sale", payError); throw payError; }
 
-        // 2. Descontar stock de cada item (omitir si es carga manual/especial)
+        let creditRecord = null;
+        if (payMethod === 'CREDITO_CASA' && clientId) {
+            const initialPay = parseFloat(creditOptions.initial_payment || 0);
+            const interest = parseFloat(creditOptions.interest_rate || 0);
+            const totalWithInterest = total * (1 + interest / 100);
+            
+            creditRecord = await addClientCredit({
+                client_id: clientId,
+                total_amount: totalWithInterest,
+                initial_payment: initialPay,
+                current_balance: totalWithInterest - initialPay,
+                interest_rate: interest,
+                payment_frequency: creditOptions.payment_frequency,
+                next_payment_date: creditOptions.next_payment_date,
+                notes: `Venta POS #${payment.id}`
+            });
+
+            // Vincular el pago original al crédito
+            if (creditRecord) {
+                await supabase.from('payments').update({ client_credit_id: creditRecord.id }).eq('id', payment.id);
+                // Si hubo pago inicial, el registro de 'payment' debe reflejar solo ese monto
+                if (initialPay > 0) {
+                    await supabase.from('payments').update({ amount: initialPay }).eq('id', payment.id);
+                } else {
+                    // Si no hubo pago inicial, el monto del 'payment' técnico es 0 (pero registra la venta)
+                    await supabase.from('payments').update({ amount: 0 }).eq('id', payment.id);
+                }
+            }
+        }
         for (const ci of cart) {
             if (ci.is_manual) continue;
             
@@ -1439,6 +1569,8 @@ export const AppProvider = ({ children }) => {
             deletePromotion,
             addAppointment,
             deleteAppointment,
+            addClientCredit,
+            recordCreditPayment,
             generateAFIPInvoice,
             // POS Global
             posCart,

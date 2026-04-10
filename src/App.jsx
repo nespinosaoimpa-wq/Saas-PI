@@ -22,6 +22,7 @@ import { SalesPage } from './pages/SalesPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { ProgrammerAuditPage } from './pages/ProgrammerAuditPage';
 import { HelpPage } from './pages/HelpPage';
+import { HouseCreditPage } from './pages/HouseCreditPage';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -37,6 +38,7 @@ const PAGE_TITLES = {
     reports: { title: 'Reportes & Estadísticas', sub: 'Análisis de Rentabilidad y Rendimiento' },
     users: { title: 'Gestión de Personal', sub: 'Control de Usuarios, Roles y Permisos' },
     settings: { title: 'Configuración', sub: 'Ajustes del Sistema y Facturación AFIP' },
+    house_credit: { title: 'Crédito de la Casa', sub: 'Gestión de Cuotas y Cuentas Corrientes' },
     audit: { title: 'Auditoría del Sistema', sub: 'Registro de Actividad y Uso de la Plataforma' },
     help: { title: 'Centro de Ayuda', sub: 'Manual, Guías y Soporte Técnico' },
 };
@@ -55,6 +57,7 @@ const PAGES = {
     reports: ReportsPage,
     users: UsersPage,
     settings: AdminSettingsPage,
+    house_credit: HouseCreditPage,
     audit: ProgrammerAuditPage,
     help: HelpPage,
 };
