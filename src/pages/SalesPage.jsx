@@ -684,6 +684,40 @@ export const SalesPage = () => {
                     </div>
                 </Modal>
             )}
+
+            {showCustomModal && (
+                <Modal title="Agregar Producto Manual" onClose={() => setShowCustomModal(false)} footer={
+                    <Fragment>
+                        <button className="btn btn-ghost" onClick={() => setShowCustomModal(false)}>Cancelar</button>
+                        <button className="btn btn-primary" onClick={handleAddCustom}>Agregar al Carrito</button>
+                    </Fragment>
+                }>
+                    <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
+                            Use esta opción para productos que no están en el inventario o servicios ocasionales.
+                        </p>
+                        <FormField label="Nombre del Producto / Servicio">
+                            <input 
+                                className="form-input" 
+                                placeholder="Ej: 2 Cubiertas Usadas + Colocación" 
+                                value={customItem.name}
+                                onChange={e => setCustomItem({...customItem, name: e.target.value})}
+                                autoFocus
+                            />
+                        </FormField>
+                        <FormField label="Precio de Venta ($)">
+                            <input 
+                                type="number"
+                                className="form-input" 
+                                placeholder="0.00" 
+                                value={customItem.price}
+                                onChange={e => setCustomItem({...customItem, price: e.target.value})}
+                            />
+                        </FormField>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };
+
