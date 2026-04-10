@@ -199,6 +199,7 @@ function App() {
         { section: 'Finanzas' },
         { key: 'sales', label: 'Punto de Venta', icon: 'storefront' },
         { key: 'cash', label: 'Caja del Día', icon: 'point_of_sale' },
+        { key: 'house_credit', label: 'Cuentas Corrientes', icon: 'account_balance_wallet' },
 
         { section: 'Planificación' },
         { key: 'calendar', label: 'Calendario Turnos', icon: 'calendar_month' },
@@ -232,6 +233,7 @@ function App() {
             case 'dashboard':
             case 'sales':
             case 'cash':
+            case 'house_credit':
             case 'clients':
             case 'calendar':
             case 'help':
