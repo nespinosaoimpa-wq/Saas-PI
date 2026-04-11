@@ -19,7 +19,7 @@ import {
 export const WorkOrdersPage = () => {
     const { data: MOCK, getClientVehicles, addWorkOrder, exportToExcel, updateWorkOrder, addItemsToWorkOrder, deleteWorkOrder } = useApp();
     const { user, employees } = useAuth();
-    const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero');
+    const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero' || e.role === 'admin');
 
     const [tab, setTab] = useState('active');
     const [showNew, setShowNew] = useState(false);

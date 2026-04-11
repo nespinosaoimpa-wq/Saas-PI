@@ -871,10 +871,17 @@ export const AppProvider = ({ children }) => {
             // Si la orden se finaliza o cobra, intentar crear el pago automáticamente en caja
             if (updates.status === 'Finalizado' || updates.status === 'Cobrado') {
                 const wo = data.workOrders?.find(w => w.id === id);
-                if (wo && wo.total_price > 0) {
+                // Usar el precio actualizado si viene en 'updates', sino el actual de la OT
+                const finalPrice = updates.total_price !== undefined ? updates.total_price : (wo?.total_price || 0);
+                
+                if (wo && finalPrice > 0) {
                     try {
-                        const existPayment = data.payments?.some(p => p.work_order_id === id);
-                        if (!existPayment) {
+                        // Verificamos si ya existe UN PAGO DE FINALIZACIÓN para esta OT (para evitar duplicados en re-finalizaciones)
+                        // Pero permitimos que se cree si el total ha cambiado o si es la primera vez que se marca como Finalizado/Cobrado
+                        const existFinalPayment = data.payments?.some(p => p.work_order_id === id && p.description?.includes('Pago OT'));
+                        
+                        // Si no hay pago final todavía, lo creamos
+                        if (!existFinalPayment) {
                             const method = paymentInfo?.method || 'EFECTIVO';
                             const combined = paymentInfo?.combinedAmounts;
                             const mainMechanicId = (mechanicIds && mechanicIds.length > 0) ? mechanicIds[0] : (wo.mechanic_id || null);
@@ -900,7 +907,7 @@ export const AppProvider = ({ children }) => {
                             } else if (method === 'CREDITO_CASA' && creditOptions) {
                                 const initialPay = parseFloat(creditOptions.initial_payment || 0);
                                 const interest = parseFloat(creditOptions.interest_rate || 0);
-                                const totalWithInterest = wo.total_price * (1 + interest / 100);
+                                const totalWithInterest = finalPrice * (1 + interest / 100);
 
                                 const creditRecord = await addClientCredit({
                                     client_id: creditOptions.client_id,
@@ -927,7 +934,7 @@ export const AppProvider = ({ children }) => {
                                 });
                             } else {
                                 await addPayment({
-                                    amount: wo.total_price,
+                                    amount: finalPrice,
                                     method: method,
                                     description: `Pago OT #${wo.order_number}`,
                                     type: 'INGRESO',
