@@ -904,13 +904,48 @@ export const AppProvider = ({ children }) => {
                 }
             }
 
-            // Si la orden se finaliza o cobra, intentar crear el pago automáticamente en caja
+            // Si la orden se finaliza o cobra, intentar crear el pago automáticamente en caja y REGISTRAR GANANCIAS
             if (updates.status === 'Finalizado' || updates.status === 'Cobrado') {
                 const wo = data.workOrders?.find(w => w.id === id);
                 // Usar el precio actualizado si viene en 'updates', sino el actual de la OT
                 const finalPrice = updates.total_price !== undefined ? updates.total_price : (wo?.total_price || 0);
+                const laborCost = updates.labor_cost !== undefined ? updates.labor_cost : (wo?.labor_cost || 0);
                 
                 if (wo && finalPrice > 0) {
+                    // REGISTRO DE GANANCIAS (Locking comisiones)
+                    try {
+                        const currentAssignments = data.assignments?.filter(a => a.work_order_id === id) || [];
+                        if (currentAssignments.length > 0) {
+                            const laborShare = laborCost / currentAssignments.length;
+                            
+                            for (const a of currentAssignments) {
+                                const emp = data.employees?.find(e => e.id === a.mechanic_id);
+                                // Prioridad: % individual en asignación > % en perfil
+                                const rate = (a.labor_commission_percent !== undefined && a.labor_commission_percent !== null) 
+                                    ? parseFloat(a.labor_commission_percent) 
+                                    : (emp ? parseFloat(emp.commission_rate) : 0);
+                                
+                                const amountEarned = laborShare * (rate / 100);
+
+                                if (amountEarned > 0) {
+                                    // Verificar si ya existe ganancia registrada para esta OT/Empleado para evitar duplicados
+                                    const existEarning = (data.employeeEarnings || []).some(ee => ee.work_order_id === id && ee.employee_id === a.mechanic_id);
+                                    
+                                    if (!existEarning) {
+                                        await supabase.from('employee_earnings').insert([{
+                                            employee_id: a.mechanic_id,
+                                            work_order_id: id,
+                                            amount_earned: amountEarned,
+                                            description: `Comisión OT #${wo.order_number} (${currentAssignments.length} operarios): ${wo.description?.substring(0, 30)}...`
+                                        }]);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error locking OT commissions', e);
+                    }
+
                     try {
                         // Verificamos si ya existe UN PAGO DE FINALIZACIÓN para esta OT (para evitar duplicados en re-finalizaciones)
                         // Pero permitimos que se cree si el total ha cambiado o si es la primera vez que se marca como Finalizado/Cobrado
