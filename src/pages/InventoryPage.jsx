@@ -27,6 +27,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
 
     const [search, setSearch] = useState('');
     const [tab, setTab] = useState('all');
+    const [supplierFilter, setSupplierFilter] = useState('');
 
     // Modals
     const [showModal, setShowModal] = useState(false);
@@ -34,7 +35,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        name: '', category: '', brand: '', supplier: '', barcode: initialScannedCode,
+        name: '', category: '', brand: '', supplier_id: '', barcode: initialScannedCode,
         cost_price: '', sell_price: '', stock_quantity: '', stock_ml: '',
         stock_type: 'UNIT', stock_min: 5, stock_min_ml: 5000, container_size_ml: 1000
     });
@@ -49,7 +50,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
         if (item) {
             setEditingItem(item);
             setFormData({
-                name: item.name || '', category: item.category || '', brand: item.brand || '', supplier: item.supplier || '',
+                name: item.name || '', category: item.category || '', brand: item.brand || '', supplier_id: item.supplier_id || '',
                 barcode: item.barcode || '', cost_price: item.cost_price || '', sell_price: item.sell_price || '',
                 stock_quantity: item.stock_quantity || '', stock_ml: item.stock_ml || '',
                 stock_type: item.stock_type || 'UNIT', stock_min: item.stock_min || 0,
@@ -58,7 +59,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
         } else {
             setEditingItem(null);
             setFormData({
-                name: '', category: '', brand: '', supplier: '', barcode: code,
+                name: '', category: '', brand: '', supplier_id: '', barcode: code,
                 cost_price: '', sell_price: '', stock_quantity: '', stock_ml: '',
                 stock_type: 'UNIT', stock_min: 5, stock_min_ml: 5000, container_size_ml: 1000
             });
@@ -74,7 +75,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
             name: formData.name,
             category: formData.category,
             brand: formData.brand,
-            supplier: formData.supplier,
+            supplier_id: formData.supplier_id || null,
             barcode: formData.barcode || null,
             cost_price: parseFloat(formData.cost_price) || 0,
             sell_price: parseFloat(formData.sell_price) || 0,
@@ -138,7 +139,8 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
         const matchSearch = `${i.name} ${i.barcode || ''} ${i.brand || ''} ${i.category || ''}`.toLowerCase().includes(search.toLowerCase());
         const isLow = (i.stock_type === 'UNIT' && i.stock_quantity <= i.stock_min) || (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml);
         const matchTab = tab === 'all' || (tab === 'low' && isLow) || (tab === 'volume' && i.stock_type === 'VOLUME') || (tab === 'unit' && i.stock_type === 'UNIT');
-        return matchSearch && matchTab;
+        const matchSupplier = !supplierFilter || i.supplier_id === supplierFilter;
+        return matchSearch && matchTab && matchSupplier;
     });
 
     return (
@@ -146,6 +148,10 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 250 }}><SearchBar value={search} onChange={setSearch} placeholder="Buscar por nombre, código de barras, marca..." /></div>
+                    <select className="form-select" style={{ width: 200 }} value={supplierFilter} onChange={e => setSupplierFilter(e.target.value)}>
+                        <option value="">Todos los Proveedores</option>
+                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
                     <Tabs tabs={[{ key: 'all', label: 'Todos' }, { key: 'volume', label: 'Volumen' }, { key: 'unit', label: 'Unidad' }, { key: 'low', label: '⚠️ Bajo Stock' }]} active={tab} onChange={setTab} />
                     <button className="btn btn-ghost" onClick={() => exportToExcel('inventory')} title="Descargar inventario completo en formato Excel">
                         <Icon name="download" size={18} /> Exportar Excel
@@ -175,6 +181,7 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                         { key: 'name', label: 'Producto', render: r => <div><strong>{r.name}</strong><div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{r.barcode || 'Sin código'}</div></div> },
                         { key: 'category', label: 'Categoría' },
                         { key: 'brand', label: 'Marca' },
+                        { key: 'supplier', label: 'Proveedor', render: r => suppliers.find(s => s.id === r.supplier_id)?.name || 'S/A' },
                         {
                             key: 'stock', label: 'Stock', render: r => {
                                 const isLow = (r.stock_type === 'UNIT' && r.stock_quantity <= r.stock_min) || (r.stock_type === 'VOLUME' && r.stock_ml <= r.stock_min_ml);
@@ -230,10 +237,10 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                             </FormRow>
                             <FormRow>
                                 <FormField label="Proveedor">
-                                    <input className="form-input" list="supplier-list" value={formData.supplier} onChange={e => setFormData({ ...formData, supplier: e.target.value })} placeholder="Seleccionar o escribir..." />
-                                    <datalist id="supplier-list">
-                                        {suppliers.map(s => <option key={s.id} value={s.name} />)}
-                                    </datalist>
+                                    <select className="form-select" value={formData.supplier_id} onChange={e => setFormData({ ...formData, supplier_id: e.target.value })}>
+                                        <option value="">Asignar Proveedor...</option>
+                                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
                                 </FormField>
                                 <FormField label="Tipo de Stock">
                                     <select className="form-select" value={formData.stock_type} onChange={e => setFormData({ ...formData, stock_type: e.target.value })}>

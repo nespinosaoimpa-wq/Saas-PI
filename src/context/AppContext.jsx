@@ -524,6 +524,20 @@ export const AppProvider = ({ children }) => {
                 Evento: l.type === 'IN' ? 'ENTRADA' : 'SALIDA',
             }));
             filename = `asistencia_${new Date().toISOString().split('T')[0]}.xlsx`;
+        } else if (dataType === 'payroll') {
+            rows = (data.employees || []).map(emp => {
+                const stats = getDetailedEmployeeStats(emp.id);
+                const commissions = getCommissions(emp.id);
+                return {
+                    Empleado: `${emp.first_name} ${emp.last_name}`,
+                    Rol: emp.role || '',
+                    Horas_Trabajadas: stats.totalHours.toFixed(2),
+                    Produccion_Total: stats.totalProductionAmount,
+                    Comision_Pesos: commissions,
+                    Total_a_Pagar: commissions // O sumar base si existiera
+                };
+            });
+            filename = `planilla_pagos_${new Date().toISOString().split('T')[0]}.xlsx`;
         }
 
         if (rows.length === 0) return alert('No hay datos para exportar');
@@ -1420,44 +1434,70 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     // Comisiones
     // ==========================================
-    const getCommissions = (employeeId) => {
+    const getCommissions = (employeeId, filters = {}) => {
+        const { startDate, endDate } = filters;
         const emp = (data.employees || []).find(e => e.id === employeeId);
         const defaultRate = emp ? parseFloat(emp.commission_rate) || 0 : 0;
 
         // 1. Comisiones por Órdenes de Trabajo (OT)
-        const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
-        const otCommissions = assignments.reduce((sum, a) => {
-            const wo = data.workOrders?.find(w => w.id === a.work_order_id);
-            if (wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado')) {
-                // Reparto (Split): Dividir base por cantidad de asignados
-                const siblingAssignments = (data.assignments || []).filter(sa => sa.work_order_id === wo.id);
-                const mechanicsCount = Math.max(1, siblingAssignments.length);
+        // Usamos 'employee_earnings' que ya tiene el split y el rate bloqueado (locking)
+        const otEarnings = (data.employeeEarnings || [])
+            .filter(e => {
+                if (e.employee_id !== employeeId || !e.work_order_id) return false;
                 
-                const totalLabor = parseFloat(wo.labor_cost) || 0;
-                const laborShare = totalLabor / mechanicsCount;
-                
-                // Prioridad: 1. % individual en asignación, 2. % del perfil
-                const rate = (a.labor_commission_percent !== undefined && a.labor_commission_percent !== null) 
-                    ? parseFloat(a.labor_commission_percent) 
-                    : defaultRate;
-                
-                return sum + (laborShare * (rate / 100));
-            }
-            return sum;
-        }, 0);
+                // Filtro de fecha
+                if (startDate || endDate) {
+                    const eDate = new Date(e.created_at);
+                    if (startDate && eDate < new Date(startDate)) return false;
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        if (eDate > end) return false;
+                    }
+                }
+                return true;
+            })
+            .reduce((sum, e) => sum + (parseFloat(e.amount_earned) || 0), 0);
 
         // 2. Comisiones por Servicios Rápidos (Gomería)
-        // Usamos la tabla 'employee_earnings' (ya tiene labor proporcional calculada al vender)
         const quickEarnings = (data.employeeEarnings || [])
-            .filter(e => e.employee_id === employeeId && e.quick_service_id)
+            .filter(e => {
+                if (e.employee_id !== employeeId || !e.quick_service_id) return false;
+                
+                // Filtro de fecha
+                if (startDate || endDate) {
+                    const eDate = new Date(e.created_at);
+                    if (startDate && eDate < new Date(startDate)) return false;
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        if (eDate > end) return false;
+                    }
+                }
+                return true;
+            })
             .reduce((sum, e) => sum + (parseFloat(e.amount_earned) || 0), 0);
         
         // 3. Comisiones de Cajero (Ventas POS)
         const cashierCommissions = (data.payments || [])
-            .filter(p => p.employee_id === employeeId && p.type === 'VENTA')
+            .filter(p => {
+                if (p.employee_id !== employeeId || p.type !== 'VENTA') return false;
+                
+                // Filtro de fecha
+                if (startDate || endDate) {
+                    const pDate = new Date(p.date || p.created_at);
+                    if (startDate && pDate < new Date(startDate)) return false;
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        if (pDate > end) return false;
+                    }
+                }
+                return true;
+            })
             .reduce((sum, p) => sum + (parseFloat(p.cashier_profit_amount) || 0), 0);
 
-        return otCommissions + quickEarnings + cashierCommissions;
+        return otEarnings + quickEarnings + cashierCommissions;
     };
 
     const getDetailedEmployeeStats = (employeeId, filters = {}) => {
@@ -1479,16 +1519,23 @@ export const AppProvider = ({ children }) => {
             });
         }
 
-        // Calcular horas trabajadas
+        // Calcular horas trabajadas (Opción A: 0 si olvidan marcar salida)
         let totalMs = 0;
-        const processedLogs = [...logs].reverse(); // De más viejo a más nuevo
+        const sortedLogs = [...logs].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         let lastIn = null;
         
-        processedLogs.forEach(log => {
+        sortedLogs.forEach(log => {
             if (log.type === 'IN') {
                 lastIn = new Date(log.timestamp);
             } else if (log.type === 'OUT' && lastIn) {
-                totalMs += (new Date(log.timestamp) - lastIn);
+                const diff = new Date(log.timestamp) - lastIn;
+                // Si la sesión dura más de 14 horas, asumimos olvido de marcado OUT (Opción A)
+                const hours = diff / (1000 * 60 * 60);
+                if (hours < 14) {
+                    totalMs += diff;
+                } else {
+                    console.warn(`Sesión ignorada por duración excesiva (${hours.toFixed(1)}h): Posible olvido de OUT.`);
+                }
                 lastIn = null;
             }
         });
@@ -1602,12 +1649,12 @@ export const AppProvider = ({ children }) => {
         return (data.inventory || []).filter(item => item.supplier_id === supplierId);
     };
 
-    const getEmployeeProductivity = (employeeId) => {
-        const stats = getDetailedEmployeeStats(employeeId);
+    const getEmployeeProductivity = (employeeId, filters = {}) => {
+        const stats = getDetailedEmployeeStats(employeeId, filters);
         return {
             count: stats.productionCount,
             total_labor: stats.totalProductionAmount,
-            commission: getCommissions(employeeId)
+            commission: getCommissions(employeeId, filters)
         };
     };
 
