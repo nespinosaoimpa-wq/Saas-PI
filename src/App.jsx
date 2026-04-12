@@ -120,22 +120,30 @@ function App() {
                 if (!btnId || btnId.trim() === '') return;
                 
                 try {
-                    // Buscar si ya existe el log para esta pagina y boton
-                    const loc = window.location.pathname;
-                    const { data } = await supabase.from('button_clicks').select('id, count').eq('button_id', btnId).eq('page', loc).single();
+                    // Usar el estado "page" actual en lugar de la URL (que siempre es / en SPA)
+                    const currentPageName = PAGE_TITLES[page]?.title || page;
                     
+                    const { data, error: selectError } = await supabase
+                        .from('button_clicks')
+                        .select('id, count')
+                        .eq('button_id', btnId)
+                        .eq('page', currentPageName)
+                        .maybeSingle(); // Usar maybeSingle para evitar error de 0 filas
+                    
+                    if (selectError) throw selectError;
+
                     if (data) {
-                        await supabase.from('button_clicks').update({ count: data.count + 1 }).eq('id', data.id);
+                        await supabase.from('button_clicks').update({ count: (data.count || 0) + 1 }).eq('id', data.id);
                     } else {
                         await supabase.from('button_clicks').insert([{
                             button_id: btnId,
-                            page: loc,
+                            page: currentPageName,
                             employee_id: user.id,
                             count: 1
                         }]);
                     }
                 } catch (err) {
-                    console.log('Ignorando error de métricas (tracking)', err.message);
+                    console.error('Error de Auditoría (Tracking): Si ves este error, ejecuta el script SQL de provisión de tablas.', err.message);
                 }
             }
         };
@@ -143,7 +151,7 @@ function App() {
         // Usa capture flag para agarrar clicks incluso si hay `stopPropagation()` en los componentes React
         document.addEventListener('click', handleClick, true);
         return () => document.removeEventListener('click', handleClick, true);
-    }, [user]);
+    }, [user, page]); // Dependencia de page añadida
 
     // Manejador común para cuando un código es escaneado (ya sea por teclado o por cámara)
     const handleBarcodeScan = (code) => {
