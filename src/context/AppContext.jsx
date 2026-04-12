@@ -1597,6 +1597,11 @@ export const AppProvider = ({ children }) => {
         };
     };
 
+    const getInventoryBySupplier = (supplierId) => {
+        if (!supplierId) return data.inventory || [];
+        return (data.inventory || []).filter(item => item.supplier_id === supplierId);
+    };
+
     const getEmployeeProductivity = (employeeId) => {
         const stats = getDetailedEmployeeStats(employeeId);
         return {
@@ -1642,6 +1647,7 @@ export const AppProvider = ({ children }) => {
             processSale,
             updateAssignmentCommission,
             getCommissions,
+            getInventoryBySupplier,
             getEmployeeProductivity,
             getDetailedEmployeeStats,
             addQuickService,
