@@ -23,6 +23,7 @@ import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { ProgrammerAuditPage } from './pages/ProgrammerAuditPage';
 import { HelpPage } from './pages/HelpPage';
 import { HouseCreditPage } from './pages/HouseCreditPage';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
 
 const PAGE_TITLES = {
     dashboard: { title: 'Dashboard', sub: 'Panel de Control Principal' },
@@ -63,6 +64,7 @@ const PAGES = {
 };
 
 function App() {
+    const isOnline = useNetworkStatus();
     const { data: MOCK, getLowStockItems } = useApp();
     const { user, logout } = useAuth();
     const [page, setPage] = useState('dashboard');
@@ -316,6 +318,26 @@ function App() {
 
             {/* Main Area */}
             <div className="main-area">
+                {!isOnline && (
+                    <div style={{
+                        background: 'var(--danger)',
+                        color: 'white',
+                        padding: '10px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 12,
+                        fontWeight: 700,
+                        fontSize: 14,
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1100,
+                        boxShadow: '0 4px 12px rgba(var(--danger-rgb), 0.3)'
+                    }}>
+                        <Icon name="wifi_off" size={20} />
+                        SIN CONEXIÓN A INTERNET: Los cambios que realices no se guardarán hasta recuperar la conexión.
+                    </div>
+                )}
                 {/* Header */}
                 <header className="header">
                     <div className="header-left">
@@ -332,8 +354,8 @@ function App() {
                         </div>
                         <div style={{ height: 24, width: 1, background: 'var(--border)', margin: '0 4px' }} />
                         <div className="header-live">
-                            <div className="live-dot" />
-                            Activo
+                            <div className="live-dot" style={{ background: isOnline ? 'var(--success)' : 'var(--danger)' }} />
+                            {isOnline ? 'Online' : 'Offline'}
                         </div>
                     </div>
                     <div className="header-actions">

@@ -260,6 +260,90 @@ export const DashboardPage = () => {
                             </GlassCard>
                         )}
 
+                        {/* Integridad Operativa - Solo Admins */}
+                        {user?.role === 'admin' && (
+                            <GlassCard style={{ padding: 22 }}>
+                                <SectionHeader icon="verified_user" title="Integridad Operativa" />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {/* Detectar Cierres Olvidados */}
+                                    {(() => {
+                                        const todayStr = new Date().toISOString().split('T')[0];
+                                        const pendingOld = (MOCK.payments || []).filter(p => !p.cash_closing_id && p.date < todayStr);
+                                        if (pendingOld.length === 0) return null;
+                                        return (
+                                            <div style={{ padding: 12, borderRadius: 8, background: 'rgba(var(--danger-rgb), 0.1)', border: '1px solid rgba(var(--danger-rgb), 0.2)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--danger)', fontWeight: 700, fontSize: 13 }}>
+                                                    <Icon name="warning" size={16} /> CIERRE PENDIENTE
+                                                </div>
+                                                <div style={{ fontSize: 11, color: 'var(--text-primary)', marginTop: 4 }}>
+                                                    Hay movimientos de días anteriores sin cerrar. 
+                                                    <strong> {pendingOld.length} transacciones</strong> en limbo.
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Detectar Fichajes sin Salida (más de 16hs) */}
+                                    {(() => {
+                                        const active = getActiveEmployees();
+                                        const forbidden = active.filter(emp => {
+                                            const since = new Date(emp.since_raw);
+                                            const diffMs = new Date() - since;
+                                            return diffMs > 16 * 60 * 60 * 1000; // 16 hs
+                                        });
+                                        if (forbidden.length === 0) return null;
+                                        return (
+                                            <div style={{ padding: 12, borderRadius: 8, background: 'rgba(var(--warning-rgb), 0.1)', border: '1px solid rgba(var(--warning-rgb), 0.2)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--warning)', fontWeight: 700, fontSize: 13 }}>
+                                                    <Icon name="history" size={16} /> SALIDA PENDIENTE
+                                                </div>
+                                                <div style={{ fontSize: 11, color: 'var(--text-primary)', marginTop: 4 }}>
+                                                    {forbidden.length} empleados no marcaron salida ayer:
+                                                    <strong> {forbidden.map(f => f.name).join(', ')}</strong>.
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Salud de Sincronización */}
+                                    {(() => {
+                                        const offlineQueue = JSON.parse(localStorage.getItem('piripi_audit_queue') || '[]');
+                                        const isOnline = navigator.onLine;
+                                        return (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-hover)', borderRadius: 8 }}>
+                                                <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <Icon name={isOnline ? 'cloud_done' : 'cloud_off'} size={16} style={{ color: isOnline ? 'var(--success)' : 'var(--danger)' }} />
+                                                    Sincronización
+                                                </div>
+                                                <div style={{ fontSize: 11, fontWeight: 700 }}>
+                                                    {offlineQueue.length > 0 ? `${offlineQueue.length} pendiente` : 'Al día'}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                    
+                                    {/* Todo OK info */}
+                                    {(() => {
+                                        const todayStr = new Date().toISOString().split('T')[0];
+                                        const pendingOld = (MOCK.payments || []).filter(p => !p.cash_closing_id && p.date < todayStr);
+                                        const active = getActiveEmployees();
+                                        const forbidden = active.filter(emp => (new Date() - new Date(emp.since_raw)) > 16 * 60 * 60 * 1000);
+                                        
+                                        if (pendingOld.length === 0 && forbidden.length === 0) {
+                                            return (
+                                                <div style={{ textAlign: 'center', padding: 12, fontSize: 12, color: 'var(--success)', background: 'rgba(var(--success-rgb), 0.05)', borderRadius: 8 }}>
+                                                    <Icon name="check_circle" size={18} style={{ marginBottom: 4 }} />
+                                                    <div style={{ fontWeight: 600 }}>Trazabilidad Correcta</div>
+                                                    <div style={{ fontSize: 10, opacity: 0.8 }}>No hay omisiones detectadas hoy.</div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
+                            </GlassCard>
+                        )}
+
                         {/* Personal Activo - Solo Admins */}
                         {user?.role === 'admin' && (
                             <GlassCard style={{ padding: 22 }}>

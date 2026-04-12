@@ -12,15 +12,56 @@ export const AppProvider = ({ children }) => {
 
     const logAudit = async (action, details = null) => {
         if (!user) return;
+        const logEntry = {
+            employee_id: user.id,
+            action: action || 'Acceso',
+            details: details,
+            path: window.location?.pathname || '/',
+            created_at: new Date().toISOString()
+        };
+
         try {
-            await supabase.from('audit_logs').insert([{
-                employee_id: user.id,
-                action,
-                details,
-                path: window.location?.pathname || '/'
-            }]);
-        } catch (e) { console.error('Error de auditoría:', e); }
+            await supabase.from('audit_logs').insert([logEntry]);
+        } catch (e) {
+            console.warn('Error de auditoría (offline?), guardando en cola local:', e.message);
+            // Guardar en cola local si falla (probablemente falta de internet)
+            const queue = JSON.parse(localStorage.getItem('piripi_audit_queue') || '[]');
+            queue.push({ ...logEntry, offline: true });
+            localStorage.setItem('piripi_audit_queue', JSON.stringify(queue));
+        }
     };
+
+    // Sincronizar logs offline cuando vuelva el internet
+    useEffect(() => {
+        const syncOfflineLogs = async () => {
+            const queue = JSON.parse(localStorage.getItem('piripi_audit_queue') || '[]');
+            if (queue.length === 0) return;
+
+            console.log(`Sincronizando ${queue.length} logs de auditoría offline...`);
+            const { error } = await supabase.from('audit_logs').insert(queue);
+            if (!error) {
+                localStorage.removeItem('piripi_audit_queue');
+                console.log('Logs offline sincronizados correctamente.');
+            }
+        };
+
+        window.addEventListener('online', syncOfflineLogs);
+        // Intentar sincronizar al cargar si ya estamos online
+        if (navigator.onLine) syncOfflineLogs();
+
+        return () => window.removeEventListener('online', syncOfflineLogs);
+    }, []);
+
+    // Latido de actividad (Detección de "computadora encendida") cada 10 minutos
+    useEffect(() => {
+        if (!user) return;
+        const interval = setInterval(() => {
+            if (navigator.onLine) {
+                logAudit('Heartbeat', { status: 'System Active & Online' });
+            }
+        }, 600000); // 10 min
+        return () => clearInterval(interval);
+    }, [user]);
 
     const [data, setData] = useState({
         clients: [],
@@ -174,6 +215,7 @@ export const AppProvider = ({ children }) => {
                 active.push({
                     ...emp,
                     since: new Date(lastLog.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                    since_raw: lastLog.timestamp,
                     logged_at: lastLog.timestamp
                 });
             }
@@ -386,21 +428,19 @@ export const AppProvider = ({ children }) => {
                 }
             }
 
-            // 3. DESCONTAR STOCK
+            // 3. DESCONTAR STOCK (Atómico)
             for (const item of items) {
                 const invItem = item.inventory_item || (data.inventory || []).find(i => i.id === item.id);
                 if (invItem) {
                     const qty = item.qty || 1;
-                    if (invItem.stock_type === 'UNIT') {
-                        await supabase.from('inventory').update({
-                            stock_quantity: Math.max(0, (invItem.stock_quantity || 0) - qty)
-                        }).eq('id', invItem.id);
-                    } else if (invItem.stock_type === 'VOLUME') {
-                        const mlToDeduct = Math.round(qty * 1000);
-                        await supabase.from('inventory').update({
-                            stock_ml: Math.max(0, (invItem.stock_ml || 0) - mlToDeduct)
-                        }).eq('id', invItem.id);
-                    }
+                    const adjustment = -qty;
+                    const useMl = invItem.stock_type === 'VOLUME';
+                    
+                    await supabase.rpc('adjust_inventory_stock', {
+                        item_id: invItem.id,
+                        adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
+                        use_ml: useMl
+                    });
                 }
             }
 
@@ -798,18 +838,16 @@ export const AppProvider = ({ children }) => {
             const { error: itemsError } = await supabase.from('work_order_items').insert(items);
             if (itemsError) throw itemsError;
 
-            // Descontar stock
+            // Descontar stock (Atómico)
             for (const p of products) {
-                if (p.stock_type === 'UNIT') {
-                    await supabase.from('inventory').update({
-                        stock_quantity: Math.max(0, (p.stock_quantity || 0) - p.qty)
-                    }).eq('id', p.id);
-                } else if (p.stock_type === 'VOLUME') {
-                    const mlToDeduct = Math.round(p.qty * 1000);
-                    await supabase.from('inventory').update({
-                        stock_ml: Math.max(0, (p.stock_ml || 0) - mlToDeduct)
-                    }).eq('id', p.id);
-                }
+                const useMl = p.stock_type === 'VOLUME';
+                const adjustment = -p.qty;
+                
+                await supabase.rpc('adjust_inventory_stock', {
+                    item_id: p.id,
+                    adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
+                    use_ml: useMl
+                });
             }
 
             // Actualizar precio total de la OT
@@ -1310,20 +1348,18 @@ export const AppProvider = ({ children }) => {
                 }
             }
         }
+        // 3. Descontar Stock (Atómico)
         for (const ci of cart) {
             if (ci.is_manual) continue;
             
-            if (ci.stock_type === 'UNIT') {
-                await supabase.from('inventory').update({
-                    stock_quantity: Math.max(0, (ci.stock_quantity || 0) - ci.qty)
-                }).eq('id', ci.id);
-            } else if (ci.stock_type === 'VOLUME') {
-                // Para VOLUME, ci.qty representa Litros. Descontamos en ml.
-                const mlToDeduct = Math.round(ci.qty * 1000);
-                await supabase.from('inventory').update({
-                    stock_ml: Math.max(0, (ci.stock_ml || 0) - mlToDeduct)
-                }).eq('id', ci.id);
-            }
+            const useMl = ci.stock_type === 'VOLUME';
+            const adjustment = -ci.qty;
+
+            await supabase.rpc('adjust_inventory_stock', {
+                item_id: ci.id,
+                adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
+                use_ml: useMl
+            });
         }
 
         // 3. Informar
@@ -1588,7 +1624,8 @@ export const AppProvider = ({ children }) => {
             gomeriaQueue,
             setGomeriaQueue,
             addToQueue,
-            removeFromQueue
+            removeFromQueue,
+            logAudit
         }}>
             {children}
         </AppContext.Provider>
