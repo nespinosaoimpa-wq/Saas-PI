@@ -961,17 +961,22 @@ export const AppProvider = ({ children }) => {
                     }
 
                     try {
-                        // Verificamos si ya existe UN PAGO DE FINALIZACIÓN para esta OT (para evitar duplicados en re-finalizaciones)
-                        // Pero permitimos que se cree si el total ha cambiado o si es la primera vez que se marca como Finalizado/Cobrado
-                        const existFinalPayment = data.payments?.some(p => p.work_order_id === id && p.description?.includes('Pago OT'));
+                        // --- LÓGICA INTELIGENTE DE CAJA Y SALDOS ---
+                        // 1. Calcular cuánto se ha pagado ya por esta OT (Adelantos/Señas)
+                        const totalPaidSoFar = (data.payments || [])
+                            .filter(p => p.work_order_id === id && p.type === 'INGRESO')
+                            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
                         
-                        // Si no hay pago final todavía, lo creamos
-                        if (!existFinalPayment) {
+                        const pendingToPay = finalPrice - totalPaidSoFar;
+                        
+                        // Solo registramos si falta pagar algo (o si es crédito de la casa con entrega inicial)
+                        if (pendingToPay > 0 || (paymentInfo?.method === 'CREDITO_CASA' && parseFloat(creditOptions?.initial_payment) > 0)) {
                             const method = paymentInfo?.method || 'EFECTIVO';
                             const combined = paymentInfo?.combinedAmounts;
                             const mainMechanicId = (mechanicIds && mechanicIds.length > 0) ? mechanicIds[0] : (wo.mechanic_id || null);
 
                             if (method === 'COMBINADO' && combined) {
+                                // En combinado se respeta lo ingresado manualmente
                                 for (const [m, amount] of Object.entries(combined)) {
                                     const amt = parseFloat(amount);
                                     if (amt > 0) {
@@ -990,6 +995,7 @@ export const AppProvider = ({ children }) => {
                                     }
                                 }
                             } else if (method === 'CREDITO_CASA' && creditOptions) {
+                                // CRÉDITO DE LA CASA: Solo la entrega inicial impacta en caja
                                 const initialPay = parseFloat(creditOptions.initial_payment || 0);
                                 const interest = parseFloat(creditOptions.interest_rate || 0);
                                 const totalWithInterest = finalPrice * (1 + interest / 100);
@@ -1006,22 +1012,28 @@ export const AppProvider = ({ children }) => {
                                     notes: `OT #${wo.order_number}`
                                 });
 
-                                // Registrar el pago inicial (o 0 si no hay) vinculado al crédito
-                                await addPayment({
-                                    amount: initialPay,
-                                    method: 'CREDITO_CASA',
-                                    description: `Crédito OT #${wo.order_number}${initialPay > 0 ? ' (Pago Inicial)' : ''}`,
-                                    type: 'INGRESO',
-                                    reference: 'OT',
-                                    work_order_id: wo.id,
-                                    employee_id: mainMechanicId,
-                                    client_credit_id: creditRecord.id
-                                });
+                                // Impacto en caja: Solo lo que entregó hoy
+                                if (initialPay > 0) {
+                                    await addPayment({
+                                        amount: initialPay,
+                                        method: 'CREDITO_CASA',
+                                        description: `Crédito OT #${wo.order_number} (Entrega Inicial)`,
+                                        type: 'INGRESO',
+                                        reference: 'OT',
+                                        work_order_id: wo.id,
+                                        employee_id: mainMechanicId,
+                                        client_credit_id: creditRecord.id
+                                    });
+                                }
                             } else {
+                                // PAGO TOTAL / RESTANTE
+                                // Si ya había señas, solo registramos el excedente para no duplicar en caja
                                 await addPayment({
-                                    amount: finalPrice,
+                                    amount: pendingToPay,
                                     method: method,
-                                    description: `Pago OT #${wo.order_number}`,
+                                    description: totalPaidSoFar > 0 
+                                        ? `Pago Final OT #${wo.order_number} (Saldo Restante)` 
+                                        : `Pago OT #${wo.order_number}`,
                                     type: 'INGRESO',
                                     reference: 'OT',
                                     work_order_id: wo.id,
