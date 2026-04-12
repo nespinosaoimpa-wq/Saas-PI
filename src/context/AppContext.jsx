@@ -797,18 +797,16 @@ export const AppProvider = ({ children }) => {
                 }));
                 await supabase.from('work_order_items').insert(items);
 
-                // Descontar stock
+                // Descontar stock (Atómico)
                 for (const p of woData.products) {
-                    if (p.stock_type === 'UNIT') {
-                        await supabase.from('inventory').update({
-                            stock_quantity: Math.max(0, (p.stock_quantity || 0) - p.qty)
-                        }).eq('id', p.id);
-                    } else if (p.stock_type === 'VOLUME') {
-                        const mlToDeduct = Math.round(p.qty * 1000);
-                        await supabase.from('inventory').update({
-                            stock_ml: Math.max(0, (p.stock_ml || 0) - mlToDeduct)
-                        }).eq('id', p.id);
-                    }
+                    const useMl = p.stock_type === 'VOLUME';
+                    const adjustment = -p.qty;
+                    
+                    await supabase.rpc('adjust_inventory_stock', {
+                        item_id: p.id,
+                        adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
+                        use_ml: useMl
+                    });
                 }
             }
 
@@ -1027,8 +1025,10 @@ export const AppProvider = ({ children }) => {
     };
 
     const deleteAppointment = async (id) => {
+        const apt = data.appointments.find(a => a.id === id);
         const { error } = await supabase.from('appointments').delete().eq('id', id);
         if (error) { console.error("Error deleting appointment", error); throw error; }
+        logAudit('Borrar Turno', { appointment_id: id, client: apt?.client, date: apt?.date });
         setData(prev => ({ ...prev, appointments: prev.appointments.filter(a => a.id !== id) }));
     };
 
@@ -1052,6 +1052,7 @@ export const AppProvider = ({ children }) => {
                  throw new Error("No se pudo borrar. Es posible que no tengas permisos (RLS) o el ID (" + id + ") no exista.");
             }
 
+            const woToDelete = data.workOrders.find(w => w.id === id);
             setData(prev => ({
                 ...prev,
                 workOrders: prev.workOrders.filter(wo => wo.id !== id),
@@ -1059,7 +1060,7 @@ export const AppProvider = ({ children }) => {
                 payments: (prev.payments || []).filter(p => p.work_order_id !== id)
             }));
             
-            logAudit('Borrar Orden de Trabajo', { work_order_id: id });
+            logAudit('Borrar Orden de Trabajo', { work_order_id: id, order_number: woToDelete?.order_number });
             
             alert('OT eliminada exitosamente.');
             return true;
@@ -1385,40 +1386,43 @@ export const AppProvider = ({ children }) => {
     // Comisiones
     // ==========================================
     const getCommissions = (employeeId) => {
+        const emp = (data.employees || []).find(e => e.id === employeeId);
+        const defaultRate = emp ? parseFloat(emp.commission_rate) || 0 : 0;
+
         // 1. Comisiones por Órdenes de Trabajo (OT)
         const assignments = (data.assignments || []).filter(a => a.mechanic_id === employeeId);
         const otCommissions = assignments.reduce((sum, a) => {
             const wo = data.workOrders?.find(w => w.id === a.work_order_id);
             if (wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado')) {
-                const labor = parseFloat(wo.labor_cost) || 0;
-                const emp = (data.employees || []).find(e => e.id === employeeId);
-                const rate = wo.applied_commission_rate ? parseFloat(wo.applied_commission_rate) : (emp ? parseFloat(emp.commission_rate) : 0);
-                return sum + (labor * (rate / 100));
+                // Reparto (Split): Dividir base por cantidad de asignados
+                const siblingAssignments = (data.assignments || []).filter(sa => sa.work_order_id === wo.id);
+                const mechanicsCount = Math.max(1, siblingAssignments.length);
+                
+                const totalLabor = parseFloat(wo.labor_cost) || 0;
+                const laborShare = totalLabor / mechanicsCount;
+                
+                // Prioridad: 1. % individual en asignación, 2. % del perfil
+                const rate = (a.labor_commission_percent !== undefined && a.labor_commission_percent !== null) 
+                    ? parseFloat(a.labor_commission_percent) 
+                    : defaultRate;
+                
+                return sum + (laborShare * (rate / 100));
             }
             return sum;
         }, 0);
 
         // 2. Comisiones por Servicios Rápidos (Gomería)
-        const emp = (data.employees || []).find(e => e.id === employeeId);
-        const commissionRate = emp ? parseFloat(emp.commission_rate) || 0 : 0;
+        // Usamos la tabla 'employee_earnings' (ya tiene labor proporcional calculada al vender)
+        const quickEarnings = (data.employeeEarnings || [])
+            .filter(e => e.employee_id === employeeId && e.quick_service_id)
+            .reduce((sum, e) => sum + (parseFloat(e.amount_earned) || 0), 0);
         
-        const quickAssignments = (data.quickServiceAssignments || []).filter(a => a.employee_id === employeeId);
-        const quickCommissions = quickAssignments.reduce((sum, a) => {
-            const qs = (data.dailyQuickServices || []).find(s => s.id === a.quick_service_id);
-            if (!qs) return sum;
-
-            const siblingAssignments = (data.quickServiceAssignments || []).filter(sa => sa.quick_service_id === qs.id);
-            const mechanicsCount = Math.max(1, siblingAssignments.length);
-            const share = (parseFloat(qs.price) || 0) / mechanicsCount;
-            
-            return sum + (share * (commissionRate / 100));
-        }, 0);
         // 3. Comisiones de Cajero (Ventas POS)
         const cashierCommissions = (data.payments || [])
             .filter(p => p.employee_id === employeeId && p.type === 'VENTA')
             .reduce((sum, p) => sum + (parseFloat(p.cashier_profit_amount) || 0), 0);
 
-        return otCommissions + quickCommissions + cashierCommissions;
+        return otCommissions + quickEarnings + cashierCommissions;
     };
 
     const getDetailedEmployeeStats = (employeeId, filters = {}) => {
