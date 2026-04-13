@@ -48,7 +48,7 @@ export function ProgrammerAuditPage() {
         if (a.includes('cierre')) return { color: '#38bdf8', icon: 'lock_person' };
         if (a.includes('venta') || a.includes('cobro') || a.includes('pago')) return { color: '#10b981', icon: 'payments' };
         if (a.includes('gomería')) return { color: '#f59e0b', icon: 'tire_repair' };
-        if (a.includes('heartbeat')) return { color: 'var(--text-muted)', icon: 'monitor_heart' };
+        if (a.includes('heartbeat')) return { color: 'var(--text-secondary)', icon: 'monitor_heart' };
         if (a.includes('crear') || a.includes('nueva')) return { color: 'var(--primary)', icon: 'add_circle' };
         return { color: 'var(--text-main)', icon: 'info' };
     };
@@ -82,7 +82,7 @@ export function ProgrammerAuditPage() {
     };
 
     return (
-        <div className="page-container" style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <SectionHeader icon="security" title="Gestión de Auditoría" />
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -131,7 +131,7 @@ export function ProgrammerAuditPage() {
                                     onChange={e => setSearchTerm(e.target.value)}
                                     style={{ paddingLeft: 40 }}
                                 />
-                                <Icon name="search" style={{ position: 'absolute', left: 14, top: 12, color: 'var(--text-muted)' }} />
+                                <Icon name="search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             </div>
 
                             <GlassCard>
