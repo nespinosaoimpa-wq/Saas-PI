@@ -1046,6 +1046,8 @@ export const AppProvider = ({ children }) => {
                         }
                     } catch (e) {
                         console.error('No se pudo automatizar el pago de la OT', e);
+                        alert('⚠️ Error crítico al registrar el pago: ' + e.message + '\n\nSi estás usando "Crédito de la Casa", asegúrate de haber ejecutado el script SQL de habilitación.');
+                        throw e; // Re-lanzamos para que la UI no cierre el modal y el usuario sepa que falló
                     }
                 }
             }
@@ -1113,7 +1115,7 @@ export const AppProvider = ({ children }) => {
                  throw new Error("No se pudo borrar. Es posible que no tengas permisos (RLS) o el ID (" + id + ") no exista.");
             }
 
-            const woToDelete = data.workOrders.find(w => w.id === id);
+            const woToDelete = (data || []).find(w => w.id === id);
             setData(prev => ({
                 ...prev,
                 workOrders: prev.workOrders.filter(wo => wo.id !== id),
