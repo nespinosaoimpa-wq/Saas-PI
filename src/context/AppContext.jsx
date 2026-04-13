@@ -460,9 +460,10 @@ export const AppProvider = ({ children }) => {
     };
 
 
-    const exportToExcel = (dataType) => {
+    const exportToExcel = (dataType, customData = null) => {
         let rows = [];
         let filename = 'export.xlsx';
+        const todayStr = new Date().toLocaleDateString('en-CA');
 
         if (dataType === 'payments') {
             rows = (data.payments || []).map(p => ({
@@ -472,7 +473,7 @@ export const AppProvider = ({ children }) => {
                 Tipo: p.type || (p.amount < 0 ? 'EGRESO' : 'INGRESO'),
                 Descripcion: p.description || ''
             }));
-            filename = `movimientos_caja_${new Date().toISOString().split('T')[0]}.xlsx`;
+            filename = `movimientos_caja_${todayStr}.xlsx`;
         } else if (dataType === 'inventory') {
             rows = (data.inventory || []).map(i => ({
                 Producto: i.name || '',
@@ -481,7 +482,7 @@ export const AppProvider = ({ children }) => {
                 Stock: i.stock_type === 'UNIT' ? (i.stock_quantity || 0) : (i.stock_ml || 0),
                 Tipo: i.stock_type || 'UNIT'
             }));
-            filename = `inventario_${new Date().toISOString().split('T')[0]}.xlsx`;
+            filename = `inventario_${todayStr}.xlsx`;
         } else if (dataType === 'sales') {
             rows = (data.payments || []).filter(p => p.type === 'INGRESO' && p.description?.includes('Venta')).map(s => ({
                 Fecha: s.date ? new Date(s.date).toLocaleString('es-AR') : '',
@@ -490,7 +491,7 @@ export const AppProvider = ({ children }) => {
                 Cajero: s.cashier_id || 'LOCAL',
                 Detalle: s.description || ''
             }));
-            filename = `punto_de_venta_${new Date().toISOString().split('T')[0]}.xlsx`;
+            filename = `punto_de_venta_${todayStr}.xlsx`;
         } else if (dataType === 'work_orders') {
             rows = (data.workOrders || []).map(wo => {
                 const client = data.clients?.find(c => c.id === wo.client_id);
@@ -504,7 +505,7 @@ export const AppProvider = ({ children }) => {
                     Total: wo.total_price || 0
                 };
             });
-            filename = `ordenes_trabajo_${new Date().toISOString().split('T')[0]}.xlsx`;
+            filename = `ordenes_trabajo_${todayStr}.xlsx`;
         } else if (dataType === 'appointments') {
             rows = (data.appointments || []).map(a => ({
                 Fecha: a.date || '',
@@ -515,7 +516,7 @@ export const AppProvider = ({ children }) => {
                 Box: a.box || '',
                 Estado: a.status || ''
             }));
-            filename = `turnos_${new Date().toISOString().split('T')[0]}.xlsx`;
+            filename = `turnos_${todayStr}.xlsx`;
         } else if (dataType === 'attendance') {
             rows = (timeTrackingLogs || []).map(l => ({
                 Fecha: new Date(l.timestamp).toLocaleDateString('es-AR'),
@@ -523,7 +524,16 @@ export const AppProvider = ({ children }) => {
                 Empleado: l.employee_name || '',
                 Evento: l.type === 'IN' ? 'ENTRADA' : 'SALIDA',
             }));
-            filename = `asistencia_${new Date().toISOString().split('T')[0]}.xlsx`;
+            filename = `asistencia_${todayStr}.xlsx`;
+        } else if (dataType === 'audit') {
+            const auditData = customData || [];
+            rows = auditData.map(l => ({
+                Fecha: new Date(l.created_at).toLocaleString('es-AR'),
+                Usuario: l.employees?.name || 'Local/Sistema',
+                Accion: l.action || '',
+                Detalles: l.details ? JSON.stringify(l.details) : ''
+            }));
+            filename = `auditoria_sistema_${todayStr}.xlsx`;
         } else if (dataType === 'payroll') {
             rows = (data.employees || []).map(emp => {
                 const stats = getDetailedEmployeeStats(emp.id);
@@ -537,7 +547,7 @@ export const AppProvider = ({ children }) => {
                     Total_a_Pagar: commissions // O sumar base si existiera
                 };
             });
-            filename = `planilla_pagos_${new Date().toISOString().split('T')[0]}.xlsx`;
+            filename = `planilla_pagos_${todayStr}.xlsx`;
         }
 
         if (rows.length === 0) return alert('No hay datos para exportar');
