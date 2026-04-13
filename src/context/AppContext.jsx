@@ -529,7 +529,7 @@ export const AppProvider = ({ children }) => {
                 const stats = getDetailedEmployeeStats(emp.id);
                 const commissions = getCommissions(emp.id);
                 return {
-                    Empleado: `${emp.first_name} ${emp.last_name}`,
+                    Empleado: emp.name || '',
                     Rol: emp.role || '',
                     Horas_Trabajadas: stats.totalHours.toFixed(2),
                     Produccion_Total: stats.totalProductionAmount,
@@ -1548,7 +1548,9 @@ export const AppProvider = ({ children }) => {
                 if (hours < 14) {
                     totalMs += diff;
                 } else {
-                    console.warn(`Sesión ignorada por duración excesiva (${hours.toFixed(1)}h): Posible olvido de OUT.`);
+                    // CAP at 14 hours instead of ignoring (Safer for payroll)
+                    totalMs += (14 * 60 * 60 * 1000);
+                    console.warn(`Sesión topeada a 14h por duración excesiva (${hours.toFixed(1)}h).`);
                 }
                 lastIn = null;
             }
