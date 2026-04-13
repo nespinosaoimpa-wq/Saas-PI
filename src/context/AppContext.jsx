@@ -793,8 +793,10 @@ export const AppProvider = ({ children }) => {
             labor_cost: woData.labor_cost,
             parts_cost: woData.parts_cost,
             total_price: woData.total_price,
-            labor_profit_percent: woData.labor_profit_percent || 100,
-            status: woData.box_id ? 'En Box' : 'Pendiente'
+            status: woData.status || (woData.box_id ? 'En Box' : 'Pendiente'),
+            created_at: woData.date || new Date().toISOString(),
+            completed_at: (woData.status === 'Finalizado' || woData.status === 'Cobrado') ? (woData.date || new Date().toISOString()) : null,
+            labor_profit_percent: woData.labor_profit_percent || 100
         }]).select('*, clients(*), vehicles(*)').single();
 
         if (!error && newWo) {

@@ -137,7 +137,9 @@ export const WorkOrdersPage = () => {
         description: '', labor_cost: '', parts_cost: '',
         mechanic_ids: [], // Array de IDs
         applied_commission_rate: '',
-        labor_profit_percent: 100
+        labor_profit_percent: 100,
+        isHistorical: false,
+        customDate: new Date().toISOString().split('T')[0]
     });
 
     // Nuevo estado para la búsqueda interactiva
@@ -168,12 +170,14 @@ export const WorkOrdersPage = () => {
             parts_cost: partsManualCost + productsCost,
             total_price: totalPrice,
             products: selectedProducts,
+            status: newOrder.isHistorical ? 'Finalizado' : undefined,
+            date: newOrder.isHistorical ? new Date(newOrder.customDate).toISOString() : undefined,
             applied_commission_rate: (newOrder.applied_commission_rate !== '' ? parseFloat(newOrder.applied_commission_rate) : null) ?? (selectedMechanics.length > 0 ? selectedMechanics[0].commission_rate : 0)
         });
 
         alert('✅ Orden de Trabajo creada con éxito.');
         setShowNew(false);
-        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_ids: [], applied_commission_rate: '', labor_profit_percent: 100 });
+        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_ids: [], applied_commission_rate: '', labor_profit_percent: 100, isHistorical: false, customDate: new Date().toISOString().split('T')[0] });
         setClientSearch('');
         setSelectedProducts([]);
         setProductSearch('');
@@ -482,6 +486,25 @@ export const WorkOrdersPage = () => {
                             <FormField label="Descripción del trabajo">
                                 <textarea className="form-textarea" placeholder="Describir el trabajo a realizar..." value={newOrder.description} onChange={e => setNewOrder({ ...newOrder, description: e.target.value })} />
                             </FormField>
+
+                            <div style={{ padding: 16, background: 'var(--bg-hover)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <CheckItem 
+                                    label="Marcar como Orden Histórica" 
+                                    sub="Se guardará como FINALIZADA con la fecha indicada. NO afecta la caja del día ni genera comisiones."
+                                    checked={newOrder.isHistorical}
+                                    onChange={() => setNewOrder({ ...newOrder, isHistorical: !newOrder.isHistorical })}
+                                />
+                                {newOrder.isHistorical && (
+                                    <FormField label="Fecha de la Orden (Pasada)">
+                                        <input 
+                                            type="date" 
+                                            className="form-input" 
+                                            value={newOrder.customDate} 
+                                            onChange={e => setNewOrder({ ...newOrder, customDate: e.target.value })} 
+                                        />
+                                    </FormField>
+                                )}
+                            </div>
 
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
 
