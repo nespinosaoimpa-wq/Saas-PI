@@ -48,7 +48,7 @@ export function ProgrammerAuditPage() {
         if (a.includes('cierre')) return { color: '#38bdf8', icon: 'lock_person' };
         if (a.includes('venta') || a.includes('cobro') || a.includes('pago')) return { color: '#10b981', icon: 'payments' };
         if (a.includes('gomería')) return { color: '#f59e0b', icon: 'tire_repair' };
-        if (a.includes('heartbeat')) return { color: 'var(--text-secondary)', icon: 'monitor_heart' };
+        if (a.includes('heartbeat')) return { color: '#cbd5e1', icon: 'monitor_heart' };
         if (a.includes('crear') || a.includes('nueva')) return { color: 'var(--primary)', icon: 'add_circle' };
         return { color: 'var(--text-main)', icon: 'info' };
     };
@@ -82,7 +82,8 @@ export function ProgrammerAuditPage() {
     };
 
     return (
-        <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
+        <div className="page-content">
+            <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <SectionHeader icon="security" title="Gestión de Auditoría" />
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -236,6 +237,7 @@ export function ProgrammerAuditPage() {
                     )}
                 </>
             )}
+            </div>
         </div>
     );
 }
