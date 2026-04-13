@@ -1307,7 +1307,7 @@ export const AppProvider = ({ children }) => {
     };
 
     const performCashClose = async (closeData) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
 
         // Find previous closing balance
         const sortedClosings = (data.cashClosings || []).sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
@@ -1357,7 +1357,7 @@ export const AppProvider = ({ children }) => {
     // ==========================================
     const processSale = async (cart, payMethod, afipData = null, employeeId = null, cashierProfit = 0, creditOptions = null) => {
         const total = cart.reduce((sum, ci) => sum + (ci.sell_price * ci.qty), 0);
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
         
         let clientId = creditOptions?.client_id || null;
 

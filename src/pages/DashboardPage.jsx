@@ -28,14 +28,15 @@ export const DashboardPage = () => {
     const [combinedAmounts, setCombinedAmounts] = React.useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
     const [isProcessingSale, setIsProcessingSale] = React.useState(false);
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
-    const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toISOString().split('T')[0])).length;
+    const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toLocaleDateString('en-CA'))).length;
     const lowStock = getLowStockItems();
-    const todayPayments = MOCK.payments.filter(p => p.date === new Date().toISOString().split('T')[0] && p.amount > 0);
-    const todayTotal = todayPayments.reduce((s, p) => s + p.amount, 0);
+    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+    const todayPayments = (MOCK.payments || []).filter(p => (p.date || p.payment_date || p.created_at?.split('T')[0]) === todayStr && p.amount > 0);
+    const todayTotal = todayPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
     const getRevenueStats = () => {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const monthlyPayments = (MOCK.payments || []).filter(p => p.date?.startsWith(todayStr.slice(0, 7)));
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        const monthlyPayments = (MOCK.payments || []).filter(p => (p.date || p.payment_date || p.created_at)?.startsWith(todayStr.slice(0, 7)));
         const monthlyTotal = monthlyPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
         const last7Days = (MOCK.payments || []).filter(p => {

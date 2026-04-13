@@ -162,7 +162,7 @@ export const CashRegisterPage = () => {
         setShowEdit(true);
     };
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toLocaleDateString('en-CA');
 
     // Only show UNCLOSED payments for the current shift (no cash_closing_id). We don't filter by date anymore, 
     // to catch payments from shifts spanning midnight or forgotten closures.
@@ -172,7 +172,7 @@ export const CashRegisterPage = () => {
     const startingBalance = sortedClosings.length > 0 ? (sortedClosings[0].actual_cash || 0) : 0;
 
     // Cash balance sums positives and negatives correctly (withdrawals are saved as negative)
-    const cash = todayPayments.filter(p => (p.method || p.payment_method) === 'EFECTIVO').reduce((s, p) => s + p.amount, 0);
+    const cash = todayPayments.filter(p => ['EFECTIVO', 'CREDITO_CASA'].includes(p.method || p.payment_method)).reduce((s, p) => s + p.amount, 0);
     const transfer = todayPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
     const card = todayPayments.filter(p => ['TARJETA', 'DEBITO', 'CREDITO'].includes(p.method || p.payment_method)).reduce((s, p) => s + p.amount, 0);
 
@@ -250,7 +250,7 @@ export const CashRegisterPage = () => {
                                     'TARJETA': { label: '💳 Tarjeta', color: '#8e44ad' },
                                     'DEBITO': { label: '💳 Débito', color: '#8e44ad' },
                                     'CREDITO': { label: '💳 Crédito', color: '#e67e22' },
-                                    'COMBINADO': { label: '🔀 Combinado', color: '#34495e' },
+                                    'CREDITO_CASA': { label: '🏠 Crédito Casa', color: '#e67e22' },
                                 };
                                 const cfg = methodMap[m] || { label: m, color: 'var(--text-muted)' };
                                 return (
