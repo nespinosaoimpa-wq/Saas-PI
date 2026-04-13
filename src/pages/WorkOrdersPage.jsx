@@ -54,7 +54,7 @@ export const WorkOrdersPage = () => {
 
     const handleFinalizeClick = (e, woId) => {
         e.stopPropagation();
-        const wo = MOCK.workOrders.find(w => w.id === woId);
+        const wo = (MOCK.workOrders || []).find(w => w.id === woId);
         setFinalizeWO(woId);
         setInvoiceType('INTERNAL');
         setEditLabor(wo?.labor_cost || 0);
@@ -84,7 +84,7 @@ export const WorkOrdersPage = () => {
         if (!finalizeWO) return;
         setIsFinalizing(true);
         try {
-            const wo = MOCK.workOrders.find(w => w.id === finalizeWO);
+            const wo = (MOCK.workOrders || []).find(w => w.id === finalizeWO);
             if (!wo) throw new Error("OT no encontrada");
 
             let afipData = null;

@@ -143,14 +143,14 @@ export const AppProvider = ({ children }) => {
         if (!pin) throw new Error('Debe ingresar un PIN');
         
         const allEmployees = data.employees || [];
-        const emp = allEmployees.find(e => String(e.pin) === String(pin));
+        const emp = (allEmployees || []).find(e => String(e.pin) === String(pin));
         
         if (!emp) {
             throw new Error('PIN incorrecto. Empleado no encontrado.');
         }
 
         // Anti-duplicate cooldown: bloquear si el mismo empleado fichó hace menos de 60 segundos
-        const lastLog = timeTrackingLogs.find(l => l.employee_id === emp.id && l.type === type);
+        const lastLog = (timeTrackingLogs || []).find(l => l.employee_id === emp.id && l.type === type);
         if (lastLog) {
             const elapsed = (Date.now() - new Date(lastLog.timestamp).getTime()) / 1000;
             if (elapsed < 60) {
@@ -762,7 +762,7 @@ export const AppProvider = ({ children }) => {
     };
 
     const deleteInventoryItem = async (id) => {
-        const item = data.inventory.find(i => i.id === id);
+        const item = (data.inventory || []).find(i => i.id === id);
         const { error } = await supabase.from('inventory').delete().eq('id', id);
         if (error) { console.error("Error deleting inventory item", error); throw error; }
         logAudit('Borrar Item de Inventario', { product_id: id, product_name: item?.name });
@@ -863,7 +863,7 @@ export const AppProvider = ({ children }) => {
             }
 
             // Actualizar precio total de la OT
-            const wo = data.workOrders.find(w => w.id === woId);
+            const wo = (data.workOrders || []).find(w => w.id === woId);
             if (wo) {
                 const addedCost = products.reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
                 const newPartsCost = (wo.parts_cost || 0) + addedCost;
@@ -898,7 +898,7 @@ export const AppProvider = ({ children }) => {
                     
                     // 3. Insertar nuevas preservando el porcentaje si el mecánico es el mismo
                     const assignments = mechanicIds.map(mid => {
-                        const existing = currentAssignments.find(ca => ca.mechanic_id === mid);
+                        const existing = (currentAssignments || []).find(ca => ca.mechanic_id === mid);
                         // BUGFIX: Asegurar que el 0 se preserve y no se tome como falsy
                         const hasPrevious = existing?.labor_commission_percent !== undefined && existing?.labor_commission_percent !== null;
                         const preservedRate = hasPrevious ? existing.labor_commission_percent : (updates.applied_commission_rate || 0);
@@ -1088,7 +1088,7 @@ export const AppProvider = ({ children }) => {
     };
 
     const deleteAppointment = async (id) => {
-        const apt = data.appointments.find(a => a.id === id);
+        const apt = (data.appointments || []).find(a => a.id === id);
         const { error } = await supabase.from('appointments').delete().eq('id', id);
         if (error) { console.error("Error deleting appointment", error); throw error; }
         logAudit('Borrar Turno', { appointment_id: id, client: apt?.client, date: apt?.date });
@@ -1195,7 +1195,7 @@ export const AppProvider = ({ children }) => {
         });
 
         // 2. Actualizar el saldo en la tabla de créditos
-        const credit = data.clientCredits.find(c => c.id === creditId);
+        const credit = (data.clientCredits || []).find(c => c.id === creditId);
         if (!credit) return newPayment;
 
         const newBalance = Math.max(0, parseFloat(credit.current_balance) - parseFloat(paymentData.amount));
