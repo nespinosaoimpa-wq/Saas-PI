@@ -25,6 +25,7 @@ export const CashRegisterPage = () => {
     const [showClose, setShowClose] = useState(false);
     const [lastClosing, setLastClosing] = useState(null);
     const [closingCash, setClosingCash] = useState('');
+    const [withdrawAfterClose, setWithdrawAfterClose] = useState(false);
     const [newPayment, setNewPayment] = useState({ amount: '', method: 'EFECTIVO', reference: '', work_order_id: '', description: '' });
     const [newWithdrawal, setNewWithdrawal] = useState({ amount: '', description: '' });
 
@@ -101,10 +102,11 @@ export const CashRegisterPage = () => {
                 card_total: card,
                 total_day: cash + transfer + card,
                 employee_id: user.id
-            });
+            }, withdrawAfterClose);
             setLastClosing({ ...res, employee_name: user.name });
             setShowClose(false);
             setClosingCash('');
+            setWithdrawAfterClose(false);
         });
     };
 
@@ -399,6 +401,20 @@ export const CashRegisterPage = () => {
                             <FormField label="Efectivo real en caja">
                                 <input className="form-input" type="number" placeholder="$0.00" value={closingCash} onChange={e => setClosingCash(e.target.value)} />
                             </FormField>
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                                <input 
+                                    type="checkbox" 
+                                    style={{ width: 18, height: 18 }} 
+                                    checked={withdrawAfterClose} 
+                                    onChange={e => setWithdrawAfterClose(e.target.checked)} 
+                                />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700 }}>¿Retirar todo de la caja?</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Si lo marcas, el efectivo contado se registrará como un "Retiro" y el próximo turno empezará en $0.</div>
+                                </div>
+                            </label>
+
                             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>El cierre guardará el historial y permitirá comparar la diferencia de caja.</p>
                         </div>
                     </Modal>

@@ -1256,7 +1256,7 @@ export const AppProvider = ({ children }) => {
     };
 
     const addWithdrawal = async (withdrawalData) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
         const { data: newWithdrawal, error } = await supabase
             .from('payments')
             .insert([{
@@ -1306,7 +1306,7 @@ export const AppProvider = ({ children }) => {
         logAudit('Eliminar Pago/Movimiento', { payment_id: id });
     };
 
-    const performCashClose = async (closeData) => {
+    const performCashClose = async (closeData, withdrawAll = false) => {
         const today = new Date().toLocaleDateString('en-CA');
 
         // Find previous closing balance
@@ -1347,6 +1347,15 @@ export const AppProvider = ({ children }) => {
         // Reload all data so the view refreshes with the marked payments
         await loadData();
         
+        // Optionally record a full withdrawal if requested (to start next shift at $0)
+        if (withdrawAll && closeData.cash_real > 0) {
+            await addWithdrawal({
+                amount: closeData.cash_real,
+                description: `Retiro automático post-cierre (Fecha: ${today})`,
+                employee_id: closeData.employee_id
+            });
+        }
+
         logAudit('Cierre de Caja Realizado', { date: today, actual_cash: closeData.actual_cash, difference: closeData.difference });
         
         return closing;
