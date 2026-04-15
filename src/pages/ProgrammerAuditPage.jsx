@@ -153,7 +153,7 @@ export function ProgrammerAuditPage() {
                                                     <tr key={log.id} style={{ opacity: log.action === 'Heartbeat' ? 0.7 : 1 }}>
                                                         <td style={{ fontSize: 13 }}>
                                                             <div style={{ fontWeight: 600 }}>{new Date(log.created_at).toLocaleDateString('es-AR')}</div>
-                                                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(log.created_at).toLocaleTimeString('es-AR')}</div>
+                                                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(log.created_at).toLocaleTimeString('es-AR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
                                                         </td>
                                                         <td>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

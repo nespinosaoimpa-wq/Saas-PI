@@ -86,6 +86,7 @@ export const AppProvider = ({ children }) => {
         clientCredits: []
     });
     const [loading, setLoading] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // ==========================================
     // Fichaje Personal (Time Tracking)
@@ -301,20 +302,33 @@ export const AppProvider = ({ children }) => {
         // =========================================
         // Configuración de Realtime (Live Updates)
         // =========================================
-        if (!supabase) return; // Guard: sin Supabase no hay Realtime
+        if (!supabase) return;
 
         let channel;
         try {
             channel = supabase
                 .channel('db-changes')
                 .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-                    // Debounce: esperar 2 segundos antes de recargar para evitar recargas excesivas
+                    console.log('🔔 Cambio detectado en DB:', payload.table);
+                    
+                    // Solo activar Syncing si no estamos ya cargando
+                    setIsSyncing(true);
+                    
                     if (window._realtimeDebounce) clearTimeout(window._realtimeDebounce);
-                    window._realtimeDebounce = setTimeout(() => {
-                        loadData();
-                    }, 2000);
+                    window._realtimeDebounce = setTimeout(async () => {
+                        await loadData();
+                        setIsSyncing(false);
+                        console.log('✅ Datos sincronizados proactivamente.');
+                    }, 1500); // 1.5s de debounce
                 })
-                .subscribe();
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('📡 Conexión Realtime establecida.');
+                    }
+                    if (status === 'CHANNEL_ERROR') {
+                        console.error('❌ Error en canal Realtime. El sistema puede requerir F5.');
+                    }
+                });
         } catch (e) {
             console.warn('⚠️ No se pudo iniciar Realtime:', e.message);
         }
@@ -1349,14 +1363,25 @@ export const AppProvider = ({ children }) => {
         const unclosedPayments = data.payments.filter(p => !p.cash_closing_id).map(p => p.id);
 
         if (unclosedPayments.length > 0 && closing?.id) {
-            await supabase
+            const { error: updateError } = await supabase
                 .from('payments')
                 .update({ cash_closing_id: closing.id })
                 .in('id', unclosedPayments);
+            
+            if (updateError) {
+                console.error("Error updating payments with closing ID", updateError);
+            } else {
+                // Optimistic local update to clear UI immediately
+                setData(prev => ({
+                    ...prev,
+                    payments: prev.payments.map(p => 
+                        unclosedPayments.includes(p.id) ? { ...p, cash_closing_id: closing.id } : p
+                    )
+                }));
+            }
         }
 
-
-        // Reload all data so the view refreshes with the marked payments
+        // Reload all data so the view refreshes with the marked payments from source of truth
         await loadData();
         
         // Optionally record a full withdrawal if requested (to start next shift at $0)
@@ -1754,6 +1779,9 @@ export const AppProvider = ({ children }) => {
             setGomeriaQueue,
             addToQueue,
             removeFromQueue,
+            getLowStockItems,
+            isSyncing,
+            setIsSyncing,
             logAudit
         }}>
             {children}
