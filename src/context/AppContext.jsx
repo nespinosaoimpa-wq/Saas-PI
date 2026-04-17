@@ -1211,39 +1211,65 @@ export const AppProvider = ({ children }) => {
         return newCredit;
     };
 
-    const recordCreditPayment = async (creditId, paymentData) => {
-        // 1. Registrar el pago en la tabla central de pagos (para que figure en caja)
+    const recordCreditPayment = async (targetId, paymentData, isClient = false) => {
+        let creditsToPay = [];
+        let totalAmount = parseFloat(paymentData.amount);
+
+        if (isClient) {
+            creditsToPay = (data.clientCredits || [])
+                .filter(c => c.client_id === targetId && c.status === 'ACTIVO')
+                .sort((a, b) => new Date(a.created_at || a.next_payment_date) - new Date(b.created_at || b.next_payment_date));
+        } else {
+            const credit = (data.clientCredits || []).find(c => c.id === targetId);
+            if (credit) creditsToPay = [credit];
+        }
+
+        if (creditsToPay.length === 0) {
+            return await addPayment({ ...paymentData, type: 'INGRESO' });
+        }
+
+        // 1. Registrar el pago central
         const newPayment = await addPayment({
             ...paymentData,
-            client_credit_id: creditId,
+            client_credit_id: isClient ? null : targetId,
             type: 'INGRESO',
-            description: paymentData.description || 'Cobro de Cuota/Crédito'
+            description: paymentData.description || (isClient ? 'Pago acumulado de cuenta corriente' : 'Cobro de Cuota/Crédito')
         });
 
-        // 2. Actualizar el saldo en la tabla de créditos
-        const credit = (data.clientCredits || []).find(c => c.id === creditId);
-        if (!credit) return newPayment;
+        // 2. Distribuir el pago entre los créditos (FIFO)
+        let remaining = totalAmount;
+        const updatedCredits = [...(data.clientCredits || [])];
 
-        const newBalance = Math.max(0, parseFloat(credit.current_balance) - parseFloat(paymentData.amount));
-        const status = newBalance <= 0 ? 'PAGADO' : credit.status;
+        for (const credit of creditsToPay) {
+            if (remaining <= 0) break;
 
-        const { error: updateError } = await supabase
-            .from('client_credits')
-            .update({ 
-                current_balance: newBalance,
-                status: status
-            })
-            .eq('id', creditId);
+            const currentBalance = parseFloat(credit.current_balance);
+            const paymentForThis = Math.min(remaining, currentBalance);
+            const newBalance = Math.max(0, currentBalance - paymentForThis);
+            const status = newBalance <= 0 ? 'PAGADO' : 'ACTIVO';
 
-        if (updateError) { console.error("Error updating credit balance", updateError); }
+            await supabase
+                .from('client_credits')
+                .update({ 
+                    current_balance: newBalance,
+                    status: status
+                })
+                .eq('id', credit.id);
 
-        // Actualizar estado local
+            const idx = updatedCredits.findIndex(c => c.id === credit.id);
+            if (idx !== -1) {
+                updatedCredits[idx] = { ...updatedCredits[idx], current_balance: newBalance, status };
+            }
+
+            remaining -= paymentForThis;
+        }
+
         setData(prev => ({
             ...prev,
-            clientCredits: prev.clientCredits.map(c => c.id === creditId ? { ...c, current_balance: newBalance, status } : c)
+            clientCredits: updatedCredits
         }));
 
-        logAudit('Registrar Pago de Crédito', { credit_id: creditId, amount: paymentData.amount });
+        logAudit('Registrar Pago de Crédito', { target_id: targetId, is_client: isClient, amount: totalAmount });
         return newPayment;
     };
 
@@ -1779,7 +1805,6 @@ export const AppProvider = ({ children }) => {
             setGomeriaQueue,
             addToQueue,
             removeFromQueue,
-            getLowStockItems,
             isSyncing,
             setIsSyncing,
             logAudit
