@@ -52,7 +52,8 @@ export const HouseCreditPage = () => {
                     credits_count: 0,
                     status: 'PAGADO',
                     next_payment_date: null,
-                    payment_frequency: 'VARIABLE'
+                    payment_frequency: 'VARIABLE',
+                    credits_list: [] // Nueva lista de detalles
                 };
             }
             const g = groups[c.client_id];
@@ -61,6 +62,17 @@ export const HouseCreditPage = () => {
             g.credits_count += 1;
             if (c.status === 'ACTIVO') g.status = 'ACTIVO';
             
+            // Buscar info de la OT
+            const ot = MOCK.workOrders.find(wo => wo.id === c.work_order_id);
+            g.credits_list.push({
+                id: c.id,
+                amount: parseFloat(c.total_amount),
+                balance: parseFloat(c.current_balance),
+                date: c.created_at || ot?.created_at,
+                ot_number: ot?.order_number,
+                description: ot?.description || c.notes || 'Venta s/ OT'
+            });
+
             // Frecuencia y fecha
             if (c.payment_frequency !== 'VARIABLE') g.payment_frequency = c.payment_frequency;
             if (c.next_payment_date && (!g.next_payment_date || new Date(c.next_payment_date) < new Date(g.next_payment_date))) {
@@ -69,7 +81,7 @@ export const HouseCreditPage = () => {
         });
 
         return Object.values(groups).sort((a, b) => b.current_balance - a.current_balance);
-    }, [MOCK.clientCredits, MOCK.clients, searchTerm, filterStatus]);
+    }, [MOCK.clientCredits, MOCK.clients, MOCK.workOrders, searchTerm, filterStatus]);
 
     const stats = useMemo(() => {
         const active = (MOCK.clientCredits || []).filter(c => c.status === 'ACTIVO');
@@ -109,7 +121,7 @@ export const HouseCreditPage = () => {
     };
 
     return (
-        <div className="page-container animate-fade-in">
+        <div className="page-content animate-fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <SectionHeader icon="account_balance_wallet" title="Crédito de la Casa / Cuentas Corrientes" />
                 
@@ -167,45 +179,78 @@ export const HouseCreditPage = () => {
                         const progress = ((parseFloat(group.total_amount) - parseFloat(group.current_balance)) / parseFloat(group.total_amount)) * 100;
                         
                         return (
-                            <div key={group.id} className="glass-card hover-scale" style={{ padding: 20, position: 'relative', borderLeft: `6px solid ${group.status === 'PAGADO' ? 'var(--success)' : 'var(--danger)'}` }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                            <div key={group.id} className="glass-card hover-scale" style={{ padding: '24px 20px', position: 'relative', overflow: 'hidden', borderLeft: `6px solid ${group.status === 'PAGADO' ? 'var(--success)' : 'var(--danger)'}`, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div>
-                                        <div style={{ fontSize: 17, fontWeight: 800 }}>{getClientName(group.client_id)}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>DNI: {group.client_dni} • {group.credits_count} {group.credits_count === 1 ? 'crédito' : 'créditos agrupados'}</div>
+                                        <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.2 }}>{getClientName(group.client_id)}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <Icon name="fingerprint" size={14} /> DNI: {group.client_dni}
+                                        </div>
                                     </div>
                                     <StatusBadge status={group.status} type={group.status === 'PAGADO' ? 'success' : 'danger'}>
                                         {group.status}
                                     </StatusBadge>
                                 </div>
 
-                                <div style={{ marginBottom: 20 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                                        <span>Progreso de Pago Total</span>
-                                        <span style={{ fontWeight: 700 }}>{Math.round(progress)}%</span>
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Progreso de Pago Total</span>
+                                        <span style={{ color: group.status === 'PAGADO' ? 'var(--success)' : 'var(--primary)' }}>{Math.round(progress)}%</span>
                                     </div>
-                                    <div style={{ width: '100%', height: 8, background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
-                                        <div style={{ width: `${progress}%`, height: '100%', background: group.status === 'PAGADO' ? 'var(--success)' : 'var(--primary)', transition: 'width 0.5s ease-out' }}></div>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                                    <div style={{ padding: 10, background: 'var(--bg-hover)', borderRadius: 8 }}>
-                                        <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 700 }}>DEUDA HISTÓRICA</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700 }}>{formatCurrency(group.total_amount)}</div>
-                                    </div>
-                                    <div style={{ padding: 10, background: group.status === 'PAGADO' ? 'var(--success-light)' : 'var(--danger-light)', borderRadius: 8 }}>
-                                        <div style={{ fontSize: 10, color: group.status === 'PAGADO' ? 'var(--success-dark)' : 'var(--danger-dark)', fontWeight: 700 }}>SALDO PENDIENTE</div>
-                                        <div style={{ fontSize: 15, fontWeight: 900, color: group.status === 'PAGADO' ? 'var(--success-dark)' : 'var(--danger-dark)' }}>{formatCurrency(group.current_balance)}</div>
+                                    <div style={{ width: '100%', height: 6, background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
+                                        <div style={{ width: `${progress}%`, height: '100%', background: group.status === 'PAGADO' ? 'var(--success)' : 'var(--primary)', transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
                                     </div>
                                 </div>
 
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
-                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                        <Icon name="event" size={14} /> Frecuencia de pago: <strong>{group.payment_frequency}</strong>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                    <div style={{ padding: '12px 10px', background: 'var(--bg-hover)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                        <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>HISTORIAL</div>
+                                        <div style={{ fontSize: 15, fontWeight: 700 }}>{formatCurrency(group.total_amount)}</div>
+                                    </div>
+                                    <div style={{ padding: '12px 10px', background: group.status === 'PAGADO' ? 'var(--success-light)' : 'var(--danger-light)', borderRadius: 12, border: '1px solid currentColor' }}>
+                                        <div style={{ fontSize: 9, color: 'inherit', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2, opacity: 0.8 }}>PENDIENTE</div>
+                                        <div style={{ fontSize: 16, fontWeight: 900 }}>{formatCurrency(group.current_balance)}</div>
+                                    </div>
+                                </div>
+
+                                {/* Desglose de OTs */}
+                                <div style={{ marginTop: 4 }}>
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Icon name="list_alt" size={14} /> Desglose de Órdenes / Ventas ({group.credits_count})
+                                    </div>
+                                    <div className="custom-scroll" style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 12, padding: 6, maxHeight: 110, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, border: '1px solid var(--border)' }}>
+                                        {group.credits_list.map(item => (
+                                            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 8, fontSize: 11, background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                                                    <span style={{ fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {item.ot_number ? `OT #${item.ot_number}` : 'Venta s/ OT'}
+                                                    </span>
+                                                    <span style={{ fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {item.date ? new Date(item.date).toLocaleDateString() : '-'} • {item.description}
+                                                    </span>
+                                                </div>
+                                                <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 8 }}>
+                                                    <div style={{ fontWeight: 800, color: item.balance > 0 ? 'var(--danger)' : 'var(--success)', fontSize: 12 }}>{formatCurrency(item.balance)}</div>
+                                                    {item.balance < item.amount && <div style={{ fontSize: 8, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{formatCurrency(item.amount)}</div>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyCenter: 'center' }}>
+                                            <Icon name="event" size={14} />
+                                        </div>
+                                        <span>Frecuencia: <strong>{group.payment_frequency}</strong></span>
                                     </div>
                                     {group.next_payment_date && group.status !== 'PAGADO' && (
-                                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                            <Icon name="schedule" size={14} /> Vencimiento más próximo: <strong style={{color: 'var(--primary)'}}>{new Date(group.next_payment_date).toLocaleDateString()}</strong>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                                <Icon name="schedule" size={14} />
+                                            </div>
+                                            <span>Próximo vencimiento: <strong style={{color: 'var(--text-primary)'}}>{new Date(group.next_payment_date).toLocaleDateString()}</strong></span>
                                         </div>
                                     )}
                                 </div>
@@ -213,13 +258,13 @@ export const HouseCreditPage = () => {
                                 {group.status !== 'PAGADO' && (
                                     <button 
                                         className="btn btn-primary" 
-                                        style={{ width: '100%', padding: '12px 0' }}
+                                        style={{ width: '100%', padding: '14px 0', borderRadius: 12, fontWeight: 700, fontSize: 14, boxShadow: 'var(--shadow-lg)' }}
                                         onClick={() => {
                                             setSelectedCredit(group);
                                             setPaymentAmount('');
                                         }}
                                     >
-                                        <Icon name="add_card" size={20} /> Imputar Pago Unificado
+                                        <Icon name="payments" size={20} /> Imputar Pago Unificado
                                     </button>
                                 )}
                             </div>
