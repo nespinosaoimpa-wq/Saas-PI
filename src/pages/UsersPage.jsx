@@ -376,11 +376,11 @@ export const UsersPage = () => {
                                         <div style={{ textAlign: 'left' }}>
                                             <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Horas Totales</div>
                                             <div style={{ fontSize: 20, fontWeight: 800 }}>
-                                                {getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).totalHours}h
+                                                {parseFloat(getDetailedEmployeeStats(selectedEmployeeForStats.id, { startDate, endDate }).totalHours || 0).toFixed(2)}h
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="btn btn-ghost" onClick={() => exportToExcel('performance')} style={{ alignSelf: 'center' }}>
+                                    <button className="btn btn-ghost" onClick={() => exportToExcel('performance', { startDate, endDate })} style={{ alignSelf: 'center' }}>
                                         <Icon name="download" size={18} /> Planilla Pago
                                     </button>
                                 </div>

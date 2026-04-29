@@ -548,14 +548,15 @@ export const AppProvider = ({ children }) => {
                 Detalles: l.details ? JSON.stringify(l.details) : ''
             }));
             filename = `auditoria_sistema_${todayStr}.xlsx`;
-        } else if (dataType === 'payroll') {
+        } else if (dataType === 'payroll' || dataType === 'performance') {
+            const filters = (customData && !Array.isArray(customData)) ? customData : {};
             rows = (data.employees || []).map(emp => {
-                const stats = getDetailedEmployeeStats(emp.id);
-                const commissions = getCommissions(emp.id);
+                const stats = getDetailedEmployeeStats(emp.id, filters);
+                const commissions = getCommissions(emp.id, filters);
                 return {
                     Empleado: emp.name || '',
                     Rol: emp.role || '',
-                    Horas_Trabajadas: stats.totalHours.toFixed(2),
+                    Horas_Trabajadas: parseFloat(stats.totalHours || 0).toFixed(2),
                     Produccion_Total: stats.totalProductionAmount,
                     Comision_Pesos: commissions,
                     Total_a_Pagar: commissions // O sumar base si existiera
