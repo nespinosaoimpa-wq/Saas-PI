@@ -72,6 +72,17 @@ function App() {
     const [timePin, setTimePin] = useState('');
     const [isClockingIn, setIsClockingIn] = useState(false);
     const [isClockingOut, setIsClockingOut] = useState(false);
+    
+    // --- ESTADO PARA RECORDATORIO DE PAGO ---
+    const [showPaymentReminder, setShowPaymentReminder] = useState(true);
+
+    React.useEffect(() => {
+        if (showPaymentReminder && user) {
+            // Ocultar automáticamente después de 15 segundos para no ser invasivo
+            const timer = setTimeout(() => setShowPaymentReminder(false), 15000);
+            return () => clearTimeout(timer);
+        }
+    }, [showPaymentReminder, user]);
 
     // --- TRACKING GLOBAL DEL MAPA DE CALOR ---
     React.useEffect(() => {
@@ -142,6 +153,42 @@ function App() {
 
     return (
         <div className="app-layout">
+            {/* --- RECORDATORIO DE PAGO (TOAST) --- */}
+            {showPaymentReminder && user && (
+                <div style={{
+                    position: 'fixed',
+                    top: '24px',
+                    right: '24px',
+                    backgroundColor: 'var(--card-bg, #ffffff)',
+                    color: 'var(--text-color, #333333)',
+                    padding: '16px 20px',
+                    borderRadius: '8px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    zIndex: 99999,
+                    maxWidth: '350px',
+                    borderLeft: '4px solid var(--warning, #f59e0b)',
+                    animation: 'slideInRight 0.3s ease-out'
+                }}>
+                    <Icon name="info" size={24} style={{ color: 'var(--warning, #f59e0b)', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>Aviso de Facturación</h4>
+                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted, #666)', lineHeight: '1.4' }}>
+                            Tiene un saldo pendiente por el desarrollo de la plataforma. Por favor, regularice su situación.
+                        </p>
+                    </div>
+                    <button 
+                        onClick={() => setShowPaymentReminder(false)}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted, #999)', cursor: 'pointer', padding: '4px' }}
+                        title="Cerrar"
+                    >
+                        <Icon name="close" size={16} />
+                    </button>
+                </div>
+            )}
+            
             {sidebarOpen && <div className="sidebar-overlay show" onClick={() => setSidebarOpen(false)} />}
 
             <Sidebar 
