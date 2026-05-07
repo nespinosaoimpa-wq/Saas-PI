@@ -283,6 +283,24 @@ function App() {
                         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>Ingresá tu PIN numérico personal para registrar tu entrada o salida.</p>
 
                         <div style={{ maxWidth: 300, margin: '0 auto' }}>
+                            {timePin.length === 4 && (data.employees || []).find(e => String(e.pin) === String(timePin)) && (() => {
+                                const emp = data.employees.find(e => String(e.pin) === String(timePin));
+                                const last = (timeTrackingLogs || []).filter(l => l.employee_id === emp.id)[0];
+                                return (
+                                    <div style={{ 
+                                        padding: '8px 12px', 
+                                        borderRadius: 8, 
+                                        background: last?.type === 'IN' ? 'var(--success-light)' : 'var(--bg-hover)',
+                                        marginBottom: 16,
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: last?.type === 'IN' ? 'var(--success-dark)' : 'var(--text-muted)'
+                                    }}>
+                                        <Icon name={last?.type === 'IN' ? 'check_circle' : 'history'} size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                                        {last?.type === 'IN' ? `ACTUALMENTE: DENTRO (desde ${last.time_display})` : 'ACTUALMENTE: FUERA'}
+                                    </div>
+                                );
+                            })()}
                             <FormField label="PIN de Acceso (4 dígitos)">
                                 <input
                                     type="password"

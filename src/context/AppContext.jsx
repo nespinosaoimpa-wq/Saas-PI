@@ -150,12 +150,29 @@ export const AppProvider = ({ children }) => {
             throw new Error('PIN incorrecto. Empleado no encontrado.');
         }
 
-        // Anti-duplicate cooldown: bloquear si el mismo empleado fichó hace menos de 60 segundos
-        const lastLog = (timeTrackingLogs || []).find(l => l.employee_id === emp.id && l.type === type);
-        if (lastLog) {
+        // VALIDACIÓN ESTRICTA DE SECUENCIA
+        const lastLog = (timeTrackingLogs || [])
+            .filter(l => l.employee_id === emp.id)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+        if (type === 'IN' && lastLog && lastLog.type === 'IN') {
+            const lastDate = new Date(lastLog.timestamp).toLocaleDateString();
+            const nowDate = new Date().toLocaleDateString();
+            if (lastDate === nowDate) {
+                throw new Error(`Ya tenés una ENTRADA registrada hoy a las ${lastLog.time_display}. Debes marcar SALIDA antes de entrar de nuevo.`);
+            }
+            // Si es otro día, permitimos la entrada (la lógica de cálculo cerrará la sesión anterior automáticamente)
+        }
+
+        if (type === 'OUT' && (!lastLog || lastLog.type === 'OUT')) {
+            throw new Error(`No podés marcar SALIDA porque no tenés una ENTRADA activa.`);
+        }
+
+        // Anti-duplicate cooldown: bloquear si el mismo empleado fichó hace menos de 30 segundos (reducido de 60)
+        if (lastLog && lastLog.type === type) {
             const elapsed = (Date.now() - new Date(lastLog.timestamp).getTime()) / 1000;
-            if (elapsed < 60) {
-                throw new Error(`Ya se registró ${type === 'IN' ? 'ENTRADA' : 'SALIDA'} para ${emp.name} hace ${Math.round(elapsed)} segundos. Esperá al menos 1 minuto.`);
+            if (elapsed < 30) {
+                throw new Error(`Ya se registró ${type === 'IN' ? 'ENTRADA' : 'SALIDA'} para ${emp.name} hace ${Math.round(elapsed)} segundos.`);
             }
         }
 
@@ -533,12 +550,13 @@ export const AppProvider = ({ children }) => {
             filename = `turnos_${todayStr}.xlsx`;
         } else if (dataType === 'attendance') {
             rows = (timeTrackingLogs || []).map(l => ({
+                Empleado: l.employee_name || '',
                 Fecha: new Date(l.timestamp).toLocaleDateString('es-AR'),
                 Hora: new Date(l.timestamp).toLocaleTimeString('es-AR'),
-                Empleado: l.employee_name || '',
                 Evento: l.type === 'IN' ? 'ENTRADA' : 'SALIDA',
-            }));
-            filename = `asistencia_${todayStr}.xlsx`;
+                Timestamp: l.timestamp
+            })).sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+            filename = `asistencia_detallada_${todayStr}.xlsx`;
         } else if (dataType === 'audit') {
             const auditData = customData || [];
             rows = auditData.map(l => ({
@@ -554,15 +572,19 @@ export const AppProvider = ({ children }) => {
                 const stats = getDetailedEmployeeStats(emp.id, filters);
                 const commissions = getCommissions(emp.id, filters);
                 return {
+                    ID: emp.id,
                     Empleado: emp.name || '',
                     Rol: emp.role || '',
                     Horas_Trabajadas: parseFloat(stats.totalHours || 0).toFixed(2),
+                    Monto_Generado_OT: stats.productionList.filter(p => p.type === 'OT').reduce((s, p) => s + p.amount, 0),
+                    Monto_Generado_Gomeria: stats.productionList.filter(p => p.type === 'GOMERÍA').reduce((s, p) => s + p.amount, 0),
+                    Monto_Ventas_POS: stats.productionList.filter(p => p.type === 'PUNTO DE VENTA').reduce((s, p) => s + p.amount, 0),
                     Produccion_Total: stats.totalProductionAmount,
-                    Comision_Pesos: commissions,
-                    Total_a_Pagar: commissions // O sumar base si existiera
+                    Comision_Total_Pesos: commissions,
+                    Total_a_Pagar: commissions 
                 };
             });
-            filename = `planilla_pagos_${todayStr}.xlsx`;
+            filename = `planilla_sueldos_detallada_${todayStr}.xlsx`;
         }
 
         if (rows.length === 0) return alert('No hay datos para exportar');
@@ -1613,17 +1635,22 @@ export const AppProvider = ({ children }) => {
         
         sortedLogs.forEach(log => {
             if (log.type === 'IN') {
+                if (lastIn) {
+                    // Si ya había un IN sin OUT previo, cerramos el anterior con un tope de 8 horas (jornada estándar) 
+                    // para no perder esas horas, pero marcando la anomalía.
+                    totalMs += (8 * 60 * 60 * 1000);
+                }
                 lastIn = new Date(log.timestamp);
             } else if (log.type === 'OUT' && lastIn) {
                 const diff = new Date(log.timestamp) - lastIn;
-                // Si la sesión dura más de 14 horas, asumimos olvido de marcado OUT (Opción A)
                 const hours = diff / (1000 * 60 * 60);
-                if (hours < 14) {
+                
+                if (hours < 16) { // Aumentado a 16h por si hacen horas extra
                     totalMs += diff;
                 } else {
-                    // CAP at 14 hours instead of ignoring (Safer for payroll)
-                    totalMs += (14 * 60 * 60 * 1000);
-                    console.warn(`Sesión topeada a 14h por duración excesiva (${hours.toFixed(1)}h).`);
+                    // Si la sesión dura más de 16 horas, probablemente se olvidaron de marcar. 
+                    // Capeamos a 12h como medida de seguridad.
+                    totalMs += (12 * 60 * 60 * 1000);
                 }
                 lastIn = null;
             }
