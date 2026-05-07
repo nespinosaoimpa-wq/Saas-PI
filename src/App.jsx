@@ -79,7 +79,7 @@ function App() {
     React.useEffect(() => {
         if (showPaymentReminder && user) {
             // Ocultar automáticamente después de 15 segundos para no ser invasivo
-            const timer = setTimeout(() => setShowPaymentReminder(false), 30000);
+            const timer = setTimeout(() => setShowPaymentReminder(false), 15000);
             return () => clearTimeout(timer);
         }
     }, [showPaymentReminder, user]);
