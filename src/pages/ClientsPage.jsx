@@ -54,9 +54,20 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
             alert('Por favor completá los campos obligatorios (Nombre y Patente).');
             return;
         }
+
+        const cleanPlate = newVehicle.license_plate.trim().toUpperCase();
+        const existingVehicle = (MOCK.vehicles || []).find(v => 
+            v.license_plate && v.license_plate.toUpperCase() === cleanPlate
+        );
+
+        if (existingVehicle) {
+            alert(`Error: La patente ${cleanPlate} ya está registrada en el sistema. Por favor, buscá la patente en la barra superior o en el escáner.`);
+            return;
+        }
+
         try {
             const createdClient = await addClient({ ...newClient, is_frequent: false });
-            await addVehicle({ ...newVehicle, client_id: createdClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
+            await addVehicle({ ...newVehicle, license_plate: cleanPlate, client_id: createdClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
             alert('✅ Cliente y vehículo registrados con éxito.');
             setShowNewModal(false);
             setNewClient({ first_name: '', last_name: '', phone: '', dni: '', email: '' });
@@ -331,8 +342,19 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                 <Modal title={`Agregar Vehículo a ${selectedClient.first_name} ${selectedClient.last_name}`} onClose={() => setShowAddVehicleModal(false)}
                     footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowAddVehicleModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={async () => {
                         if (!newVehicle.license_plate || !newVehicle.brand || !newVehicle.model) { alert('Patente, Marca y Modelo son obligatorios.'); return; }
+                        
+                        const cleanPlate = newVehicle.license_plate.trim().toUpperCase();
+                        const existingVehicle = (MOCK.vehicles || []).find(v => 
+                            v.license_plate && v.license_plate.toUpperCase() === cleanPlate
+                        );
+
+                        if (existingVehicle) {
+                            alert(`Error: La patente ${cleanPlate} ya está registrada en el sistema a nombre de otro cliente.`);
+                            return;
+                        }
+
                         try {
-                            await addVehicle({ ...newVehicle, client_id: selectedClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
+                            await addVehicle({ ...newVehicle, license_plate: cleanPlate, client_id: selectedClient.id, km: 0, difficulty_factor: 1.0, color: 'N/A' });
                             alert('✅ Vehículo agregado con éxito.');
                             setShowAddVehicleModal(false);
                             setNewVehicle({ license_plate: '', brand: '', model: '', year: '' });
