@@ -48,7 +48,7 @@ const PAGES = {
 
 function App() {
     const isOnline = useNetworkStatus();
-    const { data: MOCK, addTimeLog, isSyncing } = useApp();
+    const { data: MOCK, timeTrackingLogs, addTimeLog, isSyncing } = useApp();
     const { user } = useAuth();
     
     // Custom Navigation Hook
@@ -283,8 +283,8 @@ function App() {
                         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>Ingresá tu PIN numérico personal para registrar tu entrada o salida.</p>
 
                         <div style={{ maxWidth: 300, margin: '0 auto' }}>
-                            {timePin.length === 4 && (data.employees || []).find(e => String(e.pin) === String(timePin)) && (() => {
-                                const emp = data.employees.find(e => String(e.pin) === String(timePin));
+                            {timePin.length === 4 && (MOCK.employees || []).find(e => String(e.pin) === String(timePin)) && (() => {
+                                const emp = MOCK.employees.find(e => String(e.pin) === String(timePin));
                                 const last = (timeTrackingLogs || []).filter(l => l.employee_id === emp.id)[0];
                                 return (
                                     <div style={{ 
