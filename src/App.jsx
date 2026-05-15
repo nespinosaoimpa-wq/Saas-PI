@@ -73,16 +73,8 @@ function App() {
     const [isClockingIn, setIsClockingIn] = useState(false);
     const [isClockingOut, setIsClockingOut] = useState(false);
     
-    // --- ESTADO PARA RECORDATORIO DE PAGO ---
+    // --- ESTADO PARA AVISO DE SERVICIO DEGRADADO ---
     const [showPaymentReminder, setShowPaymentReminder] = useState(true);
-
-    React.useEffect(() => {
-        if (showPaymentReminder && user) {
-            // Ocultar automáticamente después de 15 segundos para no ser invasivo
-            const timer = setTimeout(() => setShowPaymentReminder(false), 15000);
-            return () => clearTimeout(timer);
-        }
-    }, [showPaymentReminder, user]);
 
     // --- TRACKING GLOBAL DEL MAPA DE CALOR ---
     React.useEffect(() => {
@@ -153,7 +145,7 @@ function App() {
 
     return (
         <div className="app-layout">
-            {/* --- RECORDATORIO DE PAGO (TOAST) --- */}
+            {/* --- RECORDATORIO DE PAGO (TOAST FIJO CON CIERRE MANUAL) --- */}
             {showPaymentReminder && user && (
                 <div style={{
                     position: 'fixed',
@@ -161,28 +153,35 @@ function App() {
                     right: '24px',
                     backgroundColor: 'var(--card-bg, #ffffff)',
                     color: 'var(--text-color, #333333)',
-                    padding: '16px 20px',
-                    borderRadius: '8px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                    padding: '18px 22px',
+                    borderRadius: '10px',
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '12px',
-                    zIndex: 99999,
-                    maxWidth: '350px',
-                    borderLeft: '4px solid var(--warning, #f59e0b)',
+                    gap: '14px',
+                    zIndex: 999999,
+                    maxWidth: '420px',
+                    borderLeft: '5px solid var(--danger, #ef4444)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderLeftWidth: '5px',
                     animation: 'slideInRight 0.3s ease-out'
                 }}>
-                    <Icon name="info" size={24} style={{ color: 'var(--warning, #f59e0b)', flexShrink: 0 }} />
+                    <Icon name="warning" size={28} style={{ color: 'var(--danger, #ef4444)', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>Aviso de Facturación</h4>
-                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted, #666)', lineHeight: '1.4' }}>
-                            Tiene un saldo pendiente por el desarrollo de la plataforma. Por favor, regularice su situación.
+                        <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '700', color: 'var(--danger, #ef4444)' }}>
+                            Aviso de Falta de Pago
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-color, #333)', lineHeight: '1.45' }}>
+                            Aviso de servicio degradado por falta de pago. A partir del dia 16/05 las funciones del sistema se acortaran.
                         </p>
+                        <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted, #777)', borderTop: '1px solid var(--border-color, #eee)', paddingTop: '6px', textAlign: 'right' }}>
+                            SmartFlow Servicios Digitales.
+                        </div>
                     </div>
                     <button 
                         onClick={() => setShowPaymentReminder(false)}
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted, #999)', cursor: 'pointer', padding: '4px' }}
-                        title="Cerrar"
+                        style={{ background: 'var(--bg-hover, #f3f4f6)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted, #666)', cursor: 'pointer', flexShrink: 0 }}
+                        title="Cerrar aviso"
                     >
                         <Icon name="close" size={16} />
                     </button>
