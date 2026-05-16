@@ -10,7 +10,8 @@ import {
     FormRow,
     FormField,
     Icon,
-    CameraScanner
+    CameraScanner,
+    PrintableTicket
 } from '../components/ui';
 
 export const ClientsPage = ({ initialScannedCode = '' }) => {
@@ -23,6 +24,7 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
+    const [printWO, setPrintWO] = useState(null);
 
     const [newClient, setNewClient] = useState({ first_name: '', last_name: '', phone: '', dni: '', email: '' });
     const [newVehicle, setNewVehicle] = useState({ license_plate: initialScannedCode, brand: '', model: '', year: '' });
@@ -254,8 +256,28 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                                             marginBottom: 12,
                                                             borderLeft: isOT ? '4px solid var(--primary)' : '4px solid var(--warning)',
                                                             position: 'relative',
-                                                            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                                                        }}>
+                                                            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                                                            cursor: isOT ? 'pointer' : 'default',
+                                                            transition: 'all 0.2s ease'
+                                                        }}
+                                                        onClick={() => {
+                                                            if (isOT) {
+                                                                const wo = (MOCK.workOrders || []).find(w => w.id === h.id);
+                                                                if (wo) {
+                                                                    const woWithItems = {
+                                                                        ...wo,
+                                                                        items: MOCK.workOrderItems?.filter(i => i.work_order_id === wo.id) || []
+                                                                    };
+                                                                    setPrintWO(woWithItems);
+                                                                } else {
+                                                                    alert('No se encontró el detalle de esta orden de trabajo.');
+                                                                }
+                                                            }
+                                                        }}
+                                                        onMouseEnter={e => { if (isOT) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)'; } }}
+                                                        onMouseLeave={e => { if (isOT) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.02)'; } }}
+                                                        title={isOT ? "Hacer clic para ver el comprobante y detalle completo de esta orden" : ""}
+                                                        >
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: isOT ? 'var(--primary)' : 'var(--warning)', letterSpacing: 0.5 }}>
                                                                     <Icon name={isOT ? 'construction' : 'sticky_note_2'} size={14} />
@@ -404,6 +426,10 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                         <FormField label="Técnico / Responsable"><input className="form-input" value={noteData.technician} onChange={e => setNoteData({ ...noteData, technician: e.target.value })} /></FormField>
                     </div>
                 </Modal>
+            )}
+
+            {printWO && (
+                <PrintableTicket workOrder={printWO} onClose={() => setPrintWO(null)} />
             )}
         </div>
     );

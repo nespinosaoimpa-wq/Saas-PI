@@ -22,6 +22,7 @@ export const WorkOrdersPage = () => {
     const mechanics = employees.filter(e => e.role === 'mecanico' || e.role === 'gomero' || e.role === 'admin');
 
     const [tab, setTab] = useState('active');
+    const [searchWO, setSearchWO] = useState('');
     const [showNew, setShowNew] = useState(false);
     const [printWO, setPrintWO] = useState(null);
     const [vehicleSheet, setVehicleSheet] = useState(null);
@@ -193,8 +194,18 @@ export const WorkOrdersPage = () => {
     };
 
     const filtered = MOCK.workOrders.filter(wo => {
+        if (searchWO) {
+            const term = searchWO.toLowerCase();
+            const clientName = wo.clients ? `${wo.clients.first_name || ''} ${wo.clients.last_name || ''} ${wo.clients.dni || ''}`.toLowerCase() : '';
+            const vehicleInfo = wo.vehicles ? `${wo.vehicles.license_plate || ''} ${wo.vehicles.brand || ''} ${wo.vehicles.model || ''}`.toLowerCase() : '';
+            const desc = (wo.description || '').toLowerCase();
+            const orderNum = (wo.order_number || '').toString().toLowerCase();
+
+            return clientName.includes(term) || vehicleInfo.includes(term) || desc.includes(term) || orderNum.includes(term);
+        }
+
         if (tab === 'active') return wo.status === 'Pendiente' || wo.status === 'En Box';
-        if (tab === 'done') return wo.status === 'Finalizado';
+        if (tab === 'done') return wo.status === 'Finalizado' || wo.status === 'Cobrado';
         return true;
     });
 
@@ -313,7 +324,13 @@ export const WorkOrdersPage = () => {
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Tabs tabs={[{ key: 'active', label: 'Activas' }, { key: 'done', label: 'Finalizadas' }, { key: 'all', label: 'Todas' }]} active={tab} onChange={setTab} />
-                    <div style={{ flex: 1 }} />
+                    <div style={{ flex: 1, minWidth: 260 }}>
+                        <SearchBar
+                            value={searchWO}
+                            onChange={setSearchWO}
+                            placeholder="Buscar por cliente, patente, N° de orden o detalle..."
+                        />
+                    </div>
                     <button className="btn btn-ghost" onClick={() => exportToExcel('work_orders')} title="Descargar listado de órdenes en formato Excel">
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
