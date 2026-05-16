@@ -549,13 +549,16 @@ export const AppProvider = ({ children }) => {
             }));
             filename = `turnos_${todayStr}.xlsx`;
         } else if (dataType === 'attendance') {
-            rows = (timeTrackingLogs || []).map(l => ({
-                Empleado: l.employee_name || '',
-                Fecha: new Date(l.timestamp).toLocaleDateString('es-AR'),
-                Hora: new Date(l.timestamp).toLocaleTimeString('es-AR'),
-                Evento: l.type === 'IN' ? 'ENTRADA' : 'SALIDA',
-                Timestamp: l.timestamp
-            })).sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+            rows = (timeTrackingLogs || []).map(l => {
+                const emp = (data.employees || []).find(e => e.id === l.employee_id);
+                return {
+                    Empleado: l.employee_name || emp?.name || 'Desconocido',
+                    Fecha: new Date(l.timestamp).toLocaleDateString('es-AR'),
+                    Hora: new Date(l.timestamp).toLocaleTimeString('es-AR'),
+                    Evento: l.type === 'IN' ? 'ENTRADA' : 'SALIDA',
+                    Timestamp: l.timestamp
+                };
+            }).sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
             filename = `asistencia_detallada_${todayStr}.xlsx`;
         } else if (dataType === 'audit') {
             const auditData = customData || [];
@@ -1655,6 +1658,16 @@ export const AppProvider = ({ children }) => {
                 lastIn = null;
             }
         });
+        
+        if (lastIn) {
+            const diff = new Date() - lastIn;
+            const hours = diff / (1000 * 60 * 60);
+            if (hours < 16) {
+                totalMs += diff;
+            } else {
+                totalMs += (12 * 60 * 60 * 1000);
+            }
+        }
         
         const totalHours = totalMs / (1000 * 60 * 60);
 
