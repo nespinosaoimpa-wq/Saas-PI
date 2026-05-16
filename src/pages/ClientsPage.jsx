@@ -15,7 +15,7 @@ import {
 } from '../components/ui';
 
 export const ClientsPage = ({ initialScannedCode = '' }) => {
-    const { data: MOCK, getClientVehicles, addClient, addVehicle, updateClient, deleteClient, addVehicleNote, getVehicleHistory } = useApp();
+    const { data: MOCK, getClientVehicles, addClient, addVehicle, updateVehicle, updateClient, deleteClient, addVehicleNote, getVehicleHistory } = useApp();
     const [search, setSearch] = useState('');
     const [selectedClient, setSelectedClient] = useState(null);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -23,11 +23,13 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+    const [showEditVehicleModal, setShowEditVehicleModal] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
     const [printWO, setPrintWO] = useState(null);
 
     const [newClient, setNewClient] = useState({ first_name: '', last_name: '', phone: '', dni: '', email: '' });
     const [newVehicle, setNewVehicle] = useState({ license_plate: initialScannedCode, brand: '', model: '', year: '' });
+    const [editVehicleData, setEditVehicleData] = useState({ license_plate: '', brand: '', model: '', year: '' });
     const [noteData, setNoteData] = useState({ description: '', km: '', cost: '', technician: '' });
 
     React.useEffect(() => {
@@ -103,6 +105,32 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
             setNoteData({ description: '', km: '', cost: '', technician: '' });
         } catch (e) {
             alert('Error al agregar nota: ' + e.message);
+        }
+    };
+
+    const handleSaveEditVehicle = async () => {
+        if (!editVehicleData.license_plate || !editVehicleData.brand || !editVehicleData.model) {
+            alert('Patente, Marca y Modelo son obligatorios.');
+            return;
+        }
+        const cleanPlate = editVehicleData.license_plate.trim().toUpperCase();
+        
+        const existing = (MOCK.vehicles || []).find(v => v.id !== selectedVehicle.id && v.license_plate?.toUpperCase() === cleanPlate);
+        if (existing) {
+            alert(`Error: La patente ${cleanPlate} ya está asociada a otro vehículo.`);
+            return;
+        }
+
+        try {
+            const updated = await updateVehicle(selectedVehicle.id, {
+                ...editVehicleData,
+                license_plate: cleanPlate
+            });
+            alert('✅ Vehículo actualizado con éxito.');
+            setSelectedVehicle(updated);
+            setShowEditVehicleModal(false);
+        } catch (e) {
+            alert('Error al actualizar vehículo: ' + e.message);
         }
     };
 
@@ -239,6 +267,9 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                                                         width={60} height={60}
                                                     />
                                                 </div>
+                                                <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'stretch', color: 'var(--primary)', border: '1px solid var(--primary)' }} onClick={() => { setEditVehicleData({ ...selectedVehicle }); setShowEditVehicleModal(true); }}>
+                                                    <Icon name="edit" size={16} /> Editar Vehículo
+                                                </button>
                                                 <button className="btn btn-primary btn-sm" style={{ alignSelf: 'stretch' }} onClick={() => setShowNoteModal(true)}><Icon name="add_notes" size={16} /> Nueva Nota</button>
                                             </div>
                                         </div>
@@ -424,6 +455,22 @@ export const ClientsPage = ({ initialScannedCode = '' }) => {
                             <FormField label="Costo (si aplica)"><input className="form-input" type="number" value={noteData.cost} onChange={e => setNoteData({ ...noteData, cost: e.target.value })} /></FormField>
                         </FormRow>
                         <FormField label="Técnico / Responsable"><input className="form-input" value={noteData.technician} onChange={e => setNoteData({ ...noteData, technician: e.target.value })} /></FormField>
+                    </div>
+                </Modal>
+            )}
+
+            {showEditVehicleModal && selectedVehicle && (
+                <Modal title="Editar Datos del Vehículo" onClose={() => setShowEditVehicleModal(false)}
+                    footer={<Fragment><button className="btn btn-ghost" onClick={() => setShowEditVehicleModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={handleSaveEditVehicle}>Guardar Cambios</button></Fragment>}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <FormRow>
+                            <FormField label="Patente *"><input className="form-input" value={editVehicleData.license_plate} onChange={e => setEditVehicleData({ ...editVehicleData, license_plate: e.target.value })} /></FormField>
+                            <FormField label="Marca *"><input className="form-input" value={editVehicleData.brand} onChange={e => setEditVehicleData({ ...editVehicleData, brand: e.target.value })} /></FormField>
+                        </FormRow>
+                        <FormRow>
+                            <FormField label="Modelo *"><input className="form-input" value={editVehicleData.model} onChange={e => setEditVehicleData({ ...editVehicleData, model: e.target.value })} /></FormField>
+                            <FormField label="Año"><input className="form-input" type="number" value={editVehicleData.year || ''} onChange={e => setEditVehicleData({ ...editVehicleData, year: e.target.value })} /></FormField>
+                        </FormRow>
                     </div>
                 </Modal>
             )}
