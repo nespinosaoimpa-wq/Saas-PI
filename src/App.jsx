@@ -186,7 +186,7 @@ function App() {
                             color: '#b91c1c',
                             fontWeight: '600'
                         }}>
-                            Fecha límite: Viernes 21/05/2026
+                            Fecha límite: Viernes 22/05/2026
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted, #777)', textAlign: 'right', fontWeight: 'bold' }}>
                             SmartFlow Digital
