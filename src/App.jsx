@@ -159,29 +159,43 @@ function App() {
                     right: '24px',
                     backgroundColor: 'var(--card-bg, #ffffff)',
                     color: 'var(--text-color, #333333)',
-                    padding: '18px 22px',
-                    borderRadius: '10px',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+                    padding: '20px 24px',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '14px',
+                    gap: '16px',
                     zIndex: 999999,
                     maxWidth: '420px',
-                    borderLeft: '5px solid var(--danger, #ef4444)',
                     border: '1px solid rgba(239, 68, 68, 0.2)',
-                    borderLeftWidth: '5px',
+                    borderLeft: '5px solid var(--danger, #ef4444)',
                     animation: 'slideInRight 0.3s ease-out'
                 }}>
-                    <Icon name="warning" size={28} style={{ color: 'var(--danger, #ef4444)', flexShrink: 0 }} />
+                    <Icon name="warning" size={28} style={{ color: 'var(--danger, #ef4444)', flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '700', color: 'var(--danger, #ef4444)' }}>
-                            Aviso de Falta de Pago
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: 'bold', color: 'var(--danger, #ef4444)', letterSpacing: '0.5px' }}>
+                            ÚLTIMO AVISO DE PAGO
                         </h4>
-                        <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-color, #333)', lineHeight: '1.45' }}>
-                            Aviso de servicio degradado por falta de pago. A partir del dia 16/05 las funciones del sistema se acortaran.
+                        <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-color, #333333)', lineHeight: '1.5' }}>
+                            Se registra un saldo pendiente por el desarrollo de la plataforma. De no regularizarse el pago, <strong>el servicio será dado de baja de forma definitiva</strong>.
                         </p>
-                        <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted, #777)', borderTop: '1px solid var(--border-color, #eee)', paddingTop: '6px', textAlign: 'right' }}>
-                            SmartFlow Servicios Digitales.
+                        <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-color, #333333)', lineHeight: '1.5' }}>
+                            Por favor, póngase en contacto con el programador a la brevedad para regularizar su situación.
+                        </p>
+                        <div style={{ 
+                            fontSize: '12px', 
+                            background: 'rgba(239, 68, 68, 0.08)', 
+                            padding: '8px 12px', 
+                            borderRadius: '6px', 
+                            border: '1px dashed rgba(239, 68, 68, 0.3)',
+                            marginBottom: '12px',
+                            color: '#b91c1c',
+                            fontWeight: '600'
+                        }}>
+                            Fecha límite: Viernes 22/05/2026
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted, #777)', textAlign: 'right', fontWeight: 'bold' }}>
+                            SmartFlow Digital
                         </div>
                     </div>
                     <button 
