@@ -26,6 +26,7 @@ import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useNavigation } from './hooks/useNavigation';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { LockScreen } from './components/LockScreen';
 
 const PAGES = {
     dashboard: DashboardPage,
@@ -47,6 +48,11 @@ const PAGES = {
 };
 
 function App() {
+    const IS_SYSTEM_LOCKED = true; // Toggle lock status here (true = locked, false = unlocked)
+    if (IS_SYSTEM_LOCKED) {
+        return <LockScreen />;
+    }
+
     const isOnline = useNetworkStatus();
     const { data: MOCK, timeTrackingLogs, addTimeLog, isSyncing } = useApp();
     const { user } = useAuth();
