@@ -48,7 +48,7 @@ const PAGES = {
 };
 
 function App() {
-    const IS_SYSTEM_LOCKED = true; // Toggle lock status here (true = locked, false = unlocked)
+    const IS_SYSTEM_LOCKED = false; // Toggle lock status here (true = locked, false = unlocked)
     if (IS_SYSTEM_LOCKED) {
         return <LockScreen />;
     }

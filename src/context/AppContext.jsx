@@ -939,6 +939,7 @@ export const AppProvider = ({ children }) => {
     const updateWorkOrder = async (id, updates, paymentInfo = null, afipData = null, mechanicIds = null, creditOptions = null) => {
         const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
         if (!error) {
+            let freshAssignmentsList = null;
             // Update assignments if mechanicIds provided
             if (mechanicIds) {
                 try {
@@ -948,12 +949,13 @@ export const AppProvider = ({ children }) => {
                     // 2. Eliminar antiguas
                     await supabase.from('work_order_assignments').delete().eq('work_order_id', id);
                     
-                    // 3. Insertar nuevas preservando el porcentaje si el mecánico es el mismo
+                    // 3. Insertar nuevas usando la nueva tasa si se especificó, sino preservar la previa si el mecánico es el mismo
                     const assignments = mechanicIds.map(mid => {
                         const existing = (currentAssignments || []).find(ca => ca.mechanic_id === mid);
-                        // BUGFIX: Asegurar que el 0 se preserve y no se tome como falsy
                         const hasPrevious = existing?.labor_commission_percent !== undefined && existing?.labor_commission_percent !== null;
-                        const preservedRate = hasPrevious ? existing.labor_commission_percent : (updates.applied_commission_rate || 0);
+                        const preservedRate = (updates.applied_commission_rate !== undefined && updates.applied_commission_rate !== null)
+                            ? updates.applied_commission_rate
+                            : (hasPrevious ? existing.labor_commission_percent : 0);
                         
                         return {
                             work_order_id: id,
@@ -965,6 +967,7 @@ export const AppProvider = ({ children }) => {
                     if (assignments.length > 0) {
                         await supabase.from('work_order_assignments').insert(assignments);
                     }
+                    freshAssignmentsList = assignments;
                 } catch (e) {
                     console.error('Error updating WO assignments', e);
                 }
@@ -980,11 +983,15 @@ export const AppProvider = ({ children }) => {
                 if (wo && finalPrice > 0) {
                     // REGISTRO DE GANANCIAS (Locking comisiones)
                     try {
-                        const currentAssignments = data.assignments?.filter(a => a.work_order_id === id) || [];
-                        if (currentAssignments.length > 0) {
-                            const laborShare = laborCost / currentAssignments.length;
+                        const activeAssignments = freshAssignmentsList || data.assignments?.filter(a => a.work_order_id === id) || [];
+                        
+                        // Limpiar ganancias previas para esta OT para reconstruirlas de forma limpia y evitar duplicados/desactualizaciones
+                        await supabase.from('employee_earnings').delete().eq('work_order_id', id);
+
+                        if (activeAssignments.length > 0) {
+                            const laborShare = laborCost / activeAssignments.length;
                             
-                            for (const a of currentAssignments) {
+                            for (const a of activeAssignments) {
                                 const emp = data.employees?.find(e => e.id === a.mechanic_id);
                                 // Prioridad: % individual en asignación > % en perfil
                                 const rate = (a.labor_commission_percent !== undefined && a.labor_commission_percent !== null) 
@@ -994,17 +1001,12 @@ export const AppProvider = ({ children }) => {
                                 const amountEarned = laborShare * (rate / 100);
 
                                 if (amountEarned > 0) {
-                                    // Verificar si ya existe ganancia registrada para esta OT/Empleado para evitar duplicados
-                                    const existEarning = (data.employeeEarnings || []).some(ee => ee.work_order_id === id && ee.employee_id === a.mechanic_id);
-                                    
-                                    if (!existEarning) {
-                                        await supabase.from('employee_earnings').insert([{
-                                            employee_id: a.mechanic_id,
-                                            work_order_id: id,
-                                            amount_earned: amountEarned,
-                                            description: `Comisión OT #${wo.order_number} (${currentAssignments.length} operarios): ${wo.description?.substring(0, 30)}...`
-                                        }]);
-                                    }
+                                    await supabase.from('employee_earnings').insert([{
+                                        employee_id: a.mechanic_id,
+                                        work_order_id: id,
+                                        amount_earned: amountEarned,
+                                        description: `Comisión OT #${wo.order_number} (${activeAssignments.length} operarios): ${wo.description?.substring(0, 30)}...`
+                                    }]);
                                 }
                             }
                         }
@@ -1101,6 +1103,13 @@ export const AppProvider = ({ children }) => {
                         alert('⚠️ Error crítico al registrar el pago: ' + e.message + '\n\nSi estás usando "Crédito de la Casa", asegúrate de haber ejecutado el script SQL de habilitación.');
                         throw e; // Re-lanzamos para que la UI no cierre el modal y el usuario sepa que falló
                     }
+                }
+            } else if (updates.status === 'Pendiente' || updates.status === 'En Box' || updates.status === 'Cancelado') {
+                // Si la orden pasa a un estado no finalizado, eliminar cualquier ganancia registrada
+                try {
+                    await supabase.from('employee_earnings').delete().eq('work_order_id', id);
+                } catch (e) {
+                    console.error('Error deleting OT commissions for unfinalized OT', e);
                 }
             }
 
@@ -1540,6 +1549,56 @@ export const AppProvider = ({ children }) => {
 
         if (error) { console.error("Error updating commission", error); throw error; }
         logAudit('Actualizar Comisión de Mecánico', { assignment_id: assignmentId, updates });
+        
+        // RECALCULAR GANANCIAS DE LA OT ASOCIADA
+        try {
+            const { data: assignment } = await supabase
+                .from('work_order_assignments')
+                .select('work_order_id')
+                .eq('id', assignmentId)
+                .single();
+                
+            if (assignment && assignment.work_order_id) {
+                const woId = assignment.work_order_id;
+                const wo = (data.workOrders || []).find(w => w.id === woId);
+                if (wo && (wo.status === 'Finalizado' || wo.status === 'Cobrado')) {
+                    // Obtener asignaciones frescas de la base de datos para estar seguros
+                    const { data: freshAssignments } = await supabase
+                        .from('work_order_assignments')
+                        .select('*')
+                        .eq('work_order_id', woId);
+                        
+                    if (freshAssignments && freshAssignments.length > 0) {
+                        const laborCost = parseFloat(wo.labor_cost) || 0;
+                        const laborShare = laborCost / freshAssignments.length;
+                        
+                        // Limpiar anteriores
+                        await supabase.from('employee_earnings').delete().eq('work_order_id', woId);
+                        
+                        for (const a of freshAssignments) {
+                            const emp = (data.employees || []).find(e => e.id === a.mechanic_id);
+                            const rate = (a.labor_commission_percent !== undefined && a.labor_commission_percent !== null)
+                                ? parseFloat(a.labor_commission_percent)
+                                : (emp ? parseFloat(emp.commission_rate) : 0);
+                                
+                            const amountEarned = laborShare * (rate / 100);
+                            
+                            if (amountEarned > 0) {
+                                await supabase.from('employee_earnings').insert([{
+                                    employee_id: a.mechanic_id,
+                                    work_order_id: woId,
+                                    amount_earned: amountEarned,
+                                    description: `Comisión OT #${wo.order_number} (${freshAssignments.length} operarios): ${wo.description?.substring(0, 30)}...`
+                                }]);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error updating earnings from assignment commission update', e);
+        }
+
         await loadData();
     };
 
