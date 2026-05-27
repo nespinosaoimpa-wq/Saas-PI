@@ -109,10 +109,10 @@ CREATE TABLE work_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     order_number SERIAL,
-    client_id UUID REFERENCES clients(id),
-    vehicle_id UUID REFERENCES vehicles(id),
-    box_id TEXT REFERENCES boxes(id),
-    mechanic_id UUID REFERENCES employees(id), -- Principal (obsoleto si se usan assignments, pero se mantiene por compatibilidad)
+    client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+    vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
+    box_id TEXT REFERENCES boxes(id) ON DELETE SET NULL,
+    mechanic_id UUID REFERENCES employees(id) ON DELETE SET NULL, -- Principal (obsoleto si se usan assignments, pero se mantiene por compatibilidad)
     status TEXT DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'En Box', 'Finalizado', 'Cobrado', 'Cancelado')),
     description TEXT,
     mechanic_notes TEXT,
@@ -187,9 +187,9 @@ CREATE TABLE daily_quick_services (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     service_type TEXT NOT NULL,
     price NUMERIC(10,2) NOT NULL,
-    mechanic_id UUID REFERENCES employees(id),
-    client_id UUID REFERENCES clients(id),
-    vehicle_id UUID REFERENCES vehicles(id),
+    mechanic_id UUID REFERENCES employees(id) ON DELETE SET NULL,
+    client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+    vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
     notes TEXT
 );
 

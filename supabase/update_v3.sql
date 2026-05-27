@@ -36,9 +36,9 @@ CREATE TABLE IF NOT EXISTS daily_quick_services (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     service_type TEXT NOT NULL,
     price NUMERIC(10,2) DEFAULT 0.0,
-    mechanic_id UUID REFERENCES employees(id),
-    client_id UUID REFERENCES clients(id),
-    vehicle_id UUID REFERENCES vehicles(id),
+    mechanic_id UUID REFERENCES employees(id) ON DELETE SET NULL,
+    client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+    vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
     notes TEXT
 );
 
