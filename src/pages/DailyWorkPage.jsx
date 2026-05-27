@@ -234,6 +234,7 @@ export const DailyWorkPage = () => {
     };
 
     const filteredPOSProducts = (MOCK.inventory || []).filter(p => {
+        if (p.name && p.name.startsWith('_TEMPLATE_')) return false;
         if (!posSearch) return false;
         const term = posSearch.toLowerCase();
         return p.name.toLowerCase().includes(term) || 

@@ -225,9 +225,11 @@ export const WorkOrdersPage = () => {
         if (!productSearch) return [];
         const term = productSearch.toLowerCase();
         return MOCK.inventory.filter(i => 
-            i.name.toLowerCase().includes(term) || 
-            (i.barcode && i.barcode.toLowerCase().includes(term)) ||
-            (i.brand && i.brand.toLowerCase().includes(term))
+            !i.name?.startsWith('_TEMPLATE_') && (
+                i.name.toLowerCase().includes(term) || 
+                (i.barcode && i.barcode.toLowerCase().includes(term)) ||
+                (i.brand && i.brand.toLowerCase().includes(term))
+            )
         ).slice(0, 5);
     }, [productSearch, MOCK.inventory]);
 
@@ -276,9 +278,11 @@ export const WorkOrdersPage = () => {
         if (!extraProductSearch) return [];
         const term = extraProductSearch.toLowerCase();
         return MOCK.inventory.filter(i => 
-            i.name.toLowerCase().includes(term) || 
-            (i.barcode && i.barcode.toLowerCase().includes(term)) ||
-            (i.brand && i.brand.toLowerCase().includes(term))
+            !i.name?.startsWith('_TEMPLATE_') && (
+                i.name.toLowerCase().includes(term) || 
+                (i.barcode && i.barcode.toLowerCase().includes(term)) ||
+                (i.brand && i.brand.toLowerCase().includes(term))
+            )
         ).slice(0, 5);
     }, [extraProductSearch, MOCK.inventory]);
 

@@ -15,8 +15,39 @@ export class ErrorBoundary extends React.Component {
         return { hasError: true, error };
     }
 
+    componentDidMount() {
+        // Reset reload attempts on successful mount
+        try {
+            sessionStorage.removeItem('chunk_error_reload_attempts');
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     componentDidCatch(error, errorInfo) {
         console.error('🔴 ErrorBoundary capturó un error:', error, errorInfo);
+        
+        // Detect chunk/module load error
+        const isChunkError = 
+            error?.name === 'ChunkLoadError' || 
+            /chunk/i.test(error?.message || '') || 
+            /loading.*failed/i.test(error?.message || '') ||
+            /dynamically imported module/i.test(error?.message || '') ||
+            /failed to fetch/i.test(error?.message || '');
+            
+        if (isChunkError) {
+            try {
+                const attempts = parseInt(sessionStorage.getItem('chunk_error_reload_attempts') || '0', 10);
+                if (attempts < 3) {
+                    sessionStorage.setItem('chunk_error_reload_attempts', String(attempts + 1));
+                    console.warn(`⚠️ Error de carga de chunk detectado. Intento de recarga ${attempts + 1}/3...`);
+                    window.location.reload();
+                    return;
+                }
+            } catch (e) {
+                console.error('Error during auto-reload logic:', e);
+            }
+        }
     }
 
     render() {

@@ -33,6 +33,9 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [categoryLoading, setCategoryLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '', category: '', brand: '', supplier_id: '', barcode: initialScannedCode,
@@ -135,7 +138,38 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     const categories = [...new Set(inventory.map(i => i.category).filter(Boolean))];
     const brands = [...new Set(inventory.map(i => i.brand).filter(Boolean))];
 
+    const handleSaveCategory = async () => {
+        if (!newCategoryName.trim()) return alert('El nombre de la categoría es obligatorio');
+        setCategoryLoading(true);
+        try {
+            const catName = newCategoryName.trim();
+            const exists = categories.some(c => c.toLowerCase() === catName.toLowerCase());
+            if (exists) {
+                alert('La categoría ya existe');
+                return;
+            }
+            const payload = {
+                name: `_TEMPLATE_${catName}`,
+                category: catName,
+                stock_type: 'UNIT',
+                stock_quantity: 0,
+                cost_price: 0,
+                sell_price: 0
+            };
+            await addInventoryItem(payload);
+            alert(`✅ Categoría "${catName}" creada correctamente.`);
+            setNewCategoryName('');
+            setShowCategoryModal(false);
+        } catch (e) {
+            console.error(e);
+            alert("Error al crear categoría: " + e.message);
+        } finally {
+            setCategoryLoading(false);
+        }
+    };
+
     const filtered = inventory.filter(i => {
+        if (i.name && i.name.startsWith('_TEMPLATE_')) return false;
         const matchSearch = `${i.name} ${i.barcode || ''} ${i.brand || ''} ${i.category || ''}`.toLowerCase().includes(search.toLowerCase());
         const isLow = (i.stock_type === 'UNIT' && i.stock_quantity <= i.stock_min) || (i.stock_type === 'VOLUME' && i.stock_ml <= i.stock_min_ml);
         const matchTab = tab === 'all' || (tab === 'low' && isLow) || (tab === 'volume' && i.stock_type === 'VOLUME') || (tab === 'unit' && i.stock_type === 'UNIT');
@@ -156,7 +190,14 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                     <button className="btn btn-ghost" onClick={() => exportToExcel('inventory')} title="Descargar inventario completo en formato Excel">
                         <Icon name="download" size={18} /> Exportar Excel
                     </button>
-                    {canAdd && <button className="btn btn-primary" onClick={() => handleOpenModal()} title="Agregar un producto nuevo al stock"><Icon name="add_shopping_cart" size={18} /> Nuevo Producto</button>}
+                    {canAdd && (
+                        <Fragment>
+                            <button className="btn btn-ghost" onClick={() => setShowCategoryModal(true)} title="Crear una nueva categoría de productos">
+                                <Icon name="category" size={18} /> Nueva Categoría
+                            </button>
+                            <button className="btn btn-primary" onClick={() => handleOpenModal()} title="Agregar un producto nuevo al stock"><Icon name="add_shopping_cart" size={18} /> Nuevo Producto</button>
+                        </Fragment>
+                    )}
                 </div>
 
                 {/* Volume gauges for oils */}
@@ -283,6 +324,17 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                                     </FormField>
                                 </FormRow>
                             )}
+                        </div>
+                    </Modal>
+                )}
+
+                {showCategoryModal && (
+                    <Modal title="Nueva Categoría" onClose={() => setShowCategoryModal(false)} width="400px"
+                        footer={<Fragment><button className="btn btn-ghost" disabled={categoryLoading} onClick={() => setShowCategoryModal(false)}>Cancelar</button><button className="btn btn-primary" disabled={categoryLoading} onClick={handleSaveCategory}>{categoryLoading ? 'Creando...' : 'Crear Categoría'}</button></Fragment>}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <FormField label="Nombre de la Nueva Categoría *">
+                                <input className="form-input" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Ej: Aditivos Especiales" />
+                            </FormField>
                         </div>
                     </Modal>
                 )}

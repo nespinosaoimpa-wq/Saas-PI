@@ -47,9 +47,10 @@ export const SalesPage = () => {
     const findProduct = (term) => {
         if (!term) return null;
         const lowerTerm = term.toString().toLowerCase().trim();
+        const activeInventory = (MOCK.inventory || []).filter(i => !i.name?.startsWith('_TEMPLATE_'));
         
         // 1. Priority: Exact match on Barcode or ID
-        let match = (MOCK.inventory || []).find(i => 
+        let match = activeInventory.find(i => 
             (i.barcode && String(i.barcode).toLowerCase() === lowerTerm) ||
             (i.id && String(i.id).toLowerCase() === lowerTerm)
         );
@@ -57,7 +58,7 @@ export const SalesPage = () => {
 
         // 2. Priority: Partial match on Barcode/ID (only if term length >= 3)
         if (lowerTerm.length >= 3) {
-            match = (MOCK.inventory || []).find(i => 
+            match = activeInventory.find(i => 
                 (i.barcode && String(i.barcode).toLowerCase().includes(lowerTerm)) ||
                 (i.id && String(i.id).toLowerCase().includes(lowerTerm))
             );
@@ -65,7 +66,7 @@ export const SalesPage = () => {
         }
 
         // 3. Priority: Name or Brand includes term
-        return (MOCK.inventory || []).find(i =>
+        return activeInventory.find(i =>
             (i.name && i.name.toLowerCase().includes(lowerTerm)) ||
             (i.brand && i.brand.toLowerCase().includes(lowerTerm))
         );
@@ -79,10 +80,12 @@ export const SalesPage = () => {
         }
         const term = manualCode.toLowerCase();
         const results = (MOCK.inventory || []).filter(i => 
-            (i.name && i.name.toLowerCase().includes(term)) ||
-            (i.brand && i.brand.toLowerCase().includes(term)) ||
-            (i.barcode && String(i.barcode).includes(term)) ||
-            (i.short_code && String(i.short_code).includes(term))
+            !i.name?.startsWith('_TEMPLATE_') && (
+                (i.name && i.name.toLowerCase().includes(term)) ||
+                (i.brand && i.brand.toLowerCase().includes(term)) ||
+                (i.barcode && String(i.barcode).includes(term)) ||
+                (i.short_code && String(i.short_code).includes(term))
+            )
         ).slice(0, 8);
         setSearchResults(results);
     }, [manualCode, MOCK.inventory]);
@@ -371,7 +374,7 @@ export const SalesPage = () => {
 
                     {/* Lista de productos rápidos */}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                        {MOCK.inventory.slice(0, 8).map(item => (
+                        {MOCK.inventory.filter(i => !i.name?.startsWith('_TEMPLATE_')).slice(0, 8).map(item => (
                             <button
                                 key={item.id}
                                 className="btn btn-ghost"
