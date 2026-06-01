@@ -467,11 +467,15 @@ export const AppProvider = ({ children }) => {
                     const adjustment = -qty;
                     const useMl = invItem.stock_type === 'VOLUME';
                     
-                    await supabase.rpc('adjust_inventory_stock', {
+                    const { error: rpcError } = await supabase.rpc('adjust_inventory_stock', {
                         item_id: invItem.id,
                         adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
                         use_ml: useMl
                     });
+                    if (rpcError) {
+                        console.error("Error adjusting stock:", rpcError);
+                        throw rpcError;
+                    }
                 }
             }
 
@@ -854,25 +858,30 @@ export const AppProvider = ({ children }) => {
             if (woData.products && woData.products.length > 0) {
                 const items = woData.products.map(p => ({
                     work_order_id: newWo.id,
-                    inventory_item_id: p.id,
+                    inventory_item_id: p.is_custom ? null : p.id,
                     description: p.name,
                     quantity: p.qty,
                     unit_price: p.sell_price,
                     total_price: p.sell_price * p.qty,
-                    is_labor: false
+                    is_labor: p.is_custom ? true : false
                 }));
                 await supabase.from('work_order_items').insert(items);
 
                 // Descontar stock (Atómico)
                 for (const p of woData.products) {
+                    if (p.is_custom) continue; // No stock for custom service
                     const useMl = p.stock_type === 'VOLUME';
                     const adjustment = -p.qty;
                     
-                    await supabase.rpc('adjust_inventory_stock', {
+                    const { error: rpcError } = await supabase.rpc('adjust_inventory_stock', {
                         item_id: p.id,
                         adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
                         use_ml: useMl
                     });
+                    if (rpcError) {
+                        console.error("Error adjusting inventory stock:", rpcError);
+                        throw rpcError;
+                    }
                 }
             }
 
@@ -891,12 +900,12 @@ export const AppProvider = ({ children }) => {
         try {
             const items = products.map(p => ({
                 work_order_id: woId,
-                inventory_item_id: p.id,
+                inventory_item_id: p.is_custom ? null : p.id,
                 description: p.name,
                 quantity: p.qty,
                 unit_price: p.sell_price,
                 total_price: p.sell_price * p.qty,
-                is_labor: false
+                is_labor: p.is_custom ? true : false
             }));
             
             const { error: itemsError } = await supabase.from('work_order_items').insert(items);
@@ -904,24 +913,34 @@ export const AppProvider = ({ children }) => {
 
             // Descontar stock (Atómico)
             for (const p of products) {
+                if (p.is_custom) continue; // No stock for custom service
                 const useMl = p.stock_type === 'VOLUME';
                 const adjustment = -p.qty;
                 
-                await supabase.rpc('adjust_inventory_stock', {
+                const { error: rpcError } = await supabase.rpc('adjust_inventory_stock', {
                     item_id: p.id,
                     adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
                     use_ml: useMl
                 });
+                if (rpcError) {
+                    console.error("Error adjusting inventory stock:", rpcError);
+                    throw rpcError;
+                }
             }
 
             // Actualizar precio total de la OT
             const wo = (data.workOrders || []).find(w => w.id === woId);
             if (wo) {
-                const addedCost = products.reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
-                const newPartsCost = (wo.parts_cost || 0) + addedCost;
-                const newTotal = (wo.total_price || 0) + addedCost;
+                const addedLabor = products.filter(p => p.is_custom).reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
+                const addedParts = products.filter(p => !p.is_custom).reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
+                const totalAdded = addedLabor + addedParts;
+
+                const newLaborCost = (wo.labor_cost || 0) + addedLabor;
+                const newPartsCost = (wo.parts_cost || 0) + addedParts;
+                const newTotal = (wo.total_price || 0) + totalAdded;
                 
                 await supabase.from('work_orders').update({
+                    labor_cost: newLaborCost,
                     parts_cost: newPartsCost,
                     total_price: newTotal
                 }).eq('id', woId);
@@ -1526,11 +1545,15 @@ export const AppProvider = ({ children }) => {
             const useMl = ci.stock_type === 'VOLUME';
             const adjustment = -ci.qty;
 
-            await supabase.rpc('adjust_inventory_stock', {
+            const { error: rpcError } = await supabase.rpc('adjust_inventory_stock', {
                 item_id: ci.id,
                 adjustment: useMl ? Math.round(adjustment * 1000) : adjustment,
                 use_ml: useMl
             });
+            if (rpcError) {
+                console.error("Error adjusting stock for sale item:", rpcError);
+                throw rpcError;
+            }
         }
 
         // 3. Informar
