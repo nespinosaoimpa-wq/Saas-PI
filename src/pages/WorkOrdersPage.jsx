@@ -53,6 +53,12 @@ export const WorkOrdersPage = () => {
     const [editParts, setEditParts] = useState('');
     const [editingWO, setEditingWO] = useState(null); // woId for editing during process
 
+    // Custom service states
+    const [showCustomInNewOT, setShowCustomInNewOT] = useState(false);
+    const [customServiceNewOT, setCustomServiceNewOT] = useState({ name: '', price: '' });
+    const [showCustomInExtra, setShowCustomInExtra] = useState(false);
+    const [customServiceExtra, setCustomServiceExtra] = useState({ name: '', price: '' });
+
     const handleFinalizeClick = (e, woId) => {
         e.stopPropagation();
         const wo = (MOCK.workOrders || []).find(w => w.id === woId);
@@ -150,8 +156,9 @@ export const WorkOrdersPage = () => {
 
     const laborCost = parseFloat(newOrder.labor_cost) || 0;
     const partsManualCost = parseFloat(newOrder.parts_cost) || 0;
-    const productsCost = selectedProducts.reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
-    const totalPrice = laborCost + partsManualCost + productsCost;
+    const productsCost = selectedProducts.filter(p => !p.is_custom).reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
+    const customServicesCost = selectedProducts.filter(p => p.is_custom).reduce((sum, p) => sum + (p.sell_price * p.qty), 0);
+    const totalPrice = laborCost + customServicesCost + partsManualCost + productsCost;
 
     const selectedMechanics = mechanics.filter(m => newOrder.mechanic_ids.includes(m.id));
 
@@ -167,7 +174,7 @@ export const WorkOrdersPage = () => {
 
         const createdWO = await addWorkOrder({
             ...newOrder,
-            labor_cost: laborCost,
+            labor_cost: laborCost + customServicesCost,
             parts_cost: partsManualCost + productsCost,
             total_price: totalPrice,
             products: selectedProducts,
@@ -256,6 +263,42 @@ export const WorkOrdersPage = () => {
 
     const removeProductFromWO = (id) => {
         setSelectedProducts(prev => prev.filter(p => p.id !== id));
+    };
+
+    const addCustomServiceToNewOT = () => {
+        if (!customServiceNewOT.name.trim() || !customServiceNewOT.price) {
+            alert('Complete nombre y precio del servicio');
+            return;
+        }
+        const priceNum = parseFloat(customServiceNewOT.price) || 0;
+        const item = {
+            id: `custom-${Date.now()}`,
+            name: customServiceNewOT.name,
+            sell_price: priceNum,
+            qty: 1,
+            is_custom: true
+        };
+        setSelectedProducts(prev => [...prev, item]);
+        setCustomServiceNewOT({ name: '', price: '' });
+        setShowCustomInNewOT(false);
+    };
+
+    const addCustomServiceToExtra = () => {
+        if (!customServiceExtra.name.trim() || !customServiceExtra.price) {
+            alert('Complete nombre y precio del servicio');
+            return;
+        }
+        const priceNum = parseFloat(customServiceExtra.price) || 0;
+        const item = {
+            id: `custom-${Date.now()}`,
+            name: customServiceExtra.name,
+            sell_price: priceNum,
+            qty: 1,
+            is_custom: true
+        };
+        setExtraProducts(prev => [...prev, item]);
+        setCustomServiceExtra({ name: '', price: '' });
+        setShowCustomInExtra(false);
     };
 
     const handleAddExtraProducts = async () => {
@@ -529,15 +572,57 @@ export const WorkOrdersPage = () => {
 
                             <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
 
-                            <SectionHeader icon="inventory_2" title="Repuestos y Productos (Stock)" />
-                            <div style={{ position: 'relative' }}>
-                                <FormField label="Buscar Repuesto o Insumo">
-                                    <SearchBar
-                                        value={productSearch}
-                                        onChange={setProductSearch}
-                                        placeholder="Buscar por Nombre, Marca o Código..."
-                                    />
-                                </FormField>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <SectionHeader icon="inventory_2" title="Repuestos, Productos y Servicios" />
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ border: '1px dashed var(--primary)', color: 'var(--primary)', height: 32, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                    onClick={() => setShowCustomInNewOT(!showCustomInNewOT)}
+                                >
+                                    <Icon name={showCustomInNewOT ? "search" : "add"} size={16} />
+                                    {showCustomInNewOT ? "Buscar en Inventario" : "Servicio Libre"}
+                                </button>
+                            </div>
+
+                            {showCustomInNewOT ? (
+                                <div style={{ background: 'var(--bg-hover)', padding: 16, borderRadius: 'var(--radius)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                                    <FormField label="¿Qué servicio realizaste? *">
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="Ej: Soldadura de escape, Cambio de bujías..."
+                                            value={customServiceNewOT.name}
+                                            onChange={(e) => setCustomServiceNewOT(prev => ({ ...prev, name: e.target.value }))}
+                                        />
+                                    </FormField>
+                                    <FormField label="Precio Acordado ($) *">
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="Ej: 8500"
+                                            value={customServiceNewOT.price}
+                                            onChange={(e) => setCustomServiceNewOT(prev => ({ ...prev, price: e.target.value }))}
+                                        />
+                                    </FormField>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        style={{ alignSelf: 'flex-end', height: 32 }}
+                                        onClick={addCustomServiceToNewOT}
+                                    >
+                                        Agregar Servicio
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ position: 'relative', marginBottom: 16 }}>
+                                    <FormField label="Buscar Repuesto o Insumo">
+                                        <SearchBar
+                                            value={productSearch}
+                                            onChange={setProductSearch}
+                                            placeholder="Buscar por Nombre, Marca o Código..."
+                                        />
+                                    </FormField>
                                 {productSearch && filteredProducts.length > 0 && (
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0,
@@ -563,27 +648,48 @@ export const WorkOrdersPage = () => {
                                     </div>
                                 )}
                             </div>
+                            )}
 
-                            {selectedProducts.length > 0 && (
+                             {selectedProducts.length > 0 && (
                                 <div style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius)', padding: 12, border: '1px solid var(--border)' }}>
                                     {selectedProducts.map(p => (
                                         <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 600 }}>{p.name}</div>
-                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)} x {p.qty} {p.stock_type === 'VOLUME' ? 'L' : 'uds'}</div>
+                                                {p.is_custom ? (
+                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)}</div>
+                                                ) : (
+                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)} x {p.qty} {p.stock_type === 'VOLUME' ? 'L' : 'uds'}</div>
+                                                )}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div style={{ display: 'flex', gap: 4 }}>
-                                                    <button className="btn btn-ghost btn-xs" onClick={() => updateProductQty(p.id, -1)} style={{ padding: '2px 6px' }} title="Disminuir cantidad">-</button>
-                                                    <button className="btn btn-ghost btn-xs" onClick={() => updateProductQty(p.id, 1)} style={{ padding: '2px 6px' }} title="Aumentar cantidad">+</button>
-                                                </div>
+                                                {!p.is_custom ? (
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        <button className="btn btn-ghost btn-xs" onClick={() => updateProductQty(p.id, -1)} style={{ padding: '2px 6px' }} title="Disminuir cantidad">-</button>
+                                                        <button className="btn btn-ghost btn-xs" onClick={() => updateProductQty(p.id, 1)} style={{ padding: '2px 6px' }} title="Aumentar cantidad">+</button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="nav-badge" style={{ background: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)', border: '1px solid rgba(var(--primary-rgb), 0.2)', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>Servicio Libre</span>
+                                                )}
                                                 <div style={{ fontWeight: 700, width: 80, textAlign: 'right' }}>{formatCurrency(p.sell_price * p.qty)}</div>
                                                 <button className="btn btn-ghost btn-sm" onClick={() => removeProductFromWO(p.id)} style={{ color: 'var(--danger)', padding: 4 }} title="Eliminar producto"><Icon name="delete" size={16} /></button>
                                             </div>
                                         </div>
                                     ))}
-                                    <div style={{ textAlign: 'right', borderTop: '1px solid var(--border)', paddingTop: 8, fontWeight: 700, color: 'var(--primary)' }}>
-                                        Subtotal Repuestos: {formatCurrency(productsCost)}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                                        {productsCost > 0 && (
+                                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                                Subtotal Repuestos: <strong>{formatCurrency(productsCost)}</strong>
+                                            </div>
+                                        )}
+                                        {customServicesCost > 0 && (
+                                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                                Subtotal Servicios Libres: <strong>{formatCurrency(customServicesCost)}</strong>
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginTop: 4 }}>
+                                            Total Agregado: {formatCurrency(productsCost + customServicesCost)}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -852,40 +958,96 @@ export const WorkOrdersPage = () => {
                     <Modal title={`Agregar Productos a OT #${addingProductsToWO.order_number}`} onClose={() => setAddingProductsToWO(null)} width="600px"
                         footer={<Fragment><button className="btn btn-ghost" onClick={() => setAddingProductsToWO(null)}>Cancelar</button><button className="btn btn-primary" onClick={handleAddExtraProducts} disabled={isAddingProducts || extraProducts.length === 0}>{isAddingProducts ? 'Guardando...' : 'Confirmar y Agregar'}</button></Fragment>}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <FormField label="Buscar Producto (Nombre o Código)">
-                                <input className="form-input" value={extraProductSearch} onChange={e => setExtraProductSearch(e.target.value)} placeholder="Ej: Aceite, Filtro, 779..." />
-                            </FormField>
-                            {extraProductSearch && filteredExtraProducts.length > 0 && (
-                                <div className="glass-card" style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {filteredExtraProducts.map(p => (
-                                        <div key={p.id} className="search-result-item" style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4 }} onClick={() => {
-                                            setExtraProducts(prev => {
-                                                const existing = prev.find(item => item.id === p.id);
-                                                if (existing) return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
-                                                return [...prev, { ...p, qty: 1 }];
-                                            });
-                                            setExtraProductSearch('');
-                                        }}>
-                                            <Icon name="add" size={16} /> <strong style={{ marginLeft: 8 }}>{p.name}</strong> — {formatCurrency(p.sell_price)}
+                            
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>Buscar en Inventario o Agregar Servicio Manual</label>
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ border: '1px dashed var(--primary)', color: 'var(--primary)', height: 28, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                                    onClick={() => setShowCustomInExtra(!showCustomInExtra)}
+                                >
+                                    <Icon name={showCustomInExtra ? "search" : "add"} size={14} />
+                                    {showCustomInExtra ? "Buscar Producto" : "Servicio Libre"}
+                                </button>
+                            </div>
+
+                            {showCustomInExtra ? (
+                                <div style={{ background: 'var(--bg-hover)', padding: 14, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    <FormField label="¿Qué servicio realizaste? *">
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="Ej: Soldadura de escape, Cambio de bujías..."
+                                            value={customServiceExtra.name}
+                                            onChange={(e) => setCustomServiceExtra(prev => ({ ...prev, name: e.target.value }))}
+                                        />
+                                    </FormField>
+                                    <FormField label="Precio Acordado ($) *">
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="Ej: 8500"
+                                            value={customServiceExtra.price}
+                                            onChange={(e) => setCustomServiceExtra(prev => ({ ...prev, price: e.target.value }))}
+                                        />
+                                    </FormField>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        style={{ alignSelf: 'flex-end', height: 32 }}
+                                        onClick={addCustomServiceToExtra}
+                                    >
+                                        Agregar Servicio
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                    <FormField label="Buscar Producto (Nombre o Código)">
+                                        <input className="form-input" value={extraProductSearch} onChange={e => setExtraProductSearch(e.target.value)} placeholder="Ej: Aceite, Filtro, 779..." />
+                                    </FormField>
+                                    {extraProductSearch && filteredExtraProducts.length > 0 && (
+                                        <div className="glass-card" style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                            {filteredExtraProducts.map(p => (
+                                                <div key={p.id} className="search-result-item" style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4 }} onClick={() => {
+                                                    setExtraProducts(prev => {
+                                                        const existing = prev.find(item => item.id === p.id);
+                                                        if (existing) return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
+                                                        return [...prev, { ...p, qty: 1 }];
+                                                    });
+                                                    setExtraProductSearch('');
+                                                }}>
+                                                    <Icon name="add" size={16} /> <strong style={{ marginLeft: 8 }}>{p.name}</strong> — {formatCurrency(p.sell_price)}
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             )}
+
                             <div style={{ marginTop: 8 }}>
-                                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>Productos a sumar:</label>
-                                {extraProducts.length === 0 && <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', border: '1px dashed var(--border)', borderRadius: 8 }}>No hay productos seleccionados</div>}
+                                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>Productos y Servicios a sumar:</label>
+                                {extraProducts.length === 0 && <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', border: '1px dashed var(--border)', borderRadius: 8 }}>No hay elementos seleccionados</div>}
                                 {extraProducts.map(p => (
                                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-hover)', borderRadius: 8, marginBottom: 4 }}>
                                         <div>
                                             <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)} c/u</div>
+                                            {p.is_custom ? (
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)}</div>
+                                            ) : (
+                                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatCurrency(p.sell_price)} c/u</div>
+                                            )}
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <button className="btn btn-icon btn-sm" onClick={() => setExtraProducts(prev => prev.map(x => x.id === p.id ? { ...x, qty: Math.max(0.1, x.qty - 1) } : x).filter(x => x.qty > 0))}>-</button>
-                                                <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 700 }}>{p.qty}</span>
-                                                <button className="btn btn-icon btn-sm" onClick={() => setExtraProducts(prev => prev.map(x => x.id === p.id ? { ...x, qty: x.qty + 1 } : x))}>+</button>
-                                            </div>
+                                            {!p.is_custom ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <button className="btn btn-icon btn-sm" onClick={() => setExtraProducts(prev => prev.map(x => x.id === p.id ? { ...x, qty: Math.max(0.1, x.qty - 1) } : x).filter(x => x.qty > 0))}>-</button>
+                                                    <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 700 }}>{p.qty}</span>
+                                                    <button className="btn btn-icon btn-sm" onClick={() => setExtraProducts(prev => prev.map(x => x.id === p.id ? { ...x, qty: x.qty + 1 } : x))}>+</button>
+                                                </div>
+                                            ) : (
+                                                <span className="nav-badge" style={{ background: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary)', border: '1px solid rgba(var(--primary-rgb), 0.2)', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>Servicio Libre</span>
+                                            )}
                                             <button className="btn btn-icon btn-sm btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => setExtraProducts(prev => prev.filter(x => x.id !== p.id))}>
                                                 <Icon name="close" size={16} />
                                             </button>
