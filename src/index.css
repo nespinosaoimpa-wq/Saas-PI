@@ -10,16 +10,16 @@
    1. CSS CUSTOM PROPERTIES (Design Tokens)
    ============================================================ */
 :root {
-  /* Primary Palette */
-  --primary: #3b82f6;
-  --primary-rgb: 59, 130, 246;
-  --primary-hover: #2563eb;
-  --primary-light: rgba(59, 130, 246, 0.12);
+  /* Primary Palette (Celeste Argentina) */
+  --primary: #74acdf;
+  --primary-rgb: 116, 172, 223;
+  --primary-hover: #5ba3e3;
+  --primary-light: rgba(116, 172, 223, 0.12);
 
-  /* Accent */
-  --accent: #8b5cf6;
-  --accent-rgb: 139, 92, 246;
-  --accent-light: rgba(139, 92, 246, 0.12);
+  /* Accent (Oro Argentina) */
+  --accent: #f1c40f;
+  --accent-rgb: 241, 196, 15;
+  --accent-light: rgba(241, 196, 15, 0.12);
 
   /* Semantic Colors */
   --success: #22c55e;
@@ -79,6 +79,11 @@
   --transition-fast: 0.12s ease;
   --transition: 0.2s ease;
   --transition-slow: 0.35s ease;
+
+  /* World Cup Theme Variables */
+  --primary-arg: #74acdf;
+  --accent-arg: #f1c40f;
+  --bg-arg-gradient: linear-gradient(180deg, #74acdf 0%, #ffffff 50%, #74acdf 100%);
 }
 
 /* ============================================================
@@ -2238,4 +2243,29 @@ body {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* World Cup Animations */
+@keyframes shine-stars {
+  0%, 100% {
+    text-shadow: 0 0 2px rgba(241, 196, 15, 0.5);
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(241, 196, 15, 1), 0 0 20px rgba(241, 196, 15, 0.6);
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.mundial-star {
+  animation: shine-stars 3s infinite ease-in-out;
+  display: inline-block;
+}
+.mundial-star:nth-child(2) {
+  animation-delay: 0.6s;
+}
+.mundial-star:nth-child(3) {
+  animation-delay: 1.2s;
 }

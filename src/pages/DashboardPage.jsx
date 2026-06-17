@@ -227,6 +227,84 @@ export const DashboardPage = () => {
                     {/* Right Sidebar */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+                        {/* Tarjeta Copa Mundial */}
+                        <GlassCard style={{
+                            padding: 22,
+                            background: 'linear-gradient(135deg, rgba(116, 172, 223, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
+                            borderColor: 'rgba(116, 172, 223, 0.25)',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
+                            {/* Marca de agua del trofeo */}
+                            <div style={{
+                                position: 'absolute',
+                                right: '-10px',
+                                bottom: '-10px',
+                                fontSize: '110px',
+                                opacity: 0.03,
+                                color: '#74acdf',
+                                pointerEvents: 'none',
+                                userSelect: 'none'
+                            }}>
+                                🏆
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <Icon name="sports_soccer" style={{ color: '#74acdf' }} />
+                                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, letterSpacing: '0.5px' }}>COPA MUNDIAL 2026</h3>
+                                </div>
+                                <div style={{ display: 'flex', gap: 2, color: '#f1c40f' }}>
+                                    <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                                    <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                                    <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                                </div>
+                            </div>
+
+                            <div style={{
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: 12,
+                                padding: 16,
+                                border: '1px solid rgba(255,255,255,0.03)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 12
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{ fontSize: 32 }}>🇦🇷</div>
+                                    <div style={{ textAlign: 'left' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>SELECCIÓN ARGENTINA</div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Defendiendo las 3 Estrellas</div>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    borderTop: '1px solid rgba(255,255,255,0.05)',
+                                    width: '100%',
+                                    paddingTop: 12,
+                                    fontSize: 12,
+                                    color: 'var(--text-secondary)',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, alignItems: 'center', fontWeight: '600' }}>
+                                        <span>Liderados por el Capitán</span>
+                                        <span style={{
+                                            background: '#f1c40f',
+                                            color: '#0c1222',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontWeight: '800',
+                                            fontSize: '10px'
+                                        }}>N°10 🐐</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
+                                        ¡Toda la fuerza celeste y blanca!
+                                    </div>
+                                </div>
+                            </div>
+                        </GlassCard>
+
                         {/* Revenue Chart - Solo Admins */}
                         {user?.role === 'admin' && (
                             <GlassCard style={{ padding: 22 }}>

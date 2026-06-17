@@ -81,6 +81,9 @@ function App() {
     
     // --- ESTADO PARA AVISO DE SERVICIO DEGRADADO ---
     const [showPaymentReminder, setShowPaymentReminder] = useState(true);
+    
+    // --- ESTADO PARA BANNER MUNDIALISTA ---
+    const [showMundialBanner, setShowMundialBanner] = useState(true);
 
     // --- TRACKING GLOBAL DEL MAPA DE CALOR ---
     React.useEffect(() => {
@@ -223,6 +226,48 @@ function App() {
                     <div className="offline-notice">
                         <Icon name="wifi_off" size={20} />
                         SIN CONEXIÓN A INTERNET: Los cambios locales pueden no sincronizarse.
+                    </div>
+                )}
+
+                {showMundialBanner && (
+                    <div style={{
+                        background: 'linear-gradient(90deg, #74acdf 0%, #0c1222 30%, #0c1222 70%, #74acdf 100%)',
+                        borderBottom: '1px solid rgba(116, 172, 223, 0.25)',
+                        padding: '6px 16px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#f1f5f9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        position: 'relative',
+                        zIndex: 10,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        letterSpacing: '0.5px'
+                    }}>
+                        <div style={{ display: 'flex', gap: '2px', color: '#f1c40f' }}>
+                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                        </div>
+                        <span>🏆 ¡PASIÓN MUNDIALISTA! Alentando a la Selección Celeste y Blanca en este nuevo sueño 🇦🇷⚽</span>
+                        <button 
+                            onClick={() => setShowMundialBanner(false)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                position: 'absolute',
+                                right: '16px'
+                            }}
+                            title="Ocultar"
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                        </button>
                     </div>
                 )}
 
