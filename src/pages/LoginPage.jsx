@@ -111,7 +111,7 @@ export function LoginPage() {
                         alignItems: 'center',
                         justifyContent: 'center'
                     }}>
-                        <img src="/logo-piripi.png" alt="Piripi Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+                        <img src="/logo-velocce.png" alt="Velocce Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
                     </div>
                     <h1 style={{ fontSize: 'clamp(28px, 4vh, 42px)', letterSpacing: -1.5, color: '#ffffff', fontWeight: 900, marginBottom: 4 }}>
                         PIRIPI <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SANTA FE</span>

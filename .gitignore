@@ -1,28 +1,33 @@
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# IDE
-.vscode/
-.idea/
-
-# Dependencies
-node_modules/
-
-# Build
-dist/
-build/
-
 # Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Zip
-*.zip
+# Dependencias
+node_modules
+dist
+dist-ssr
+*.local
 
-# Environment (secrets)
+# Variables de entorno sensibles (¡Crucial!)
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env
 
-# Debug artifacts
-build_error*.txt
+# Editor y sistema
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvsca
+*.njsproj
+*.sln
+*.sw?
+temp_extract
