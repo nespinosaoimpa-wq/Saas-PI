@@ -100,18 +100,28 @@ export function LoginPage() {
                 <div style={{ textAlign: 'center', marginBottom: 'clamp(24px, 5vh, 64px)', zIndex: 1 }}>
                     <div style={{
                         display: 'inline-flex',
-                        padding: '12px',
-                        background: '#ffffff',
-                        borderRadius: '40px',
+                        background: 'transparent',
+                        borderRadius: '32px',
                         marginBottom: 'clamp(16px, 3vh, 32px)',
-                        boxShadow: '0 0 50px rgba(var(--primary-rgb), 0.3), 0 20px 60px rgba(0,0,0,0.6)',
-                        border: '4px solid rgba(255,255,255,0.05)',
+                        boxShadow: '0 15px 35px rgba(0, 0, 0, 0.8), 0 0 40px rgba(var(--primary-rgb), 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
                         width: 'clamp(120px, 15vh, 180px)',
                         height: 'clamp(120px, 15vh, 180px)',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        position: 'relative'
                     }}>
-                        <img src="/logo-velocce.png" alt="Velocce Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+                        <img src="/logo-velocce.png" alt="Velocce Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.25) 100%)',
+                            pointerEvents: 'none'
+                        }} />
                     </div>
                     <h1 style={{ fontSize: 'clamp(28px, 4vh, 42px)', letterSpacing: -1.5, color: '#ffffff', fontWeight: 900, marginBottom: 4 }}>
                         VELOCCE <span style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SANTA FE</span>
