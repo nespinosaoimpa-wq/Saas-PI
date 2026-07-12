@@ -529,12 +529,13 @@ export const AppProvider = ({ children }) => {
             filename = `punto_de_venta_${todayStr}.xlsx`;
         } else if (dataType === 'work_orders') {
             rows = (data.workOrders || []).map(wo => {
-                const client = data.clients?.find(c => c.id === wo.client_id);
+                const client = wo.clients || data.clients?.find(c => c.id === wo.client_id);
+                const vehicle = wo.vehicles || data.vehicles?.find(v => v.id === wo.vehicle_id);
                 return {
                     Nro_Orden: wo.order_number || '',
                     Fecha_Ingreso: wo.created_at ? new Date(wo.created_at).toLocaleDateString('es-AR') : '',
                     Cliente: client ? `${client.first_name} ${client.last_name}` : 'N/A',
-                    Vehiculo: wo.vehicle_id || '',
+                    Vehiculo: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.license_plate})` : 'N/A',
                     Descripcion: wo.description || '',
                     Estado: wo.status || '',
                     Total: wo.total_price || 0
