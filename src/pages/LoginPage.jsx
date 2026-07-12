@@ -43,7 +43,7 @@ export function LoginPage() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'flex-start',
                 background: 'radial-gradient(circle at center, #111827 0%, #000000 100%)',
                 position: 'relative',
                 minHeight: '100dvh',
