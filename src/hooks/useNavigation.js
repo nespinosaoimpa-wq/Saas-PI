@@ -29,6 +29,7 @@ export function useNavigation() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     // Modo programador persistente
     const [showAuditAdmin, setShowAuditAdmin] = useState(() => localStorage.getItem('velocce_dev_mode') === 'true');
+    const [membershipVisited, setMembershipVisited] = useState(() => localStorage.getItem('velocce_membership_visited') === 'true');
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -67,7 +68,7 @@ export function useNavigation() {
         { section: 'Configuración' },
         { key: 'users', label: 'Personal y Accesos', icon: 'admin_panel_settings' },
         { key: 'settings', label: 'Sistema / AFIP', icon: 'settings' },
-        { key: 'membership', label: 'Membresía / Precio', icon: 'card_membership' },
+        { key: 'membership', label: 'Membresía / Precio', icon: 'card_membership', badgeAlert: !membershipVisited ? 'NUEVO' : null },
         { key: 'audit', label: 'Auditoría', icon: 'security' },
         { key: 'help', label: 'Centro de Ayuda', icon: 'help_center' },
     ];
@@ -105,6 +106,10 @@ export function useNavigation() {
     const handleNavigate = (key) => {
         setPage(key);
         setSidebarOpen(false);
+        if (key === 'membership') {
+            setMembershipVisited(true);
+            localStorage.setItem('velocce_membership_visited', 'true');
+        }
     };
 
     const visibleNavItems = NAV_ITEMS.filter(item => item.section || isVisible(item.key));
