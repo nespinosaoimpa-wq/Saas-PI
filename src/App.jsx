@@ -22,6 +22,7 @@ import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { ProgrammerAuditPage } from './pages/ProgrammerAuditPage';
 import { HelpPage } from './pages/HelpPage';
 import { HouseCreditPage } from './pages/HouseCreditPage';
+import { MembershipPage } from './pages/MembershipPage';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useNavigation } from './hooks/useNavigation';
 import { Sidebar } from './components/layout/Sidebar';
@@ -45,6 +46,7 @@ const PAGES = {
     house_credit: HouseCreditPage,
     audit: ProgrammerAuditPage,
     help: HelpPage,
+    membership: MembershipPage,
 };
 
 function App() {

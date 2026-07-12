@@ -19,6 +19,7 @@ export const PAGE_TITLES = {
     house_credit: { title: 'Crédito de la Casa', sub: 'Gestión de Cuotas y Cuentas Corrientes' },
     audit: { title: 'Auditoría del Sistema', sub: 'Registro de Actividad y Uso de la Plataforma' },
     help: { title: 'Centro de Ayuda', sub: 'Manual, Guías y Soporte Técnico' },
+    membership: { title: 'Membresía & Licencia', sub: 'Términos de Licenciamiento y Suscripción' },
 };
 
 export function useNavigation() {
@@ -66,6 +67,7 @@ export function useNavigation() {
         { section: 'Configuración' },
         { key: 'users', label: 'Personal y Accesos', icon: 'admin_panel_settings' },
         { key: 'settings', label: 'Sistema / AFIP', icon: 'settings' },
+        { key: 'membership', label: 'Membresía / Precio', icon: 'card_membership' },
         { key: 'audit', label: 'Auditoría', icon: 'security' },
         { key: 'help', label: 'Centro de Ayuda', icon: 'help_center' },
     ];
@@ -90,6 +92,7 @@ export function useNavigation() {
             case 'clients':
             case 'calendar':
             case 'help':
+            case 'membership':
                 return ['admin', 'cajero'].includes(user.role);
             case 'work_orders':
             case 'daily_work':
