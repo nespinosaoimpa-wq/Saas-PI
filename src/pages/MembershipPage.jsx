@@ -211,6 +211,28 @@ export const MembershipPage = () => {
                                             HASH_SIGN: {signDetails?.timestamp ? btoa(signDetails.timestamp).slice(0, 16) : 'N/A'}
                                         </div>
                                     </div>
+                                    {user && user.role === 'admin' && (
+                                        <button 
+                                            onClick={() => {
+                                                localStorage.removeItem('velocce_contract_signed');
+                                                localStorage.removeItem('velocce_contract_sign_details');
+                                                setIsSigned(false);
+                                                setSignDetails(null);
+                                                setAccepted(false);
+                                            }}
+                                            style={{ 
+                                                marginTop: '16px', 
+                                                fontSize: '11px', 
+                                                color: 'var(--text-muted)', 
+                                                background: 'none', 
+                                                border: 'none', 
+                                                cursor: 'pointer', 
+                                                textDecoration: 'underline' 
+                                            }}
+                                        >
+                                            Restablecer firma (Solo Admin / Pruebas)
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </GlassCard>
