@@ -143,7 +143,7 @@ export const LockScreen = () => {
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '6px' }}>
                         <span style={{ color: '#64748b' }}>Aplicación:</span>
-                        <span style={{ fontWeight: 600, color: '#f1f5f9' }}>Piripi Santa Fe v3.0</span>
+                        <span style={{ fontWeight: 600, color: '#f1f5f9' }}>Velocce Santa Fe v3.0</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)', paddingTop: '6px', paddingBottom: '6px' }}>
                         <span style={{ color: '#64748b' }}>Estado del Servidor:</span>

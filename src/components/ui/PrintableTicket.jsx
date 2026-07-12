@@ -30,7 +30,7 @@ export const PrintableTicket = ({ workOrder, onClose }) => {
                 {/* Área imprimible */}
                 <div className="ticket-paper">
                     <div className="ticket-header">
-                        <h2>PIRIPI SANTA FE</h2>
+                        <h2>VELOCCE SANTA FE</h2>
                         <p>Lubricentro y Gomería</p>
                         <p>Santa Fe, Argentina</p>
                     </div>

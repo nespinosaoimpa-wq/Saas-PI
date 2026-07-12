@@ -83,7 +83,7 @@ export const HelpPage = () => {
             <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <div className="card" style={{ padding: '32px', marginBottom: '24px', textAlign: 'center', background: 'linear-gradient(135deg, var(--bg-card), var(--bg-hover))' }}>
                 <Icon name="help_center" size={64} style={{ color: 'var(--primary)', marginBottom: '16px' }} />
-                <h1 style={{ fontSize: '32px', marginBottom: '12px' }}>Centro de Ayuda Piripi Pro</h1>
+                <h1 style={{ fontSize: '32px', marginBottom: '12px' }}>Centro de Ayuda Velocce Pro</h1>
                 <p style={{ color: 'var(--text-muted)', fontSize: '18px', maxWidth: '600px', margin: '0 auto' }}>
                     Guía completa paso a paso con capturas reales para dominar cada rincón de la plataforma.
                 </p>
@@ -118,7 +118,7 @@ export const HelpPage = () => {
                                 }} 
                             />
                             <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                Captura real de la plataforma Piripi Santa Fe v3.0
+                                Captura real de la plataforma Velocce Santa Fe v3.0
                             </p>
                         </div>
                     </div>
@@ -129,10 +129,10 @@ export const HelpPage = () => {
                 <h3>¿Necesitas más ayuda?</h3>
                 <p style={{ color: 'var(--text-muted)' }}>Contacta al soporte técnico para capacitaciones personalizadas o reportes de bugs.</p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '20px' }}>
-                    <button className="btn btn-primary" onClick={() => window.open('https://wa.me/5493425162372?text=Hola!%20Necesito%20ayuda%20con%20Piripi%20Pro', '_blank')}>
+                    <button className="btn btn-primary" onClick={() => window.open('https://wa.me/5493425162372?text=Hola!%20Necesito%20ayuda%20con%20Velocce%20Pro', '_blank')}>
                         <Icon name="chat" size={18} /> Contactar Soporte
                     </button>
-                    <button className="btn btn-ghost" onClick={() => window.open('mailto:smartflow.1995@gmail.com?subject=Reporte%20de%20Problema%20-%20Piripi%20Pro', '_blank')}>
+                    <button className="btn btn-ghost" onClick={() => window.open('mailto:smartflow.1995@gmail.com?subject=Reporte%20de%20Problema%20-%20Velocce%20Pro', '_blank')}>
                         <Icon name="bug_report" size={18} /> Reportar un Problema
                     </button>
                 </div>

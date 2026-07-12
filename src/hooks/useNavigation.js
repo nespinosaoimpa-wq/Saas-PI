@@ -27,14 +27,14 @@ export function useNavigation() {
     const [page, setPage] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     // Modo programador persistente
-    const [showAuditAdmin, setShowAuditAdmin] = useState(() => localStorage.getItem('piripi_dev_mode') === 'true');
+    const [showAuditAdmin, setShowAuditAdmin] = useState(() => localStorage.getItem('velocce_dev_mode') === 'true');
 
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') {
                 const newState = !showAuditAdmin;
                 setShowAuditAdmin(newState);
-                localStorage.setItem('piripi_dev_mode', newState);
+                localStorage.setItem('velocce_dev_mode', newState);
                 alert(`Modo Programador ${newState ? 'ACTIVADO' : 'DESACTIVADO'}`);
             }
         };

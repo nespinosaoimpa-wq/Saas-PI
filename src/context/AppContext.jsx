@@ -25,22 +25,22 @@ export const AppProvider = ({ children }) => {
         } catch (e) {
             console.warn('Error de auditoría (offline?), guardando en cola local:', e.message);
             // Guardar en cola local si falla (probablemente falta de internet)
-            const queue = JSON.parse(localStorage.getItem('piripi_audit_queue') || '[]');
+            const queue = JSON.parse(localStorage.getItem('velocce_audit_queue') || '[]');
             queue.push({ ...logEntry, offline: true });
-            localStorage.setItem('piripi_audit_queue', JSON.stringify(queue));
+            localStorage.setItem('velocce_audit_queue', JSON.stringify(queue));
         }
     };
 
     // Sincronizar logs offline cuando vuelva el internet
     useEffect(() => {
         const syncOfflineLogs = async () => {
-            const queue = JSON.parse(localStorage.getItem('piripi_audit_queue') || '[]');
+            const queue = JSON.parse(localStorage.getItem('velocce_audit_queue') || '[]');
             if (queue.length === 0) return;
 
             console.log(`Sincronizando ${queue.length} logs de auditoría offline...`);
             const { error } = await supabase.from('audit_logs').insert(queue);
             if (!error) {
-                localStorage.removeItem('piripi_audit_queue');
+                localStorage.removeItem('velocce_audit_queue');
                 console.log('Logs offline sincronizados correctamente.');
             }
         };
@@ -97,21 +97,21 @@ export const AppProvider = ({ children }) => {
     // Carrito de Ventas & Cola de Trabajo
     // ==========================================
     const [posCart, setPosCart] = useState(() => {
-        const saved = localStorage.getItem('piripi_pos_cart');
+        const saved = localStorage.getItem('velocce_pos_cart');
         return saved ? JSON.parse(saved) : [];
     });
     
     const [gomeriaQueue, setGomeriaQueue] = useState(() => {
-        const saved = localStorage.getItem('piripi_gomeria_queue');
+        const saved = localStorage.getItem('velocce_gomeria_queue');
         return saved ? JSON.parse(saved) : [];
     });
 
     useEffect(() => {
-        localStorage.setItem('piripi_pos_cart', JSON.stringify(posCart));
+        localStorage.setItem('velocce_pos_cart', JSON.stringify(posCart));
     }, [posCart]);
 
     useEffect(() => {
-        localStorage.setItem('piripi_gomeria_queue', JSON.stringify(gomeriaQueue));
+        localStorage.setItem('velocce_gomeria_queue', JSON.stringify(gomeriaQueue));
     }, [gomeriaQueue]);
 
     const addToPosCart = (item) => {

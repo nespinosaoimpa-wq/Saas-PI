@@ -44,7 +44,7 @@ export function Sidebar({
                         <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
                         <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
                     </div>
-                    <h1 style={{ fontSize: '16px', margin: 0 }}>PIRIPI <strong style={{ background: 'linear-gradient(135deg, #74acdf, #f1c40f)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>SANTA FE</strong></h1>
+                    <h1 style={{ fontSize: '16px', margin: 0 }}>VELOCCE <strong style={{ background: 'linear-gradient(135deg, #74acdf, #f1c40f)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>SANTA FE</strong></h1>
                 </div>
             </div>
 

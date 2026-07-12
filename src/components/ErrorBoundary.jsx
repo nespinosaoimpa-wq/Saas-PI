@@ -74,7 +74,7 @@ export class ErrorBoundary extends React.Component {
                         ⚠️
                     </div>
                     <h1 style={{ margin: '0 0 8px', fontSize: 24 }}>
-                        PIRIPI <strong>PRO</strong>
+                        VELOCCE <strong>PRO</strong>
                     </h1>
                     <p style={{ color: '#94a3b8', marginBottom: 24, maxWidth: 400 }}>
                         Ocurrió un error inesperado. Por favor, recargá la aplicación.

@@ -386,7 +386,7 @@ export const DashboardPage = () => {
 
                                     {/* Salud de Sincronización */}
                                     {(() => {
-                                        const offlineQueue = JSON.parse(localStorage.getItem('piripi_audit_queue') || '[]');
+                                        const offlineQueue = JSON.parse(localStorage.getItem('velocce_audit_queue') || '[]');
                                         const isOnline = navigator.onLine;
                                         return (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-hover)', borderRadius: 8 }}>

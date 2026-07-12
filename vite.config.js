@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'PIRIPI PRO — Gestión de Lubricentro',
-        short_name: 'PIRIPI PRO',
+        name: 'VELOCCE PRO — Gestión de Lubricentro',
+        short_name: 'VELOCCE PRO',
         description: 'Sistema profesional de gestión integral para lubricentro, gomería y mecánica ligera.',
         theme_color: '#0c1222',
         background_color: '#0c1222',
