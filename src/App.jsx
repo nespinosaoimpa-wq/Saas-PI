@@ -79,8 +79,8 @@ function App() {
     const [isClockingIn, setIsClockingIn] = useState(false);
     const [isClockingOut, setIsClockingOut] = useState(false);
     
-    // --- ESTADO PARA AVISO DE SERVICIO DEGRADADO ---
-    const [showPaymentReminder, setShowPaymentReminder] = useState(true);
+    // --- ESTADO PARA BANNER INFORMATIVO DE BIENVENIDA ---
+    const [showWelcomeBanner, setShowWelcomeBanner] = useState(() => localStorage.getItem('velocce_welcome_dismissed') !== 'true');
     
     // --- ESTADO PARA BANNER MUNDIALISTA ---
     const [showMundialBanner, setShowMundialBanner] = useState(true);
@@ -154,57 +154,68 @@ function App() {
 
     return (
         <div className="app-layout">
-            {/* --- RECORDATORIO DE PAGO (TOAST FIJO CON CIERRE MANUAL) --- */}
-            {showPaymentReminder && user && (
+            {/* --- BANNER INFORMATIVO DE BIENVENIDA (TOAST FIJO CON CIERRE MANUAL Y PERSISTENCIA) --- */}
+            {showWelcomeBanner && user && (
                 <div style={{
                     position: 'fixed',
                     top: '24px',
                     right: '24px',
-                    backgroundColor: 'var(--card-bg, #ffffff)',
-                    color: 'var(--text-color, #333333)',
-                    padding: '20px 24px',
-                    borderRadius: '12px',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                    backgroundColor: 'var(--bg-card, #1e293b)',
+                    color: 'var(--text-primary, #f1f5f9)',
+                    padding: '22px 26px',
+                    borderRadius: '16px',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.05)',
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '16px',
                     zIndex: 999999,
                     maxWidth: '420px',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    borderLeft: '5px solid var(--danger, #ef4444)',
+                    border: '1px solid var(--border)',
+                    borderLeft: '5px solid var(--primary)',
                     animation: 'slideInRight 0.3s ease-out'
                 }}>
-                    <Icon name="warning" size={28} style={{ color: 'var(--danger, #ef4444)', flexShrink: 0, marginTop: '2px' }} />
+                    <Icon name="rocket_launch" size={28} style={{ color: 'var(--primary)', flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: 'bold', color: 'var(--danger, #ef4444)', letterSpacing: '0.5px' }}>
-                            ÚLTIMO AVISO DE PAGO
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: 'bold', color: 'var(--primary)', letterSpacing: '0.5px' }}>
+                            VELOCCE PRO
                         </h4>
-                        <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-color, #333333)', lineHeight: '1.5' }}>
-                            Se registra un saldo pendiente por el desarrollo de la plataforma. De no regularizarse el pago, <strong>el servicio será dado de baja de forma definitiva</strong>.
+                        <p style={{ margin: '0 0 12px 0', fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                            Sistema Integral de Gestión de Taller, Lubricentro y Gomería.
                         </p>
-                        <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-color, #333333)', lineHeight: '1.5' }}>
-                            Por favor, póngase en contacto con el programador a la brevedad para regularizar su situación.
-                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                <span style={{ color: 'var(--primary)' }}>🛠️</span> <span><strong>Órdenes de Trabajo (OT)</strong> y boxes en tiempo real.</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                <span style={{ color: 'var(--primary)' }}>📦</span> <span><strong>Control de Stock</strong> y alerta de fluidos sueltos.</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                <span style={{ color: 'var(--primary)' }}>💵</span> <span><strong>Caja y POS</strong> con cobros y comisiones de operarios.</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                <span style={{ color: 'var(--primary)' }}>📱</span> <span><strong>Modo Offline</strong> y base de datos Supabase en la nube.</span>
+                            </div>
+                        </div>
                         <div style={{ 
-                            fontSize: '12px', 
-                            background: 'rgba(239, 68, 68, 0.08)', 
+                            fontSize: '11px', 
+                            background: 'rgba(var(--primary-rgb), 0.08)', 
                             padding: '8px 12px', 
                             borderRadius: '6px', 
-                            border: '1px dashed rgba(239, 68, 68, 0.3)',
-                            marginBottom: '12px',
-                            color: '#b91c1c',
-                            fontWeight: '600'
+                            border: '1px dashed rgba(var(--primary-rgb), 0.3)',
+                            color: 'var(--primary)',
+                            fontWeight: '600',
+                            textAlign: 'center'
                         }}>
-                            Fecha límite: Viernes 22/05/2026
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted, #777)', textAlign: 'right', fontWeight: 'bold' }}>
-                            SmartFlow Digital
+                            Para guías detalladas, visita el Centro de Ayuda
                         </div>
                     </div>
                     <button 
-                        onClick={() => setShowPaymentReminder(false)}
-                        style={{ background: 'var(--bg-hover, #f3f4f6)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted, #666)', cursor: 'pointer', flexShrink: 0 }}
-                        title="Cerrar aviso"
+                        onClick={() => {
+                            setShowWelcomeBanner(false);
+                            localStorage.setItem('velocce_welcome_dismissed', 'true');
+                        }}
+                        style={{ background: 'var(--bg-hover)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}
+                        title="Entendido"
                     >
                         <Icon name="close" size={16} />
                     </button>
