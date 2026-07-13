@@ -7,6 +7,8 @@ const rawSupabase = supabaseUrl && supabaseKey
     ? createClient(supabaseUrl, supabaseKey)
     : null;
 
+export const rawSupabaseClient = rawSupabase;
+
 // Helper to resolve company ID from URL or Subdomain
 const getCompanyFromURL = () => {
     if (typeof window === 'undefined') return 'piripi';
