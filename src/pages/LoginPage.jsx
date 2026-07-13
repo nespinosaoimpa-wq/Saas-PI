@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { Icon, Modal, FormField } from '../components/ui';
+import { currentCompanyId } from '../lib/supabase';
 
 export function LoginPage() {
-    const { employees, login, loading } = useAuth();
+    const { employees, login, loginMaster, loading } = useAuth();
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [pin, setPin] = useState('');
     const [error, setError] = useState('');
@@ -14,6 +15,8 @@ export function LoginPage() {
     const [timePin, setTimePin] = useState('');
     const [isClockingIn, setIsClockingIn] = useState(false);
     const [isClockingOut, setIsClockingOut] = useState(false);
+
+    const isSaasAdminMode = currentCompanyId === 'saas-admin';
 
     const handleEmployeeClick = (emp) => {
         setSelectedEmployee(emp);
@@ -33,8 +36,65 @@ export function LoginPage() {
         }
     };
 
+    const handleMasterPinChange = (e) => {
+        const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+        setPin(value);
+        if (value.length === 4) {
+            const success = loginMaster(value);
+            if (!success) {
+                setError('PIN incorrecto');
+                setPin('');
+            }
+        }
+    };
+
     if (loading) {
         return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Cargando sistema...</div>;
+    }
+
+    if (isSaasAdminMode) {
+        return (
+            <div className="app-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#000000', minHeight: '100vh' }}>
+                <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40%', height: '40%', background: 'rgba(var(--primary-rgb), 0.1)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40%', height: '40%', background: 'rgba(var(--accent-rgb), 0.1)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+                <div className="card" style={{ width: '100%', maxWidth: 420, padding: 36, textAlign: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 24, backdropFilter: 'blur(16px)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', zIndex: 1 }}>
+                    <div style={{ width: 80, height: 80, borderRadius: '24px', background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.2), rgba(var(--accent-rgb), 0.2))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', border: '1px solid rgba(var(--primary-rgb), 0.2)' }}>
+                        <Icon name="hub" size={40} style={{ color: 'var(--primary)' }} />
+                    </div>
+                    <h2 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: 900 }}>Consola de Administración</h2>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: 32 }}>SmartFlow Digital — Acceso de Desarrollador</p>
+
+                    <div style={{ position: 'relative', width: 240, margin: '0 auto 24px auto' }}>
+                        <input
+                            type="password"
+                            value={pin}
+                            onChange={handleMasterPinChange}
+                            autoFocus
+                            style={{
+                                width: '100%',
+                                fontSize: 32,
+                                letterSpacing: 16,
+                                textAlign: 'center',
+                                padding: 16,
+                                borderRadius: 'var(--radius)',
+                                border: `2px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
+                                background: 'var(--bg-hover)',
+                                outline: 'none',
+                                color: 'var(--text-primary)',
+                                transition: 'all 0.2s'
+                            }}
+                            placeholder="••••"
+                            maxLength={4}
+                        />
+                        {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 8, fontWeight: 600 }}>{error}</p>}
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                        Ingresá el PIN maestro para gestionar clientes y ver auditoría
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (!selectedEmployee) {

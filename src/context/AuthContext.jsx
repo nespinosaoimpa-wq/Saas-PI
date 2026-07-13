@@ -28,6 +28,19 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     };
 
+    const loginMaster = (pin) => {
+        if (pin === '9999') {
+            setUser({
+                id: 'saas-master',
+                name: 'SmartFlow Master',
+                role: 'admin',
+                company_id: 'saas-admin'
+            });
+            return true;
+        }
+        return false;
+    };
+
     const login = (employeeId, pin) => {
         const emp = employees.find(e => e.id === employeeId);
         if (emp && emp.pin === pin) {
@@ -42,7 +55,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, employees, loading, login, logout, refreshEmployees: loadEmployees }}>
+        <AuthContext.Provider value={{ user, employees, loading, login, loginMaster, logout, refreshEmployees: loadEmployees }}>
             {children}
         </AuthContext.Provider>
     );

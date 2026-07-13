@@ -75,6 +75,7 @@ export function useNavigation() {
 
     const isVisible = (key) => {
         if (!user) return false;
+        if (user.id === 'saas-master') return key === 'audit';
         if (user.role === 'limpieza') return false;
         switch (key) {
             case 'suppliers':
@@ -112,7 +113,12 @@ export function useNavigation() {
         }
     };
 
-    const visibleNavItems = NAV_ITEMS.filter(item => item.section || isVisible(item.key));
+    const visibleNavItems = (user && user.id === 'saas-master')
+        ? [
+            { section: 'Administrador SaaS' },
+            { key: 'audit', label: 'Gestión SaaS y Logs', icon: 'security' }
+          ]
+        : NAV_ITEMS.filter(item => item.section || isVisible(item.key));
     const cleanNavItems = visibleNavItems.filter((item, i) => {
         if (item.section) {
             const nextNode = visibleNavItems[i + 1];
@@ -121,8 +127,13 @@ export function useNavigation() {
         return true;
     });
 
-    const pageInfo = PAGE_TITLES[page] || PAGE_TITLES.dashboard;
-    const effectivePage = (page === 'dashboard' && user && !['admin', 'cajero'].includes(user.role)) ? (user.role === 'limpieza' ? 'dashboard' : 'work_orders') : page;
+    const pageInfo = (user && user.id === 'saas-master')
+        ? { title: 'Gestión SaaS y Logs', sub: 'Control General de Talleres e Inquilinos' }
+        : (PAGE_TITLES[page] || PAGE_TITLES.dashboard);
+
+    const effectivePage = (user && user.id === 'saas-master')
+        ? 'audit'
+        : ((page === 'dashboard' && user && !['admin', 'cajero'].includes(user.role)) ? (user.role === 'limpieza' ? 'dashboard' : 'work_orders') : page);
 
     return {
         page,
