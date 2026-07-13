@@ -253,7 +253,7 @@ export const AppProvider = ({ children }) => {
                 return data || [];
             } catch (e) {
                 console.warn(`⚠️ Error cargando tabla [${table}]:`, e.message);
-                return [];
+                return null;
             }
         };
 
@@ -266,20 +266,20 @@ export const AppProvider = ({ children }) => {
             ] = await Promise.all([
                 fetchTable('clients'),
                 fetchTable('vehicles'),
-                supabase.from('work_orders').select('*, clients(*), vehicles(*)').order('created_at', { ascending: false }).then(r => r.data || []),
+                supabase.from('work_orders').select('*, clients(*), vehicles(*)').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
                 fetchTable('inventory'),
                 fetchTable('suppliers'),
                 fetchTable('boxes'),
-                supabase.from('vehicle_notes').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
-                supabase.from('payments').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
-                supabase.from('cash_closings').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
-                supabase.from('appointments').select('*').order('date', { ascending: true }).then(r => r.data || []),
-                supabase.from('promotions').select('*').order('created_at', { ascending: false }).then(r => r.data || []),
+                supabase.from('vehicle_notes').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
+                supabase.from('payments').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
+                supabase.from('cash_closings').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
+                supabase.from('appointments').select('*').order('date', { ascending: true }).then(r => r.error ? null : (r.data || [])),
+                supabase.from('promotions').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
                 fetchTable('work_order_assignments'),
                 fetchTable('employees'),
                 fetchTable('work_order_items'),
                 fetchTable('daily_quick_services'),
-                supabase.from('attendance_logs').select('*').order('timestamp', { ascending: false }).then(r => r.data || []),
+                supabase.from('attendance_logs').select('*').order('timestamp', { ascending: false }).then(r => r.error ? null : (r.data || [])),
                 fetchTable('employee_earnings'),
                 fetchTable('daily_quick_service_assignments'),
                 fetchTable('client_credits')
@@ -287,18 +287,22 @@ export const AppProvider = ({ children }) => {
 
 
             setData({
-                clients: clients.length ? clients : MOCK.clients,
-                vehicles: vehicles.length ? vehicles : MOCK.vehicles,
-                workOrders: workOrders.length ? workOrders : MOCK.workOrders,
-                inventory: inventory.length ? inventory : MOCK.inventory,
-                suppliers: suppliers.length ? suppliers : MOCK.suppliers,
-                boxes: boxes.length ? boxes : MOCK.boxes,
-                vehicleNotes, payments, cashClosings, appointments,
-                promotions, assignments,
-                employees: employees.length ? employees : MOCK.employees || [],
-                workOrderItems: workOrderItems.length ? workOrderItems : [],
-                dailyQuickServices: dailyQuickServices.length ? dailyQuickServices : [],
-                employeeEarnings: employeeEarnings.length ? employeeEarnings : [],
+                clients: (clients !== null) ? clients : MOCK.clients,
+                vehicles: (vehicles !== null) ? vehicles : MOCK.vehicles,
+                workOrders: (workOrders !== null) ? workOrders : MOCK.workOrders,
+                inventory: (inventory !== null) ? inventory : MOCK.inventory,
+                suppliers: (suppliers !== null) ? suppliers : MOCK.suppliers,
+                boxes: (boxes !== null) ? boxes : MOCK.boxes,
+                vehicleNotes: vehicleNotes || [],
+                payments: payments || [],
+                cashClosings: cashClosings || [],
+                appointments: appointments || [],
+                promotions: promotions || [],
+                assignments: assignments || [],
+                employees: (employees !== null) ? employees : MOCK.employees || [],
+                workOrderItems: workOrderItems || [],
+                dailyQuickServices: dailyQuickServices || [],
+                employeeEarnings: employeeEarnings || [],
                 quickServiceAssignments: quickServiceAssignments || [],
                 clientCredits: clientCredits || [],
                 // Tablas opcionales (pueden no existir)
