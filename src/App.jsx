@@ -258,27 +258,31 @@ function App() {
 
                 {showMundialBanner && (
                     <div style={{
-                        background: 'linear-gradient(90deg, #74acdf 0%, #0c1222 30%, #0c1222 70%, #74acdf 100%)',
-                        borderBottom: '1px solid rgba(116, 172, 223, 0.25)',
-                        padding: '6px 16px',
+                        background: 'linear-gradient(90deg, #74acdf 0%, #0f172a 30%, #0f172a 70%, #74acdf 100%)',
+                        borderBottom: '2px solid #f1c40f',
+                        padding: '8px 16px',
                         fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#f1f5f9',
+                        fontWeight: '700',
+                        color: '#f8fafc',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
                         position: 'relative',
                         zIndex: 10,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        letterSpacing: '0.5px'
+                        boxShadow: '0 4px 15px rgba(116, 172, 223, 0.3)',
+                        letterSpacing: '0.8px',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.5)'
                     }}>
-                        <div style={{ display: 'flex', gap: '2px', color: '#f1c40f' }}>
-                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
-                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
-                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                        <div style={{ display: 'flex', gap: '3px', color: '#f1c40f' }}>
+                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 0", opacity: 0.5, color: '#e2e8f0' }} title="En busca del cuarto sueño...">star</span>
                         </div>
-                        <span>🏆 ¡PASIÓN MUNDIALISTA! Alentando a la Selección Celeste y Blanca en este nuevo sueño 🇦🇷⚽</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            ⚽ <strong style={{ color: '#74acdf' }}>¡DOMINGO DE FINAL MUNDIALISTA!</strong> 🇦🇷 <strong>ARGENTINA vs ESPAÑA</strong> 🇪🇸 | ¡Alentando a la Selección en busca de la Cuarta Estrella! 🏆✨
+                        </span>
                         <button 
                             onClick={() => setShowMundialBanner(false)}
                             style={{
