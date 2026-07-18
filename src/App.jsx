@@ -50,14 +50,16 @@ const PAGES = {
 };
 
 function App() {
-    const IS_SYSTEM_LOCKED = false; // Toggle lock status here (true = locked, false = unlocked)
-    if (IS_SYSTEM_LOCKED) {
-        return <LockScreen />;
-    }
-
     const isOnline = useNetworkStatus();
-    const { data: MOCK, timeTrackingLogs, addTimeLog, isSyncing } = useApp();
+    const { data: MOCK, timeTrackingLogs, addTimeLog, isSyncing, companyStatus, logAudit } = useApp();
     const { user } = useAuth();
+
+    const isMasterAdmin = user && user.id === 'saas-master';
+    const isSuspended = companyStatus && companyStatus.is_active === false;
+
+    if (isSuspended && !isMasterAdmin) {
+        return <LockScreen message="El acceso a la plataforma se encuentra temporalmente suspendido debido a saldo pendiente de facturación. Para restablecer el servicio o realizar consultas de pagos, contáctate con soporte técnico de SmartFlow Digital." />;
+    }
     
     // Custom Navigation Hook
     const {
@@ -86,6 +88,18 @@ function App() {
     
     // --- ESTADO PARA BANNER MUNDIALISTA ---
     const [showMundialBanner, setShowMundialBanner] = useState(true);
+
+    // --- ESTADO PARA ANUNCIO DE CONTRATO ---
+    const [showContractNotification, setShowContractNotification] = useState(() => {
+        const lastDismiss = localStorage.getItem('velocce_contract_modal_dismissed');
+        if (lastDismiss) {
+            const elapsed = Date.now() - parseInt(lastDismiss);
+            if (elapsed < 24 * 60 * 60 * 1000) { // 24hs cooldown
+                return false;
+            }
+        }
+        return true;
+    });
 
     // --- TRACKING GLOBAL DEL MAPA DE CALOR ---
     React.useEffect(() => {
@@ -428,6 +442,78 @@ function App() {
                     onScan={handleBarcodeScan}
                     onClose={() => setShowCameraScanner(false)}
                 />
+            )}
+
+            {/* Modal Alerta de Políticas (Contrato) */}
+            {showContractNotification && user && !isMasterAdmin && companyStatus && companyStatus.contract_accepted === false && (
+                <Modal 
+                    title="Actualización de Términos y Tarifas de Licencia" 
+                    onClose={async () => {
+                        localStorage.setItem('velocce_contract_modal_dismissed', Date.now().toString());
+                        await logAudit('Visto Alerta de Políticas', { status: 'NOTIFICADO_PENDIENTE', source: 'Modal_Cerrar_X' });
+                        setShowContractNotification(false);
+                    }}
+                    footer={
+                        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+                            <button 
+                                className="btn btn-ghost" 
+                                style={{ flex: 1, justifyContent: 'center' }} 
+                                onClick={async () => {
+                                    localStorage.setItem('velocce_contract_modal_dismissed', Date.now().toString());
+                                    await logAudit('Visto Alerta de Políticas', { status: 'NOTIFICADO_PENDIENTE', source: 'Boton_Leer_Mas_Tarde' });
+                                    setShowContractNotification(false);
+                                }}
+                            >
+                                Leer Más Tarde
+                            </button>
+                            <button 
+                                className="btn btn-primary" 
+                                style={{ flex: 1.5, justifyContent: 'center' }}
+                                onClick={async () => {
+                                    handleNavigate('membership');
+                                    await logAudit('Lectura de Contrato Completo', { status: 'LEYENDO_POLITICAS', source: 'Boton_Ver_Politicas' });
+                                    setShowContractNotification(false);
+                                }}
+                            >
+                                <Icon name="gavel" size={16} /> Ver Políticas y Firmar
+                            </button>
+                        </div>
+                    }
+                >
+                    <div style={{ padding: '10px 0', textAlign: 'center' }}>
+                        <div style={{ 
+                            width: 64, height: 64, borderRadius: '50%', 
+                            background: 'rgba(var(--primary-rgb), 0.1)', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            color: 'var(--primary)', margin: '0 auto 16px auto',
+                            border: '1px solid rgba(var(--primary-rgb), 0.2)'
+                        }}>
+                            <Icon name="policy" size={32} />
+                        </div>
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 800 }}>Términos del Servicio VELOCCE PRO</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 13.5, lineHeight: 1.6, marginBottom: 16 }}>
+                            Hola, <strong>{user.name}</strong>. Informamos que a partir de <strong>Agosto de 2026</strong> entrará en vigencia formal el alquiler del software bajo la modalidad <strong>SaaS (Software como Servicio)</strong>.
+                        </p>
+                        <div style={{ 
+                            background: 'rgba(0,0,0,0.2)', 
+                            border: '1px solid var(--border)', 
+                            borderRadius: 'var(--radius)', 
+                            padding: '12px 16px', 
+                            fontSize: 13, 
+                            textAlign: 'left', 
+                            lineHeight: 1.5,
+                            marginBottom: 16,
+                            color: 'var(--text-secondary)'
+                        }}>
+                            • <strong>Costo Mensual:</strong> 100 USD (período adelantado del 1 al 10 de cada mes).<br />
+                            • <strong>Seguridad y Portabilidad:</strong> Tus datos están resguardados y puedes exportarlos en Excel cuando lo desees.<br />
+                            • <strong>Mora y Suspensión:</strong> La falta de pago generará la suspensión temporal de los accesos.
+                        </div>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
+                            Es obligatorio que el Administrador revise y firme digitalmente el acuerdo virtual en la sección de membresía para garantizar la continuidad del servicio.
+                        </p>
+                    </div>
+                </Modal>
             )}
         </div>
     );

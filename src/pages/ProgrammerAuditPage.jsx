@@ -46,30 +46,28 @@ export function ProgrammerAuditPage() {
         if (!rawSupabaseClient) return;
         setSaasLoading(true);
         try {
-            const { data: empData, error } = await rawSupabaseClient
-                .from('employees')
-                .select('company_id, name, role');
-            
-            if (error) throw error;
-            
-            if (empData) {
-                const uniqueCompanies = {};
-                empData.forEach(emp => {
-                    const cId = emp.company_id || 'piripi';
-                    if (!uniqueCompanies[cId]) {
-                        uniqueCompanies[cId] = {
-                            id: cId,
-                            employees_count: 0,
-                            admin_name: ''
-                        };
-                    }
-                    uniqueCompanies[cId].employees_count++;
-                    if (emp.role === 'admin' && !uniqueCompanies[cId].admin_name) {
-                        uniqueCompanies[cId].admin_name = emp.name;
-                    }
-                });
-                setCompanyList(Object.values(uniqueCompanies));
-            }
+            const [compRes, empRes] = await Promise.all([
+                rawSupabaseClient.from('companies').select('*').order('id', { ascending: true }),
+                rawSupabaseClient.from('employees').select('company_id, name, role')
+            ]);
+
+            if (compRes.error) throw compRes.error;
+            if (empRes.error) throw empRes.error;
+
+            const comps = compRes.data || [];
+            const emps = empRes.data || [];
+
+            const processedCompanies = comps.map(c => {
+                const companyEmployees = emps.filter(e => (e.company_id || 'piripi') === c.id);
+                const adminEmp = companyEmployees.find(e => e.role === 'admin');
+                return {
+                    ...c,
+                    employees_count: companyEmployees.length,
+                    admin_name: c.contract_accepted_by || (adminEmp ? adminEmp.name : 'Sin Admin')
+                };
+            });
+
+            setCompanyList(processedCompanies);
         } catch (e) {
             console.error('Error cargando empresas SaaS:', e);
         }
@@ -98,8 +96,8 @@ export function ProgrammerAuditPage() {
 
         setSaasLoading(true);
         try {
-            // Registrar primer empleado (Admin) usando el cliente raw sin filtros
-            const { error } = await rawSupabaseClient.from('employees').insert([{
+            // 1. Registrar primer empleado (Admin) usando el cliente raw sin filtros
+            const { error: empError } = await rawSupabaseClient.from('employees').insert([{
                 name: newAdminName.trim(),
                 role: 'admin',
                 pin: newAdminPin.trim(),
@@ -107,7 +105,17 @@ export function ProgrammerAuditPage() {
                 is_active: true
             }]);
 
-            if (error) throw error;
+            if (empError) throw empError;
+
+            // 2. Registrar empresa en tabla companies
+            const { error: compError } = await rawSupabaseClient.from('companies').insert([{
+                id: cleanId,
+                name: cleanId.toUpperCase(),
+                is_active: true,
+                contract_accepted: false
+            }]);
+
+            if (compError) throw compError;
 
             // Generar URL
             const baseUrl = window.location.origin;
@@ -126,6 +134,33 @@ export function ProgrammerAuditPage() {
         } catch (e) {
             console.error('Error creando empresa:', e);
             alert('Error al crear la empresa: ' + e.message);
+        }
+        setSaasLoading(false);
+    };
+
+    const toggleCompanyStatus = async (companyId, currentStatus) => {
+        if (companyId === 'saas-admin') {
+            alert('No se puede suspender el espacio de administración del desarrollador.');
+            return;
+        }
+        const actionText = currentStatus ? 'suspender' : 'activar';
+        if (!window.confirm(`¿Seguro que deseas ${actionText} la empresa "${companyId}"?`)) {
+            return;
+        }
+        setSaasLoading(true);
+        try {
+            const { error } = await rawSupabaseClient
+                .from('companies')
+                .update({ is_active: !currentStatus })
+                .eq('id', companyId);
+
+            if (error) throw error;
+            
+            alert(`Empresa "${companyId}" ${currentStatus ? 'suspenda' : 'activada'} con éxito.`);
+            await loadSaaSData();
+        } catch (e) {
+            console.error('Error al cambiar estado de empresa:', e);
+            alert('Error al cambiar el estado: ' + e.message);
         }
         setSaasLoading(false);
     };
@@ -456,8 +491,10 @@ export function ProgrammerAuditPage() {
                                                     <tr>
                                                         <th>Identificador</th>
                                                         <th>Admin Principal</th>
+                                                        <th>Estado</th>
+                                                        <th>Contrato</th>
                                                         <th style={{ textAlign: 'center' }}>Empleados</th>
-                                                        <th style={{ width: 50 }}>Acciones</th>
+                                                        <th style={{ width: 120 }}>Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -467,18 +504,45 @@ export function ProgrammerAuditPage() {
                                                                 {comp.id} {comp.id === 'piripi' && '👑'}
                                                             </td>
                                                             <td>{comp.admin_name || 'Sin Admin'}</td>
+                                                            <td>
+                                                                <StatusBadge 
+                                                                    text={comp.is_active ? 'Activo' : 'Suspendido'} 
+                                                                    color={comp.is_active ? 'success' : 'danger'} 
+                                                                />
+                                                            </td>
+                                                            <td>
+                                                                {comp.contract_accepted ? (
+                                                                    <span style={{ color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                                        <Icon name="check_circle" size={14} /> Firmado
+                                                                    </span>
+                                                                ) : (
+                                                                    <span style={{ color: '#f59e0b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                                        <Icon name="pending" size={14} /> Pendiente
+                                                                    </span>
+                                                                )}
+                                                            </td>
                                                             <td style={{ textAlign: 'center' }}>
                                                                 <StatusBadge text={String(comp.employees_count)} color="muted" />
                                                             </td>
                                                             <td>
-                                                                <button 
-                                                                    className="btn btn-ghost" 
-                                                                    onClick={() => copyToClipboard(`${window.location.origin}/?company=${comp.id}`)}
-                                                                    title="Copiar Link"
-                                                                    style={{ padding: 4, minWidth: 'auto' }}
-                                                                >
-                                                                    <Icon name="content_copy" size={14} />
-                                                                </button>
+                                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                                    <button 
+                                                                        className={`btn ${comp.is_active ? 'btn-danger' : 'btn-success'}`}
+                                                                        style={{ padding: '4px 10px', fontSize: '11px', height: '28px', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                        onClick={() => toggleCompanyStatus(comp.id, comp.is_active)}
+                                                                        disabled={comp.id === 'saas-admin'}
+                                                                    >
+                                                                        {comp.is_active ? 'Suspender' : 'Activar'}
+                                                                    </button>
+                                                                    <button 
+                                                                        className="btn btn-ghost" 
+                                                                        onClick={() => copyToClipboard(`${window.location.origin}/?company=${comp.id}`)}
+                                                                        title="Copiar Link"
+                                                                        style={{ padding: 4, minWidth: 'auto', height: 28 }}
+                                                                    >
+                                                                        <Icon name="content_copy" size={14} />
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))}

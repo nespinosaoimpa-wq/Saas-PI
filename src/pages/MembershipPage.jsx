@@ -1,45 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlassCard, SectionHeader, Icon } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { supabase, currentCompanyId } from '../lib/supabase';
 
 export const MembershipPage = () => {
-    const { exportToExcel, logAudit } = useApp();
+    const { exportToExcel, logAudit, companyStatus, setCompanyStatus, acceptCompanyContract } = useApp();
     const { user } = useAuth();
 
     // Estado del Contrato
     const [accepted, setAccepted] = useState(false);
-    const [isSigned, setIsSigned] = useState(() => localStorage.getItem('velocce_contract_signed') === 'true');
-    const [signDetails, setSignDetails] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('velocce_contract_sign_details')) || null;
-        } catch { return null; }
-    });
+    
+    const isSigned = companyStatus?.contract_accepted === true;
+    const signDetails = isSigned ? {
+        firmante: companyStatus.contract_accepted_by || 'Administrador Principal',
+        rol: 'ADMIN',
+        fecha: companyStatus.contract_accepted_at ? new Date(companyStatus.contract_accepted_at).toLocaleString('es-AR') : 'N/A'
+    } : null;
+
+    // Trackear cuando el usuario entra a leer el contrato completo
+    useEffect(() => {
+        if (companyStatus && companyStatus.contract_accepted === false) {
+            logAudit('Lectura de Contrato Completo', { status: 'LEYENDO_POLITICAS', source: 'Pagina_Membresia_Carga' });
+        }
+    }, [companyStatus?.contract_accepted]);
 
     const handleAcceptContract = async () => {
         if (!accepted) return;
         
-        const details = {
-            firmante: user.name || user.full_name || 'Administrador Principal',
-            rol: user.role?.toUpperCase() || 'ADMIN',
-            email: user.email || 'N/A',
-            fecha: new Date().toLocaleString('es-AR'),
-            timestamp: new Date().toISOString()
-        };
-
-        // Guardar firma localmente
-        localStorage.setItem('velocce_contract_signed', 'true');
-        localStorage.setItem('velocce_contract_sign_details', JSON.stringify(details));
-        setIsSigned(true);
-        setSignDetails(details);
-
-        // Registrar firma en logs de Supabase (Auditoría Inmutable en Base de Datos)
-        await logAudit('Firma Contrato Virtual', {
-            ...details,
-            status: 'CONTRATO_ACEPTADO_VINCULANTE'
-        });
-
-        alert('✅ ¡Contrato firmado digitalmente y registrado con éxito!');
+        const firmanteName = user.name || user.full_name || 'Administrador Principal';
+        
+        // Guardar firma en Supabase mediante AppContext
+        const success = await acceptCompanyContract(firmanteName);
+        
+        if (success) {
+            // Registrar firma en logs de Supabase
+            await logAudit('Firma Contrato Virtual', {
+                firmante: firmanteName,
+                rol: user.role?.toUpperCase() || 'ADMIN',
+                email: user.email || 'N/A',
+                status: 'CONTRATO_ACEPTADO_VINCULANTE'
+            });
+        }
     };
 
     const handleExportBackup = () => {
@@ -213,12 +215,30 @@ export const MembershipPage = () => {
                                     </div>
                                     {user && user.role === 'admin' && (
                                         <button 
-                                            onClick={() => {
-                                                localStorage.removeItem('velocce_contract_signed');
-                                                localStorage.removeItem('velocce_contract_sign_details');
-                                                setIsSigned(false);
-                                                setSignDetails(null);
-                                                setAccepted(false);
+                                            onClick={async () => {
+                                                if (window.confirm('¿Seguro que deseas restablecer la firma para pruebas? Se borrará el estado firmado de la base de datos.')) {
+                                                    const { error } = await supabase
+                                                        .from('companies')
+                                                        .update({
+                                                            contract_accepted: false,
+                                                            contract_accepted_by: null,
+                                                            contract_accepted_at: null
+                                                        })
+                                                        .eq('id', currentCompanyId);
+                                                    
+                                                    if (error) {
+                                                        alert('Error al restablecer: ' + error.message);
+                                                    } else {
+                                                        setCompanyStatus(prev => ({
+                                                            ...prev,
+                                                            contract_accepted: false,
+                                                            contract_accepted_by: null,
+                                                            contract_accepted_at: null
+                                                        }));
+                                                        setAccepted(false);
+                                                        alert('🔄 Firma restablecida en la base de datos.');
+                                                    }
+                                                }
                                             }}
                                             style={{ 
                                                 marginTop: '16px', 

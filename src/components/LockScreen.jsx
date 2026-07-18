@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const LockScreen = () => {
+export const LockScreen = ({ message }) => {
     return (
         <div style={{
             position: 'fixed',
@@ -127,7 +127,7 @@ export const LockScreen = () => {
                     lineHeight: '1.65',
                     marginBottom: '28px'
                 }}>
-                    Esta plataforma de software se encuentra temporalmente fuera de servicio debido al incumplimiento de los términos de pago acordados para su licenciamiento e implementación.
+                    {message || 'Esta plataforma de software se encuentra temporalmente fuera de servicio debido al incumplimiento de los términos de pago acordados para su licenciamiento e implementación.'}
                 </p>
 
                 {/* Metadata Panel */}

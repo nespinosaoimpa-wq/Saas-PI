@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, currentCompanyId } from '../lib/supabase';
 import { MOCK } from '../data/data';
 import * as XLSX from 'xlsx';
 import { useAuth } from './AuthContext';
@@ -86,6 +86,7 @@ export const AppProvider = ({ children }) => {
         clientCredits: []
     });
     const [loading, setLoading] = useState(true);
+    const [companyStatus, setCompanyStatus] = useState({ is_active: true, contract_accepted: false });
     const [isSyncing, setIsSyncing] = useState(false);
 
     // ==========================================
@@ -223,6 +224,35 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    const acceptCompanyContract = async (firmanteName) => {
+        try {
+            const timestamp = new Date().toISOString();
+            const { error } = await supabase
+                .from('companies')
+                .update({
+                    contract_accepted: true,
+                    contract_accepted_by: firmanteName,
+                    contract_accepted_at: timestamp
+                })
+                .eq('id', currentCompanyId);
+
+            if (error) throw error;
+
+            setCompanyStatus(prev => ({
+                ...prev,
+                contract_accepted: true,
+                contract_accepted_by: firmanteName,
+                contract_accepted_at: timestamp
+            }));
+            
+            return true;
+        } catch (err) {
+            console.error('Error al guardar firma en la empresa:', err);
+            alert('Error al firmar contrato en la base de datos: ' + err.message);
+            return false;
+        }
+    };
+
     const getActiveEmployees = () => {
         const active = [];
         const employees = (data.employees || []).filter(emp => emp.is_active !== false);
@@ -310,6 +340,30 @@ export const AppProvider = ({ children }) => {
                 dailyWorkLog: [], serviceHistory: [], 
                 activityLog: []
             });
+            // Consultar metadata de la empresa (Sujeto a no aislamiento)
+            let companyInfo = { is_active: true, contract_accepted: false };
+            try {
+                const { data: compData, error: compErr } = await supabase
+                    .from('companies')
+                    .select('*')
+                    .eq('id', currentCompanyId)
+                    .maybeSingle();
+                
+                if (compErr) throw compErr;
+                
+                if (compData) {
+                    companyInfo = {
+                        is_active: compData.is_active,
+                        contract_accepted: compData.contract_accepted,
+                        contract_accepted_by: compData.contract_accepted_by,
+                        contract_accepted_at: compData.contract_accepted_at
+                    };
+                }
+            } catch (err) {
+                console.warn('⚠️ Error al consultar metadata de la empresa:', err.message);
+            }
+            setCompanyStatus(companyInfo);
+
             setTimeTrackingLogs(attendance_logs);
         } catch (e) {
             console.error('CRITICAL: Error in bulk load', e);
@@ -1935,7 +1989,10 @@ export const AppProvider = ({ children }) => {
             removeFromQueue,
             isSyncing,
             setIsSyncing,
-            logAudit
+            logAudit,
+            companyStatus,
+            setCompanyStatus,
+            acceptCompanyContract
         }}>
             {children}
         </AppContext.Provider>
