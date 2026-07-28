@@ -146,7 +146,7 @@ export const WorkOrdersPage = () => {
         applied_commission_rate: '',
         labor_profit_percent: 100,
         isHistorical: false,
-        customDate: new Date().toISOString().split('T')[0]
+        customDate: new Date().toLocaleDateString('en-CA')
     });
 
     // Nuevo estado para la búsqueda interactiva
@@ -179,13 +179,13 @@ export const WorkOrdersPage = () => {
             total_price: totalPrice,
             products: selectedProducts,
             status: newOrder.isHistorical ? 'Finalizado' : undefined,
-            date: newOrder.isHistorical ? new Date(newOrder.customDate).toISOString() : undefined,
+            date: newOrder.isHistorical ? new Date(`${newOrder.customDate}T12:00:00`).toISOString() : undefined,
             applied_commission_rate: (newOrder.applied_commission_rate !== '' ? parseFloat(newOrder.applied_commission_rate) : null) ?? (selectedMechanics.length > 0 ? selectedMechanics[0].commission_rate : 0)
         });
 
         alert('✅ Orden de Trabajo creada con éxito.');
         setShowNew(false);
-        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_ids: [], applied_commission_rate: '', labor_profit_percent: 100, isHistorical: false, customDate: new Date().toISOString().split('T')[0] });
+        setNewOrder({ client_id: '', vehicle_id: '', box_id: '', km_at_entry: '', description: '', labor_cost: '', parts_cost: '', mechanic_ids: [], applied_commission_rate: '', labor_profit_percent: 100, isHistorical: false, customDate: new Date().toLocaleDateString('en-CA') });
         setClientSearch('');
         setSelectedProducts([]);
         setProductSearch('');
