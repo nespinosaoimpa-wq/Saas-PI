@@ -52,10 +52,13 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
     const handleOpenModal = (item = null, code = '') => {
         if (item) {
             setEditingItem(item);
+            const calculatedStockMl = item.stock_type === 'VOLUME' && (!item.stock_ml || item.stock_ml === 0) && item.stock_quantity > 0
+                ? item.stock_quantity * 1000
+                : item.stock_ml;
             setFormData({
                 name: item.name || '', category: item.category || '', brand: item.brand || '', supplier_id: item.supplier_id || '',
                 barcode: item.barcode || '', cost_price: item.cost_price || '', sell_price: item.sell_price || '',
-                stock_quantity: item.stock_quantity || '', stock_ml: item.stock_ml || '',
+                stock_quantity: item.stock_quantity || '', stock_ml: calculatedStockMl || '',
                 stock_type: item.stock_type || 'UNIT', stock_min: item.stock_min || 0,
                 stock_min_ml: item.stock_min_ml || 0, container_size_ml: item.container_size_ml || 0
             });
@@ -74,6 +77,14 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
         if (!formData.name || !formData.sell_price) return alert('Nombre y precio de venta son obligatorios');
         setLoading(true);
 
+        let parsedStockMl = parseInt(formData.stock_ml) || 0;
+        const parsedStockQty = parseInt(formData.stock_quantity) || 0;
+
+        // Auto-fix for VOLUME items: if stock_ml is 0 or empty, but stock_quantity > 0
+        if (formData.stock_type === 'VOLUME' && parsedStockMl === 0 && parsedStockQty > 0) {
+            parsedStockMl = parsedStockQty * 1000;
+        }
+
         const payload = {
             name: formData.name,
             category: formData.category,
@@ -83,8 +94,8 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
             cost_price: parseFloat(formData.cost_price) || 0,
             sell_price: parseFloat(formData.sell_price) || 0,
             stock_type: formData.stock_type,
-            stock_quantity: parseInt(formData.stock_quantity) || 0,
-            stock_ml: parseInt(formData.stock_ml) || 0,
+            stock_quantity: parsedStockQty,
+            stock_ml: parsedStockMl,
             stock_min: parseInt(formData.stock_min) || 0,
             stock_min_ml: parseInt(formData.stock_min_ml) || 0,
             container_size_ml: parseInt(formData.container_size_ml) || 0
