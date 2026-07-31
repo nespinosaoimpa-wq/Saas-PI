@@ -78,11 +78,15 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
         setLoading(true);
 
         let parsedStockMl = parseInt(formData.stock_ml) || 0;
-        const parsedStockQty = parseInt(formData.stock_quantity) || 0;
+        let parsedStockQty = parseInt(formData.stock_quantity) || 0;
 
-        // Auto-fix for VOLUME items: if stock_ml is 0 or empty, but stock_quantity > 0
-        if (formData.stock_type === 'VOLUME' && parsedStockMl === 0 && parsedStockQty > 0) {
-            parsedStockMl = parsedStockQty * 1000;
+        // Auto-fix for VOLUME items: ensure 2-way sync between Liters and Mililiters
+        if (formData.stock_type === 'VOLUME') {
+            if (parsedStockMl === 0 && parsedStockQty > 0) {
+                parsedStockMl = parsedStockQty * 1000;
+            } else if (parsedStockMl > 0 && (parsedStockQty === 0 || parsedStockMl !== parsedStockQty * 1000)) {
+                parsedStockQty = Math.round(parsedStockMl / 1000);
+            }
         }
 
         const payload = {
