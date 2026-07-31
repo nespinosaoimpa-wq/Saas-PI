@@ -93,12 +93,13 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
             barcode: formData.barcode || null,
             cost_price: parseFloat(formData.cost_price) || 0,
             sell_price: parseFloat(formData.sell_price) || 0,
-            stock_type: formData.stock_type,
             stock_quantity: parsedStockQty,
             stock_ml: parsedStockMl,
             stock_min: parseInt(formData.stock_min) || 0,
             stock_min_ml: parseInt(formData.stock_min_ml) || 0,
-            container_size_ml: parseInt(formData.container_size_ml) || 0
+            container_size_ml: formData.stock_type === 'VOLUME' 
+                ? (parseInt(formData.container_size_ml) >= 10000 ? parseInt(formData.container_size_ml) : 200000) 
+                : (parseInt(formData.container_size_ml) || 0)
         };
 
         try {
@@ -218,7 +219,12 @@ export const InventoryPage = ({ initialScannedCode = '' }) => {
                         <div className="grid-auto-cards-sm">
                             {inventory.filter(i => i.stock_type === 'VOLUME').map(item => (
                                 <GlassCard key={item.id} style={{ padding: 16 }}>
-                                    <LiquidGauge label={item.name.split(' ').slice(0, 3).join(' ')} current_ml={item.stock_ml} max_ml={(item.container_size_ml || 200000) * 1} min_ml={item.stock_min_ml} />
+                                    <LiquidGauge 
+                                        label={item.name.split(' ').slice(0, 3).join(' ')} 
+                                        current_ml={item.stock_ml > 0 ? item.stock_ml : ((item.stock_quantity || 0) * 1000)} 
+                                        max_ml={(item.container_size_ml && item.container_size_ml >= 10000) ? item.container_size_ml : 200000} 
+                                        min_ml={item.stock_min_ml} 
+                                    />
                                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
                                         Precio/L: {formatCurrency(item.sell_price)} • Costo/L: {formatCurrency(item.cost_price)}
                                     </div>
