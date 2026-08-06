@@ -48,6 +48,25 @@ export const DailyWorkPage = () => {
     // OT Interactivity States
     const [checklistState, setChecklistState] = useState({});
     const [observationsState, setObservationsState] = useState({});
+    const [savingObs, setSavingObs] = useState({});
+    const [obsSavedMessage, setObsSavedMessage] = useState({});
+
+    const handleSaveObservations = async (woId) => {
+        const note = observationsState[woId];
+        if (note === undefined) return;
+        setSavingObs(prev => ({ ...prev, [woId]: true }));
+        try {
+            await updateWorkOrder(woId, { mechanic_notes: note });
+            setObsSavedMessage(prev => ({ ...prev, [woId]: true }));
+            setTimeout(() => {
+                setObsSavedMessage(prev => ({ ...prev, [woId]: false }));
+            }, 3000);
+        } catch (err) {
+            alert('Error al guardar observaciones: ' + (err.message || 'Error desconocido'));
+        } finally {
+            setSavingObs(prev => ({ ...prev, [woId]: false }));
+        }
+    };
 
     // Carrito de Servicios Gomería
     const [manualDiscount, setManualDiscount] = useState(0);
@@ -383,13 +402,38 @@ export const DailyWorkPage = () => {
                                         ))}
                                     </div>
                                     <div style={{ marginBottom: 20 }}>
-                                        <textarea
-                                            className="form-input"
-                                            placeholder="Observaciones del mecánico (opcional)..."
-                                            style={{ minHeight: 60, fontSize: 13 }}
-                                            value={observationsState[wo.id] || ''}
-                                            onChange={(e) => setObservationsState(prev => ({ ...prev, [wo.id]: e.target.value }))}
-                                        />
+                                        {(() => {
+                                            const currentNote = observationsState[wo.id] !== undefined
+                                                ? observationsState[wo.id]
+                                                : (wo.mechanic_notes || (wo.description?.includes('[OBSERVACIONES]:') ? wo.description.split('[OBSERVACIONES]:')[1]?.trim() : ''));
+                                            return (
+                                                <Fragment>
+                                                    <textarea
+                                                        className="form-input"
+                                                        placeholder="Observaciones del mecánico (opcional)..."
+                                                        style={{ minHeight: 65, fontSize: 13, marginBottom: 8 }}
+                                                        value={currentNote}
+                                                        onChange={(e) => setObservationsState(prev => ({ ...prev, [wo.id]: e.target.value }))}
+                                                    />
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                        <button
+                                                            className="btn btn-primary btn-sm"
+                                                            style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600 }}
+                                                            disabled={savingObs[wo.id]}
+                                                            onClick={() => handleSaveObservations(wo.id)}
+                                                            title="Guardar observaciones en la Orden de Trabajo"
+                                                        >
+                                                            <Icon name="save" size={16} /> {savingObs[wo.id] ? 'Guardando...' : 'Guardar Observaciones'}
+                                                        </button>
+                                                        {obsSavedMessage[wo.id] && (
+                                                            <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                <Icon name="check_circle" size={16} /> ¡Guardado con éxito!
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </Fragment>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div style={{ display: 'flex', gap: 10 }}>

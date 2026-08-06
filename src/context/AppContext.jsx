@@ -1015,8 +1015,30 @@ export const AppProvider = ({ children }) => {
     };
 
     const updateWorkOrder = async (id, updates, paymentInfo = null, afipData = null, mechanicIds = null, creditOptions = null) => {
-        const { error } = await supabase.from('work_orders').update(updates).eq('id', id);
+        let payload = { ...updates };
+        let { error } = await supabase.from('work_orders').update(payload).eq('id', id);
+
+        // Si falla por columna inexistente (PGRST204), hacer fallback seguro
+        if (error && (error.code === 'PGRST204' || error.message?.includes('column'))) {
+            const wo = (data.workOrders || []).find(w => w.id === id);
+            const notesToSave = payload.mechanic_notes || payload.observations;
+            delete payload.mechanic_notes;
+            delete payload.observations;
+
+            if (notesToSave && wo) {
+                const baseDesc = wo.description?.split('\n\n[OBSERVACIONES]:')[0] || wo.description || '';
+                payload.description = `${baseDesc}\n\n[OBSERVACIONES]: ${notesToSave}`.trim();
+            }
+            const res = await supabase.from('work_orders').update(payload).eq('id', id);
+            error = res.error;
+        }
+
         if (!error) {
+            // Actualizar estado local inmediatamente
+            setData(prev => ({
+                ...prev,
+                workOrders: (prev.workOrders || []).map(w => w.id === id ? { ...w, ...updates, ...(payload.description ? { description: payload.description } : {}) } : w)
+            }));
             let freshAssignmentsList = null;
             // Update assignments if mechanicIds provided
             if (mechanicIds) {
