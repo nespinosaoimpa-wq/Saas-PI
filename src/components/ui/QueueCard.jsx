@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { formatCurrency } from '../../data/data';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from './StatusBadge';
@@ -31,13 +31,21 @@ export const QueueCard = ({ wo, onClick, rightAction, onViewVehicle }) => {
                     <strong>{box ? (box.name || '').replace('Box ', '') : '—'}</strong>
                 </div>
                 <div className="queue-info">
-                    <h4>{vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Vehículo'} — {wo.description}</h4>
-                    {wo.mechanic_notes && (
-                        <div style={{ marginTop: 8, padding: '6px 10px', background: 'var(--bg-hover)', borderLeft: '3px solid var(--warning)', borderRadius: 4, fontSize: 12, color: 'var(--text-primary)' }}>
-                            <strong style={{ color: 'var(--warning)', marginRight: 6 }}><Icon name="comment" size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />Nota del Mecánico:</strong>
-                            {wo.mechanic_notes}
-                        </div>
-                    )}
+                    {(() => {
+                        const cleanDesc = wo.description?.split('\n\n[OBSERVACIONES]:')[0] || wo.description;
+                        const notesDisp = wo.mechanic_notes || (wo.description?.includes('[OBSERVACIONES]:') ? wo.description.split('[OBSERVACIONES]:')[1]?.trim() : null);
+                        return (
+                            <React.Fragment>
+                                <h4>{vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Vehículo'} — {cleanDesc}</h4>
+                                {notesDisp && (
+                                    <div style={{ marginTop: 8, padding: '6px 10px', background: 'var(--bg-hover)', borderLeft: '3px solid var(--warning)', borderRadius: 4, fontSize: 12, color: 'var(--text-primary)' }}>
+                                        <strong style={{ color: 'var(--warning)', marginRight: 6 }}><Icon name="comment" size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />Nota del Mecánico:</strong>
+                                        {notesDisp}
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        );
+                    })()}
                     <p style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
                         <span>OT #{wo.order_number}</span>
                         <span>•</span>
