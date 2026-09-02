@@ -510,7 +510,7 @@ function App() {
                             Aviso Importante para la Administración
                         </h3>
                         <p style={{ color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
-                            Hola, <strong>{user.name}</strong>. Les recordamos que deben terminar de abonar el dinero pendiente de la plataforma dentro de la fecha límite estipulada.
+                            Hola, <strong>{user.name}</strong>. Les recordamos que deben terminar de abonar el dinero pendiente de la plataforma antes de la fecha límite: <strong style={{ color: 'var(--warning)', textDecoration: 'underline' }}>5 de Septiembre a las 00:00 hs</strong>.
                         </p>
                         <div style={{ 
                             background: 'rgba(245, 158, 11, 0.08)', 
@@ -524,9 +524,9 @@ function App() {
                             color: 'var(--text-primary)'
                         }}>
                             <strong style={{ color: 'var(--warning)', display: 'block', marginBottom: 6, fontSize: 14 }}>
-                                ⚠️ CONDICIONES DE VENCIMIENTO DEL ACUERDO:
+                                ⚠️ FECHA LÍMITE Y REDISEÑO DE ACUERDO:
                             </strong>
-                            En caso de no completarse el saldo pendiente dentro de la fecha límite, el acuerdo promocional previo vencerá automáticamente y la licencia se rediseñará al <strong>Plan Mensual de 100 USD mensuales</strong>, fijando indefectiblemente como fecha límite de pago del <strong>1 al 5 de cada mes</strong>.
+                            La fecha límite para completar el abono es el <strong>5 de Septiembre a las 00:00 hs</strong>. En caso de no abonar el saldo pendiente antes de dicho vencimiento, el acuerdo promocional previo vencerá automáticamente y la licencia se rediseñará al <strong>Plan Mensual de 100 USD mensuales</strong>, fijando indefectiblemente como fecha límite de pago del <strong>1 al 5 de cada mes</strong>.
                         </div>
                         <p style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
                             Ingresá a la sección de membresía para revisar el acuerdo vinculante o resguardar tu información en Excel.

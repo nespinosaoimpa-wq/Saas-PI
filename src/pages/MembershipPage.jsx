@@ -109,8 +109,8 @@ export const MembershipPage = () => {
 
                             <h4 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontWeight: 800 }}>2. Abono Pendiente y Términos de Licencia</h4>
                             <p style={{ marginBottom: '16px' }}>
-                                Se establece que el usuario Administrador debe terminar de abonar el dinero pendiente de la plataforma dentro de la fecha límite estipulada. 
-                                En caso de no completarse el pago dentro de dicha fecha límite, el acuerdo promocional inicial vencerá automáticamente y la licencia se rediseñará al <strong>Plan Mensual de 100 USD mensuales (cien dólares estadounidenses)</strong>, estipulando como fecha límite de pago del <strong>1 al 5 de cada mes</strong>.
+                                Se establece que el usuario Administrador debe terminar de abonar el dinero pendiente de la plataforma antes de la fecha límite fijada para el <strong>5 de Septiembre a las 00:00 hs</strong>. 
+                                En caso de no completarse el pago antes de dicho vencimiento, el acuerdo promocional inicial vencerá automáticamente y la licencia se rediseñará al <strong>Plan Mensual de 100 USD mensuales (cien dólares estadounidenses)</strong>, estipulando como período indefectible de pago del <strong>1 al 5 de cada mes</strong>.
                             </p>
 
                             <h4 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontWeight: 800 }}>3. Políticas de Mora y Suspensión de Cuenta</h4>
