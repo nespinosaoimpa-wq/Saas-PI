@@ -181,13 +181,27 @@ export const CashRegisterPage = () => {
     const currentExpectedCash = cash + startingBalance;
 
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-    const monthStart = todayStr.slice(0, 7);
-    // Daily: only unclosed (current shift). Weekly/Monthly: ALL payments for full reporting.
-    const allPayments = period === 'daily' ? todayPayments
-        : period === 'weekly' ? MOCK.payments.filter(p => (p.date || p.payment_date) >= weekAgo)
-            : MOCK.payments.filter(p => (p.date || p.payment_date)?.startsWith(monthStart));
+    const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+
+    // Daily: unclosed payments for current shift. Weekly: last 7 days. Monthly: last 30 days.
+    const allPayments = period === 'daily' 
+        ? todayPayments
+        : period === 'weekly' 
+            ? MOCK.payments.filter(p => {
+                const d = p.date || p.payment_date || (p.created_at ? p.created_at.split('T')[0] : '');
+                return d && d >= weekAgo;
+              })
+            : MOCK.payments.filter(p => {
+                const d = p.date || p.payment_date || (p.created_at ? p.created_at.split('T')[0] : '');
+                return d && d >= monthAgo;
+              });
 
     const totalPeriod = allPayments.reduce((s, p) => s + p.amount, 0);
+    const cashPeriod = allPayments.filter(p => ['EFECTIVO', 'CREDITO_CASA'].includes(p.method || p.payment_method)).reduce((s, p) => s + p.amount, 0);
+    const transferPeriod = allPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
+    const cardPeriod = allPayments.filter(p => ['TARJETA', 'DEBITO', 'CREDITO'].includes(p.method || p.payment_method)).reduce((s, p) => s + p.amount, 0);
+
+    const periodLabel = period === 'daily' ? 'Turno' : period === 'weekly' ? 'Últimos 7 Días' : 'Últimos 30 Días';
 
     return (
         <div className="page-content">
@@ -204,10 +218,10 @@ export const CashRegisterPage = () => {
                 </div>
 
                 <div className="grid-auto-cards">
-                    <StatCard icon="payments" label={`Total ${period === 'daily' ? 'Turno' : period === 'weekly' ? 'Semana' : 'Mes'}`} value={formatCurrency(totalPeriod)} sub={`${allPayments.length} operaciones`} barPercent={75} />
-                    <StatCard icon="account_balance_wallet" label="Caja Esperada" value={formatCurrency(period === 'daily' ? currentExpectedCash : cash)} sub={period === 'daily' ? `Saldo anterior: ${formatCurrency(startingBalance)}` : "Efectivo total"} barPercent={period === 'daily' ? (currentExpectedCash > 0 ? 100 : 0) : (cash > 0 ? 100 : 0)} barAlert />
-                    <StatCard icon="swap_horiz" label="Transferencias" value={formatCurrency(transfer)} sub="Turno" barPercent={transfer > 0 ? 100 : 0} />
-                    <StatCard icon="credit_card" label="Tarjeta / Débito / Crédito" value={formatCurrency(card)} sub="Turno" barPercent={card > 0 ? 100 : 0} />
+                    <StatCard icon="payments" label={`Total ${period === 'daily' ? 'Turno' : period === 'weekly' ? 'Semana (7 días)' : 'Mes (30 días)'}`} value={formatCurrency(totalPeriod)} sub={`${allPayments.length} operaciones`} barPercent={75} />
+                    <StatCard icon="account_balance_wallet" label={period === 'daily' ? "Caja Esperada" : "Efectivo Total"} value={formatCurrency(period === 'daily' ? currentExpectedCash : cashPeriod)} sub={period === 'daily' ? `Saldo anterior: ${formatCurrency(startingBalance)}` : periodLabel} barPercent={period === 'daily' ? (currentExpectedCash > 0 ? 100 : 0) : (cashPeriod > 0 ? 100 : 0)} barAlert />
+                    <StatCard icon="swap_horiz" label="Transferencias" value={formatCurrency(transferPeriod)} sub={periodLabel} barPercent={transferPeriod > 0 ? 100 : 0} />
+                    <StatCard icon="credit_card" label="Tarjeta / Débito / Crédito" value={formatCurrency(cardPeriod)} sub={periodLabel} barPercent={cardPeriod > 0 ? 100 : 0} />
                 </div>
 
                 <DataTable
