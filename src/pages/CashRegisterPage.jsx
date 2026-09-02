@@ -180,19 +180,35 @@ export const CashRegisterPage = () => {
 
     const currentExpectedCash = cash + startingBalance;
 
-    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-    const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    const getLocalDateString = (daysAgo = 0) => {
+        const d = new Date();
+        d.setDate(d.getDate() - daysAgo);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const getItemDate = (p) => {
+        if (p.date) return String(p.date).split('T')[0];
+        if (p.payment_date) return String(p.payment_date).split('T')[0];
+        if (p.created_at) return String(p.created_at).split('T')[0];
+        return '';
+    };
+
+    const weekAgo = getLocalDateString(7);
+    const monthAgo = getLocalDateString(30);
 
     // Daily: unclosed payments for current shift. Weekly: last 7 days. Monthly: last 30 days.
     const allPayments = period === 'daily' 
         ? todayPayments
         : period === 'weekly' 
             ? MOCK.payments.filter(p => {
-                const d = p.date || p.payment_date || (p.created_at ? p.created_at.split('T')[0] : '');
+                const d = getItemDate(p);
                 return d && d >= weekAgo;
               })
             : MOCK.payments.filter(p => {
-                const d = p.date || p.payment_date || (p.created_at ? p.created_at.split('T')[0] : '');
+                const d = getItemDate(p);
                 return d && d >= monthAgo;
               });
 
