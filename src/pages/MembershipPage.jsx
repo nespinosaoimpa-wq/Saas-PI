@@ -107,16 +107,15 @@ export const MembershipPage = () => {
                                 VELOCCE PRO garantiza la total confidencialidad de la información registrada. Todos los datos referidos a clientes, patentes de vehículos, fichas técnicas e inventario son almacenados de forma cifrada y segura en la infraestructura cloud de Supabase. SmartFlow Digital no comercializa, transfiere ni comparte ningún dato con terceros ajenos al Lubricentro licenciatario.
                             </p>
 
-                            <h4 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontWeight: 800 }}>2. Políticas de Cobro y Alquiler de Licencia</h4>
+                            <h4 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontWeight: 800 }}>2. Abono Pendiente y Términos de Licencia</h4>
                             <p style={{ marginBottom: '16px' }}>
-                                El uso de la plataforma VELOCCE PRO se otorga mediante una licencia bajo modalidad de <strong>Software como Servicio (SaaS)</strong>. 
-                                El costo mensual del alquiler del software está fijado en **100 USD (cien dólares estadounidenses)**.
-                                Los períodos de facturación son mensuales y adelantados, debiéndose abonar entre los días 1 y 10 de cada mes corriente. Esta política comenzará a regir a partir de <strong>Agosto de 2026</strong>.
+                                Se establece que el usuario Administrador debe terminar de abonar el dinero pendiente de la plataforma dentro de la fecha límite estipulada. 
+                                En caso de no completarse el pago dentro de dicha fecha límite, el acuerdo promocional inicial vencerá automáticamente y la licencia se rediseñará al <strong>Plan Mensual de 100 USD mensuales (cien dólares estadounidenses)</strong>, estipulando como fecha límite de pago del <strong>1 al 5 de cada mes</strong>.
                             </p>
 
                             <h4 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontWeight: 800 }}>3. Políticas de Mora y Suspensión de Cuenta</h4>
                             <p style={{ marginBottom: '16px' }}>
-                                El retraso en el pago del canon mensual por más de 5 días corridos a partir de la fecha de vencimiento (día 10 de cada mes) facultará a SmartFlow Digital a la <strong>suspensión temporal del acceso</strong> a la plataforma mediante una pantalla de bloqueo.
+                                El retraso en el pago del canon mensual (después del día 5 de cada mes) facultará a la administración a la <strong>suspensión temporal del acceso</strong> a la plataforma mediante una pantalla de bloqueo.
                                 Transcurridos 30 días consecutivos de mora, se procederá a la <strong>baja definitiva</strong> de la cuenta y sus accesos asociados.
                             </p>
 

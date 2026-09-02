@@ -83,13 +83,18 @@ function App() {
     const [isClockingIn, setIsClockingIn] = useState(false);
     const [isClockingOut, setIsClockingOut] = useState(false);
     
+    const isContractAccepted = companyStatus && companyStatus.contract_accepted === true;
+    const isAdmin = user && (user.role === 'admin' || user.role === 'Administrador' || isMasterAdmin);
+
     // --- ESTADO PARA BANNER INFORMATIVO DE BIENVENIDA ---
-    const [showWelcomeBanner, setShowWelcomeBanner] = useState(() => localStorage.getItem('velocce_welcome_dismissed') !== 'true');
+    const [showWelcomeBanner, setShowWelcomeBanner] = useState(() => {
+        return !isContractAccepted && localStorage.getItem('velocce_welcome_dismissed') !== 'true';
+    });
     
     // --- ESTADO PARA BANNER MUNDIALISTA ---
     const [showMundialBanner, setShowMundialBanner] = useState(true);
 
-    // --- ESTADO PARA ANUNCIO DE CONTRATO ---
+    // --- ESTADO PARA ANUNCIO DE CONTRATO Y ABONO (SOLO ADMIN PENDIENTE) ---
     const [showContractNotification, setShowContractNotification] = useState(() => {
         const lastDismiss = localStorage.getItem('velocce_contract_modal_dismissed');
         if (lastDismiss) {
@@ -448,13 +453,13 @@ function App() {
                 />
             )}
 
-            {/* Modal Alerta de Políticas (Contrato) */}
-            {showContractNotification && user && !isMasterAdmin && companyStatus && companyStatus.contract_accepted === false && (
+            {/* Modal Alerta de Políticas y Abono Pendiente (SOLO PARA ADMINISTRADOR HASTA QUE ACEPTE) */}
+            {showContractNotification && isAdmin && !isContractAccepted && (
                 <Modal 
-                    title="Actualización de Términos y Tarifas de Licencia" 
+                    title="⚠️ Recordatorio de Saldo Pendiente y Términos de Licencia" 
                     onClose={async () => {
                         localStorage.setItem('velocce_contract_modal_dismissed', Date.now().toString());
-                        await logAudit('Visto Alerta de Políticas', { status: 'NOTIFICADO_PENDIENTE', source: 'Modal_Cerrar_X' });
+                        await logAudit('Visto Alerta de Pago Admin', { status: 'NOTIFICADO_PENDIENTE', source: 'Modal_Cerrar_X' });
                         setShowContractNotification(false);
                     }}
                     footer={
@@ -464,22 +469,29 @@ function App() {
                                 style={{ flex: 1, justifyContent: 'center' }} 
                                 onClick={async () => {
                                     localStorage.setItem('velocce_contract_modal_dismissed', Date.now().toString());
-                                    await logAudit('Visto Alerta de Políticas', { status: 'NOTIFICADO_PENDIENTE', source: 'Boton_Leer_Mas_Tarde' });
+                                    await logAudit('Visto Alerta de Pago Admin', { status: 'NOTIFICADO_PENDIENTE', source: 'Boton_Recordar_Luego' });
                                     setShowContractNotification(false);
                                 }}
                             >
-                                Leer Más Tarde
+                                Recordar Más Tarde
                             </button>
                             <button 
                                 className="btn btn-primary" 
-                                style={{ flex: 1.5, justifyContent: 'center' }}
+                                style={{ 
+                                    flex: 1.5, 
+                                    justifyContent: 'center', 
+                                    background: 'var(--warning)', 
+                                    borderColor: 'var(--warning)', 
+                                    color: '#000', 
+                                    fontWeight: 800 
+                                }}
                                 onClick={async () => {
                                     handleNavigate('membership');
-                                    await logAudit('Lectura de Contrato Completo', { status: 'LEYENDO_POLITICAS', source: 'Boton_Ver_Politicas' });
+                                    await logAudit('Acceso a Licencia y Firma', { status: 'REVISANDO_CONTRATO', source: 'Boton_Ver_Licencia' });
                                     setShowContractNotification(false);
                                 }}
                             >
-                                <Icon name="gavel" size={16} /> Ver Políticas y Firmar
+                                <Icon name="gavel" size={16} /> Ver Licencia y Regularizar
                             </button>
                         </div>
                     }
@@ -487,34 +499,37 @@ function App() {
                     <div style={{ padding: '10px 0', textAlign: 'center' }}>
                         <div style={{ 
                             width: 64, height: 64, borderRadius: '50%', 
-                            background: 'rgba(var(--primary-rgb), 0.1)', 
+                            background: 'rgba(245, 158, 11, 0.15)', 
                             display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                            color: 'var(--primary)', margin: '0 auto 16px auto',
-                            border: '1px solid rgba(var(--primary-rgb), 0.2)'
+                            color: 'var(--warning)', margin: '0 auto 16px auto',
+                            border: '1px solid rgba(245, 158, 11, 0.3)'
                         }}>
-                            <Icon name="policy" size={32} />
+                            <Icon name="warning" size={34} />
                         </div>
-                        <h3 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 800 }}>Términos del Servicio VELOCCE PRO</h3>
-                        <p style={{ color: 'var(--text-muted)', fontSize: 13.5, lineHeight: 1.6, marginBottom: 16 }}>
-                            Hola, <strong>{user.name}</strong>. Informamos que a partir de <strong>Agosto de 2026</strong> entrará en vigencia formal el alquiler del software bajo la modalidad <strong>SaaS (Software como Servicio)</strong>.
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: 19, fontWeight: 800, color: 'var(--warning)' }}>
+                            Aviso Importante para la Administración
+                        </h3>
+                        <p style={{ color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+                            Hola, <strong>{user.name}</strong>. Les recordamos que deben terminar de abonar el dinero pendiente de la plataforma dentro de la fecha límite estipulada.
                         </p>
                         <div style={{ 
-                            background: 'rgba(0,0,0,0.2)', 
-                            border: '1px solid var(--border)', 
+                            background: 'rgba(245, 158, 11, 0.08)', 
+                            border: '1px solid rgba(245, 158, 11, 0.3)', 
                             borderRadius: 'var(--radius)', 
-                            padding: '12px 16px', 
-                            fontSize: 13, 
+                            padding: '16px', 
+                            fontSize: 13.5, 
                             textAlign: 'left', 
-                            lineHeight: 1.5,
+                            lineHeight: 1.6,
                             marginBottom: 16,
-                            color: 'var(--text-secondary)'
+                            color: 'var(--text-primary)'
                         }}>
-                            • <strong>Costo Mensual:</strong> 100 USD (período adelantado del 1 al 10 de cada mes).<br />
-                            • <strong>Seguridad y Portabilidad:</strong> Tus datos están resguardados y puedes exportarlos en Excel cuando lo desees.<br />
-                            • <strong>Mora y Suspensión:</strong> La falta de pago generará la suspensión temporal de los accesos.
+                            <strong style={{ color: 'var(--warning)', display: 'block', marginBottom: 6, fontSize: 14 }}>
+                                ⚠️ CONDICIONES DE VENCIMIENTO DEL ACUERDO:
+                            </strong>
+                            En caso de no completarse el saldo pendiente dentro de la fecha límite, el acuerdo promocional previo vencerá automáticamente y la licencia se rediseñará al <strong>Plan Mensual de 100 USD mensuales</strong>, fijando indefectiblemente como fecha límite de pago del <strong>1 al 5 de cada mes</strong>.
                         </div>
                         <p style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
-                            Es obligatorio que el Administrador revise y firme digitalmente el acuerdo virtual en la sección de membresía para garantizar la continuidad del servicio.
+                            Ingresá a la sección de membresía para revisar el acuerdo vinculante o resguardar tu información en Excel.
                         </p>
                     </div>
                 </Modal>
