@@ -96,12 +96,9 @@ function App() {
 
     // --- ESTADO PARA ANUNCIO DE CONTRATO Y ABONO (SOLO ADMIN PENDIENTE) ---
     const [showContractNotification, setShowContractNotification] = useState(() => {
-        const lastDismiss = localStorage.getItem('velocce_contract_modal_dismissed');
-        if (lastDismiss) {
-            const elapsed = Date.now() - parseInt(lastDismiss);
-            if (elapsed < 24 * 60 * 60 * 1000) { // 24hs cooldown
-                return false;
-            }
+        const sessionDismiss = sessionStorage.getItem('velocce_contract_modal_dismissed_session');
+        if (sessionDismiss === 'true') {
+            return false;
         }
         return true;
     });
@@ -458,7 +455,7 @@ function App() {
                 <Modal 
                     title="⚠️ Recordatorio de Saldo Pendiente y Términos de Licencia" 
                     onClose={async () => {
-                        localStorage.setItem('velocce_contract_modal_dismissed', Date.now().toString());
+                        sessionStorage.setItem('velocce_contract_modal_dismissed_session', 'true');
                         await logAudit('Visto Alerta de Pago Admin', { status: 'NOTIFICADO_PENDIENTE', source: 'Modal_Cerrar_X' });
                         setShowContractNotification(false);
                     }}
@@ -468,7 +465,7 @@ function App() {
                                 className="btn btn-ghost" 
                                 style={{ flex: 1, justifyContent: 'center' }} 
                                 onClick={async () => {
-                                    localStorage.setItem('velocce_contract_modal_dismissed', Date.now().toString());
+                                    sessionStorage.setItem('velocce_contract_modal_dismissed_session', 'true');
                                     await logAudit('Visto Alerta de Pago Admin', { status: 'NOTIFICADO_PENDIENTE', source: 'Boton_Recordar_Luego' });
                                     setShowContractNotification(false);
                                 }}
