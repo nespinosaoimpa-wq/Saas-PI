@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { Icon, Modal, FormField } from '../components/ui';
-import { currentCompanyId } from '../lib/supabase';
+import { currentCompanyId, rawSupabaseClient } from '../lib/supabase';
 
 export function LoginPage() {
     const { employees, login, loginMaster, loading } = useAuth();
@@ -200,64 +200,96 @@ export function LoginPage() {
                     zIndex: 1,
                     marginBottom: '40px'
                 }}>
-                    {employees.map(emp => (
-                        <button key={emp.id} className="card" style={{
-                            padding: 'clamp(20px, 3vh, 32px) 20px',
-                            textAlign: 'center',
-                            cursor: 'pointer',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                            background: 'rgba(255,255,255,0.04)',
-                            borderRadius: '24px',
-                            backdropFilter: 'blur(16px)',
-                            color: '#ffffff',
-                            boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}
-                            onClick={() => handleEmployeeClick(emp)}
-                            onMouseOver={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.borderColor = 'rgba(var(--primary-rgb), 0.5)';
-                                e.currentTarget.style.transform = 'translateY(-6px)';
-                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.5)';
-                            }}
-                            onMouseOut={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
-                            }}
-                        >
-                            <div style={{
-                                width: 'clamp(56px, 8vh, 72px)',
-                                height: 'clamp(56px, 8vh, 72px)',
-                                borderRadius: '18px',
-                                background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.2), rgba(var(--accent-rgb), 0.2))',
+                    {employees.length > 0 ? (
+                        employees.map(emp => (
+                            <button key={emp.id} className="card" style={{
+                                padding: 'clamp(20px, 3vh, 32px) 20px',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                background: 'rgba(255,255,255,0.04)',
+                                borderRadius: '24px',
+                                backdropFilter: 'blur(16px)',
+                                color: '#ffffff',
+                                boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
                                 display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                marginBottom: '16px',
-                                border: '1px solid rgba(var(--primary-rgb), 0.2)'
-                            }}>
-                                <Icon name="person" size={32} style={{ color: 'var(--primary)' }} />
-                            </div>
-                            <h3 style={{ margin: '0 0 6px 0', fontSize: 'clamp(14px, 1.6vh, 17px)', fontWeight: 800, color: '#ffffff', letterSpacing: -0.3 }}>{emp.name}</h3>
-                            <div style={{
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                color: 'var(--primary)',
-                                textTransform: 'uppercase',
-                                letterSpacing: 1.2,
-                                background: 'rgba(var(--primary-rgb), 0.15)',
-                                padding: '3px 10px',
-                                borderRadius: '6px'
-                            }}>
-                                {emp.role}
-                            </div>
-                        </button>
-                    ))}
+                                flexDirection: 'column',
+                                alignItems: 'center'
+                            }}
+                                onClick={() => handleEmployeeClick(emp)}
+                                onMouseOver={e => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                    e.currentTarget.style.borderColor = 'rgba(var(--primary-rgb), 0.5)';
+                                    e.currentTarget.style.transform = 'translateY(-6px)';
+                                    e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.5)';
+                                }}
+                                onMouseOut={e => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+                                }}
+                            >
+                                <div style={{
+                                    width: 'clamp(56px, 8vh, 72px)',
+                                    height: 'clamp(56px, 8vh, 72px)',
+                                    borderRadius: '18px',
+                                    background: 'linear-gradient(135deg, rgba(var(--primary-rgb), 0.2), rgba(var(--accent-rgb), 0.2))',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginBottom: '16px',
+                                    border: '1px solid rgba(var(--primary-rgb), 0.2)'
+                                }}>
+                                    <Icon name="person" size={32} style={{ color: 'var(--primary)' }} />
+                                </div>
+                                <h3 style={{ margin: '0 0 6px 0', fontSize: 'clamp(14px, 1.6vh, 17px)', fontWeight: 800, color: '#ffffff', letterSpacing: -0.3 }}>{emp.name}</h3>
+                                <div style={{
+                                    fontSize: '10px',
+                                    fontWeight: 800,
+                                    color: 'var(--primary)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 1.2,
+                                    background: 'rgba(var(--primary-rgb), 0.15)',
+                                    padding: '3px 10px',
+                                    borderRadius: '6px'
+                                }}>
+                                    {emp.role}
+                                </div>
+                            </button>
+                        ))
+                    ) : (
+                        <div style={{
+                            gridColumn: '1 / -1',
+                            padding: '36px 24px',
+                            textAlign: 'center',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            borderRadius: '24px',
+                            border: '1px dashed rgba(255, 255, 255, 0.15)',
+                            color: '#ffffff',
+                            backdropFilter: 'blur(12px)'
+                        }}>
+                            {!rawSupabaseClient ? (
+                                <>
+                                    <Icon name="warning" size={40} style={{ color: 'var(--warning)', marginBottom: 12 }} />
+                                    <h4 style={{ margin: '0 0 8px 0', fontWeight: 800, fontSize: 18 }}>Sin conexión a Supabase</h4>
+                                    <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+                                        No se detectaron las credenciales de Supabase.<br />
+                                        Verifica las variables <code>VITE_SUPABASE_URL</code> y <code>VITE_SUPABASE_ANON_KEY</code> en Vercel y haz un <strong>Redeploy</strong>.
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <Icon name="group" size={40} style={{ color: 'var(--primary)', marginBottom: 12 }} />
+                                    <h4 style={{ margin: '0 0 8px 0', fontWeight: 800, fontSize: 18 }}>Sin empleados registrados</h4>
+                                    <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+                                        Conexión a Supabase exitosa, pero no se encontraron tarjetas de empleados activos para la empresa <code>{currentCompanyId}</code>.
+                                    </p>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Modal Fichaje (Copy from App.jsx logic) */}
