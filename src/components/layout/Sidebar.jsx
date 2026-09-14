@@ -31,27 +31,16 @@ export function Sidebar({
 
     return (
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-            <div className="sidebar-brand" onClick={handleLogoClick} style={{ cursor: 'default', userSelect: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div className="sidebar-brand-icon" style={{
-                    background: 'linear-gradient(135deg, #74acdf, #ffffff, #74acdf)',
-                    boxShadow: '0 4px 12px rgba(116, 172, 223, 0.4)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
-                    <Icon name="sports_soccer" style={{ color: '#0c1222' }} />
+            <div className="sidebar-brand" onClick={handleLogoClick} style={{ cursor: 'default', userSelect: 'none' }}>
+                <div className="sidebar-brand-icon">
+                    <Icon name="precision_manufacturing" />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', gap: '2px', color: '#f1c40f', marginBottom: '2px', lineHeight: 1 }}>
-                        <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
-                        <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
-                        <span className="material-symbols-outlined mundial-star" style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}>star</span>
-                    </div>
-                    <h1 style={{ fontSize: '16px', margin: 0 }}>
-                        VELOCCE{' '}
-                        <strong style={{ background: 'linear-gradient(135deg, #74acdf, #f1c40f)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>
-                            {currentCompanyId === 'piripi' ? 'SANTA FE' : currentCompanyId.toUpperCase()}
-                        </strong>
-                    </h1>
-                </div>
+                <h1>
+                    VELOCCE{' '}
+                    <strong>
+                        {currentCompanyId === 'piripi' ? 'SANTA FE' : currentCompanyId.toUpperCase()}
+                    </strong>
+                </h1>
             </div>
 
             <nav className="sidebar-nav">
