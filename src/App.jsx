@@ -28,6 +28,8 @@ import { useNavigation } from './hooks/useNavigation';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { LockScreen } from './components/LockScreen';
+import { InvalidLinkScreen } from './components/InvalidLinkScreen';
+import { currentCompanyId } from './lib/supabase';
 
 const PAGES = {
     dashboard: DashboardPage,
@@ -54,11 +56,29 @@ function App() {
     const { data: MOCK, timeTrackingLogs, addTimeLog, isSyncing, companyStatus, logAudit } = useApp();
     const { user } = useAuth();
 
+    // 1. Verificación de Dominio Autorizado (El único enlace válido de producción es velocce-saas.vercel.app)
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost');
+    const isOfficialDomain = hostname === 'velocce-saas.vercel.app';
+    const isDomainValid = !hostname || isLocalhost || isOfficialDomain;
+
+    if (!isDomainValid) {
+        return <InvalidLinkScreen currentHost={hostname} />;
+    }
+
+    // 2. Control de Bloqueo por Falta de Pago (Piripi) y Reactivación por Código
     const isMasterAdmin = user && user.id === 'saas-master';
-    const isSuspended = companyStatus && companyStatus.is_active === false;
+    const isDelinquent = currentCompanyId === 'piripi';
+    const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`) === 'true';
+    const isSuspended = (companyStatus && companyStatus.is_active === false) || (isDelinquent && !isUnlocked);
 
     if (isSuspended && !isMasterAdmin) {
-        return <LockScreen message="El acceso a la plataforma se encuentra temporalmente suspendido debido a saldo pendiente de facturación. Para restablecer el servicio o realizar consultas de pagos, contáctate con soporte técnico de SmartFlow Digital." />;
+        return (
+            <LockScreen
+                message="El acceso a la plataforma se encuentra temporalmente suspendido debido a saldo pendiente de facturación e incumplimiento de pago. Para regularizar la situación o solicitar el código de reactivación, comuníquese con el desarrollador."
+                onUnlock={() => window.location.reload()}
+            />
+        );
     }
     
     // Custom Navigation Hook

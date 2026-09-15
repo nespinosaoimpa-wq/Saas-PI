@@ -85,8 +85,14 @@ export const AppProvider = ({ children }) => {
         workOrderItems: [],
         clientCredits: []
     });
-    const [loading, setLoading] = useState(true);
-    const [companyStatus, setCompanyStatus] = useState({ is_active: true, contract_accepted: false });
+    const isUnlockedLocally = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`) === 'true';
+    const isDelinquentCompany = currentCompanyId === 'piripi';
+    const initialIsActive = isDelinquentCompany ? isUnlockedLocally : true;
+
+    const [companyStatus, setCompanyStatus] = useState({ 
+        is_active: initialIsActive, 
+        contract_accepted: false 
+    });
     const [isSyncing, setIsSyncing] = useState(false);
 
     // ==========================================
@@ -357,8 +363,11 @@ export const AppProvider = ({ children }) => {
             });
             // Consultar metadata de la empresa (Sujeto a no aislamiento)
             const localAccepted = localStorage.getItem(`contract_accepted_${currentCompanyId}`) === 'true';
+            const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`) === 'true';
+            const isDelinquent = currentCompanyId === 'piripi';
+
             let companyInfo = { 
-                is_active: true, 
+                is_active: isDelinquent ? isUnlocked : true, 
                 contract_accepted: localAccepted,
                 contract_accepted_by: localStorage.getItem(`contract_accepted_by_${currentCompanyId}`) || null,
                 contract_accepted_at: localStorage.getItem(`contract_accepted_at_${currentCompanyId}`) || null
@@ -373,8 +382,9 @@ export const AppProvider = ({ children }) => {
                 if (compErr) throw compErr;
                 
                 if (compData) {
+                    const resolvedActive = isDelinquent ? (isUnlocked || compData.is_active === true) : compData.is_active;
                     companyInfo = {
-                        is_active: compData.is_active,
+                        is_active: resolvedActive,
                         contract_accepted: compData.contract_accepted || localAccepted,
                         contract_accepted_by: compData.contract_accepted_by || companyInfo.contract_accepted_by,
                         contract_accepted_at: compData.contract_accepted_at || companyInfo.contract_accepted_at
@@ -385,6 +395,9 @@ export const AppProvider = ({ children }) => {
             }
             if (localAccepted) {
                 companyInfo.contract_accepted = true;
+            }
+            if (isDelinquent && !isUnlocked && (!companyInfo.is_active || companyInfo.is_active !== true)) {
+                companyInfo.is_active = false;
             }
             setCompanyStatus(companyInfo);
 
