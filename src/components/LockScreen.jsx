@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { rawSupabaseClient } from '../lib/supabase';
 
 // Códigos de desbloqueo autorizados para entregar al cliente cuando regularice su pago
 const VALID_UNLOCK_CODES = [
@@ -31,7 +32,7 @@ export const LockScreen = ({ message, onUnlock }) => {
         }
     };
 
-    const handleVerifyCode = (e) => {
+    const handleVerifyCode = async (e) => {
         e.preventDefault();
         setUnlockError('');
         const cleanCode = unlockCode.trim().toUpperCase();
@@ -46,6 +47,18 @@ export const LockScreen = ({ message, onUnlock }) => {
             localStorage.setItem('velocce_license_unlocked_piripi', 'true');
             localStorage.setItem('velocce_license_unlocked_at', new Date().toISOString());
             
+            // Reactivar empleados en la base de datos en tiempo real
+            try {
+                if (rawSupabaseClient) {
+                    await rawSupabaseClient
+                        .from('employees')
+                        .update({ is_active: true })
+                        .eq('company_id', 'piripi');
+                }
+            } catch (err) {
+                console.error('Error reactivando empleados en BD:', err);
+            }
+
             setTimeout(() => {
                 if (onUnlock) {
                     onUnlock();
