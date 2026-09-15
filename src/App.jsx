@@ -69,7 +69,13 @@ function App() {
     // 2. Control de Bloqueo por Falta de Pago (Piripi) y Reactivación por Código
     const isMasterAdmin = user && user.id === 'saas-master';
     const isDelinquent = currentCompanyId === 'piripi';
-    const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`) === 'true';
+    
+    // Limpieza de versión previa de prueba
+    if (typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`)) {
+        localStorage.removeItem(`velocce_license_unlocked_${currentCompanyId}`);
+    }
+
+    const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v2`) === 'true';
     const isSuspended = (companyStatus && companyStatus.is_active === false) || (isDelinquent && !isUnlocked);
 
     if (isSuspended && !isMasterAdmin) {

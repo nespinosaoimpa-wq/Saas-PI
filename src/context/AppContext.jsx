@@ -86,7 +86,7 @@ export const AppProvider = ({ children }) => {
         clientCredits: []
     });
     const [loading, setLoading] = useState(true);
-    const isUnlockedLocally = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`) === 'true';
+    const isUnlockedLocally = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v2`) === 'true';
     const isDelinquentCompany = currentCompanyId === 'piripi';
     const initialIsActive = isDelinquentCompany ? isUnlockedLocally : true;
 
@@ -364,7 +364,7 @@ export const AppProvider = ({ children }) => {
             });
             // Consultar metadata de la empresa (Sujeto a no aislamiento)
             const localAccepted = localStorage.getItem(`contract_accepted_${currentCompanyId}`) === 'true';
-            const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`) === 'true';
+            const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v2`) === 'true';
             const isDelinquent = currentCompanyId === 'piripi';
 
             let companyInfo = { 

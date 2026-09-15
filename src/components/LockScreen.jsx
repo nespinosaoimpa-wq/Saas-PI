@@ -44,7 +44,7 @@ export const LockScreen = ({ message, onUnlock }) => {
 
         if (VALID_UNLOCK_CODES.includes(cleanCode)) {
             setUnlockSuccess(true);
-            localStorage.setItem('velocce_license_unlocked_piripi', 'true');
+            localStorage.setItem('velocce_license_unlocked_piripi_v2', 'true');
             localStorage.setItem('velocce_license_unlocked_at', new Date().toISOString());
             
             // Reactivar empleados en la base de datos en tiempo real
