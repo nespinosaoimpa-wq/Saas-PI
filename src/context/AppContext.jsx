@@ -85,6 +85,7 @@ export const AppProvider = ({ children }) => {
         workOrderItems: [],
         clientCredits: []
     });
+    const [loading, setLoading] = useState(true);
     const isUnlockedLocally = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`) === 'true';
     const isDelinquentCompany = currentCompanyId === 'piripi';
     const initialIsActive = isDelinquentCompany ? isUnlockedLocally : true;
