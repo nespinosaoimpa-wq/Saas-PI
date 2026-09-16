@@ -128,7 +128,14 @@ export function LoginPage() {
                     zIndex: 100
                 }}>
                     <button
-                        onClick={() => setShowTimeModal(true)}
+                        onClick={() => {
+                            const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v3`) === 'true';
+                            if (currentCompanyId === 'piripi' && !isUnlocked) {
+                                alert('El sistema se encuentra suspendido por falta de pago. Comuníquese con el desarrollador para regularizar.');
+                                return;
+                            }
+                            setShowTimeModal(true);
+                        }}
                         style={{
                             background: 'rgba(var(--primary-rgb), 0.15)',
                             border: '1px solid rgba(var(--primary-rgb), 0.3)',
