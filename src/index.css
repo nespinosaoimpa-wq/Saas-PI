@@ -200,6 +200,39 @@ h1, h2, h3, h4,
   border: 1px solid rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
   transform: skewX(-5deg);
+  position: relative;
+  overflow: hidden;
+  animation: logo-glow 3.5s infinite ease-in-out;
+}
+
+@keyframes logo-glow {
+  0%, 100% {
+    box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 26px rgba(245, 158, 11, 0.8), 0 0 14px rgba(239, 68, 68, 0.5);
+  }
+}
+
+.sidebar-brand-icon::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -120%;
+  width: 60%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: rotate(25deg);
+  animation: pit-sheen 4s infinite ease-in-out;
+}
+
+@keyframes pit-sheen {
+  0%, 65% {
+    left: -120%;
+  }
+  85%, 100% {
+    left: 200%;
+  }
 }
 
 .sidebar-brand-icon span {
@@ -224,6 +257,63 @@ h1, h2, h3, h4,
   background-clip: text;
   font-weight: 900;
   letter-spacing: 2px;
+}
+
+/* Sidebar Pit Telemetry Status Badge */
+.sidebar-pit-telemetry {
+  margin: 0 14px 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  background: rgba(10, 12, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pit-lights {
+  display: flex;
+  gap: 4px;
+}
+
+.pit-light {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.2s;
+}
+
+.pit-light.green.active {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.9);
+  animation: pit-led-pulse 2s infinite ease-in-out;
+}
+
+.pit-light.yellow.active {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.9);
+  animation: pit-led-pulse 2s infinite ease-in-out 0.4s;
+}
+
+.pit-light.red.active {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.9);
+  animation: pit-led-pulse 2s infinite ease-in-out 0.8s;
+}
+
+@keyframes pit-led-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.pit-status-text {
+  font-family: var(--font-racing);
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 0.8px;
 }
 
 /* Sidebar Navigation */
@@ -257,25 +347,45 @@ h1, h2, h3, h4,
   padding: 9px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   color: var(--text-secondary);
   font-size: 13.5px;
   font-weight: 500;
   position: relative;
   user-select: none;
+  overflow: hidden;
+}
+
+.nav-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.12), transparent);
+  pointer-events: none;
 }
 
 .nav-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.02) 100%);
+  color: #fbbf24;
+  transform: translateX(4px);
+}
+
+.nav-item:hover::after {
+  left: 100%;
+  transition: left 0.5s ease;
 }
 
 .nav-item:hover .material-symbols-outlined {
-  color: var(--text-primary);
+  color: #fbbf24;
+  transform: scale(1.12);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s;
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.16) 0%, rgba(245, 158, 11, 0.02) 100%);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.18) 0%, rgba(245, 158, 11, 0.03) 100%);
   color: #fbbf24;
   font-weight: 700;
 }
@@ -284,23 +394,35 @@ h1, h2, h3, h4,
   content: '';
   position: absolute;
   left: 0;
-  top: 4px;
-  bottom: 4px;
+  top: 3px;
+  bottom: 3px;
   width: 3.5px;
   border-radius: 0 4px 4px 0;
   background: linear-gradient(180deg, #fbbf24, #f59e0b, #ef4444);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.9);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.95);
+  animation: pit-tach-pulse 2s infinite ease-in-out;
+}
+
+@keyframes pit-tach-pulse {
+  0%, 100% {
+    opacity: 0.85;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 1), 0 0 24px rgba(239, 68, 68, 0.5);
+  }
 }
 
 .nav-item .material-symbols-outlined {
   font-size: 20px;
   color: var(--text-muted);
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .nav-item.active .material-symbols-outlined {
   color: #fbbf24;
-  text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
 }
 
 .nav-badge {
@@ -2346,4 +2468,442 @@ h1, h2, h3, h4,
     transform: translateX(0);
   }
 }
+
+/* ============================================================
+   19. RACING PIT STOP TELEMETRY & SCREENSAVER
+   ============================================================ */
+
+/* Ignition Key Sweep on Primary Buttons */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -120%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: rotate(25deg);
+  animation: ignition-sweep 4s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes ignition-sweep {
+  0%, 75% { left: -120%; }
+  90%, 100% { left: 220%; }
+}
+
+/* Header Shift Lights Strip */
+.header-shift-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  display: flex;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.shift-light-segment {
+  flex: 1;
+  height: 100%;
+  opacity: 0.35;
+  transition: opacity 0.2s, box-shadow 0.2s;
+}
+
+.shift-light-segment.green {
+  background: #10b981;
+}
+
+.shift-light-segment.yellow {
+  background: #f59e0b;
+}
+
+.shift-light-segment.red {
+  background: #ef4444;
+}
+
+.shift-light-segment.active {
+  opacity: 1;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.header-btn.pit-mode-btn {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.header-btn.pit-mode-btn:hover {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+/* ---- PIT SCREENSAVER OVERLAY ---- */
+.pit-screensaver-overlay {
+  position: fixed;
+  inset: 0;
+  background: #06070a;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 36px 48px;
+  overflow: hidden;
+  animation: screensaverFadeIn 0.4s ease-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+@keyframes screensaverFadeIn {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.pit-screensaver-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+.pit-screensaver-glow.glow-1 {
+  width: 500px;
+  height: 500px;
+  top: -100px;
+  right: -100px;
+  background: #f59e0b;
+  animation: pulse-glow 6s infinite alternate ease-in-out;
+}
+
+.pit-screensaver-glow.glow-2 {
+  width: 450px;
+  height: 450px;
+  bottom: -100px;
+  left: -100px;
+  background: #ef4444;
+  animation: pulse-glow 5s infinite alternate-reverse ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(0.9); opacity: 0.2; }
+  100% { transform: scale(1.2); opacity: 0.35; }
+}
+
+.pit-screensaver-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(245, 158, 11, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 158, 11, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* Screensaver Header */
+.pit-screensaver-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.pit-brand-badge {
+  font-family: var(--font-racing);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.pit-screensaver-brand h2 {
+  font-family: var(--font-racing);
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+}
+
+.pit-screensaver-brand h2 span {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pit-live-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius-full);
+  font-family: var(--font-racing);
+  font-size: 12px;
+  font-weight: 800;
+  color: #34d399;
+  letter-spacing: 1.2px;
+}
+
+.live-pulsar {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: pulsar 1.5s infinite ease-in-out;
+}
+
+@keyframes pulsar {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.4); }
+}
+
+/* Cockpit Center */
+.pit-screensaver-cockpit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  margin: auto 0;
+}
+
+/* Shift Lights Cluster */
+.pit-shift-lights {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  background: rgba(10, 12, 17, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.shift-led {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.08s ease;
+}
+
+.shift-led.green.on {
+  background: #10b981;
+  box-shadow: 0 0 16px #10b981, 0 0 30px rgba(16, 185, 129, 0.8);
+}
+
+.shift-led.yellow.on {
+  background: #f59e0b;
+  box-shadow: 0 0 16px #f59e0b, 0 0 30px rgba(245, 158, 11, 0.8);
+}
+
+.shift-led.red.on {
+  background: #ef4444;
+  box-shadow: 0 0 18px #ef4444, 0 0 35px rgba(239, 68, 68, 0.9);
+  animation: led-red-alert 0.15s infinite alternate;
+}
+
+@keyframes led-red-alert {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
+/* Dial Tachometer */
+.pit-tachometer {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pit-tach-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-135deg);
+}
+
+.pit-tach-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 10;
+  stroke-dasharray: 440;
+  stroke-dashoffset: 110;
+  stroke-linecap: round;
+}
+
+.pit-tach-fill {
+  fill: none;
+  stroke: url(#pitTachGrad);
+  stroke: #f59e0b;
+  stroke-width: 10;
+  stroke-dasharray: 440;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.08s ease-out;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8));
+}
+
+.pit-tach-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.pit-gear-indicator {
+  font-family: var(--font-racing);
+  font-size: 26px;
+  font-weight: 900;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
+  margin-bottom: 4px;
+}
+
+.pit-rpm-number {
+  font-family: var(--font-racing);
+  font-size: 34px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+}
+
+.pit-rpm-label {
+  font-family: var(--font-racing);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+}
+
+/* Digital Clock */
+.pit-clock-container {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.pit-digital-time {
+  font-family: var(--font-racing);
+  font-size: 64px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 4px;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(245, 158, 11, 0.45);
+}
+
+.pit-digital-date {
+  font-family: var(--font-racing);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+/* Telemetry Readouts */
+.pit-telemetry-readouts {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 36px;
+  padding: 16px 32px;
+  background: rgba(14, 17, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+.pit-readout-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pit-readout-item label {
+  font-family: var(--font-racing);
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 1.2px;
+}
+
+.pit-readout-item strong {
+  font-family: var(--font-racing);
+  font-size: 22px;
+  font-weight: 900;
+  color: #fbbf24;
+}
+
+.pit-readout-item strong span {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.pit-readout-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Screensaver Footer */
+.pit-screensaver-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.pit-exit-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-racing);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  animation: exit-prompt-pulse 2s infinite ease-in-out;
+}
+
+@keyframes exit-prompt-pulse {
+  0%, 100% { opacity: 0.5; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
 

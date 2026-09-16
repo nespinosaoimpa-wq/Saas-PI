@@ -43,6 +43,16 @@ export function Sidebar({
                 </h1>
             </div>
 
+            <div className="sidebar-pit-telemetry">
+                <div className="pit-lights">
+                    <span className="pit-light green active" title="Box 1 Operativo" />
+                    <span className="pit-light green active" title="Box 2 Operativo" />
+                    <span className="pit-light yellow active" title="Telemetría En Vivo" />
+                    <span className="pit-light red" title="Sin Alertas" />
+                </div>
+                <span className="pit-status-text">PIT LANE // BOX ACTIVO</span>
+            </div>
+
             <nav className="sidebar-nav">
                 {navItems.map((item, i) => {
                     if (item.section) {

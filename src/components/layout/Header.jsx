@@ -9,10 +9,21 @@ export function Header({
     showTimeModal, 
     showCameraScanner, 
     onNewWorkOrder,
-    showNewWOButton
+    showNewWOButton,
+    onOpenScreensaver
 }) {
     return (
         <header className="header">
+            {/* Tira superior de Shift-Lights F1 */}
+            <div className="header-shift-strip">
+                <span className="shift-light-segment green active" />
+                <span className="shift-light-segment green active" />
+                <span className="shift-light-segment green active" />
+                <span className="shift-light-segment yellow active" />
+                <span className="shift-light-segment yellow" />
+                <span className="shift-light-segment red" />
+            </div>
+
             <div className="header-left">
                 <button
                     className="btn-icon mobile-menu"
@@ -38,6 +49,14 @@ export function Header({
                 )}
             </div>
             <div className="header-actions">
+                <button 
+                    className="header-btn pit-mode-btn" 
+                    onClick={onOpenScreensaver}
+                    title="Activar Salvapantallas / Telemetría de Boxes"
+                >
+                    <Icon name="speed" size={16} />
+                    <span>Modo Box</span>
+                </button>
                 <button className="notif-btn">
                     <Icon name="notifications" size={20} />
                     <span className="notif-dot" />

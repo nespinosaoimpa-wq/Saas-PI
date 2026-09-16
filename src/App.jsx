@@ -3,7 +3,7 @@ import { supabase } from './lib/supabase';
 import { useApp } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
-import { Icon, Modal, FormField, CameraScanner } from './components/ui';
+import { Icon, Modal, FormField, CameraScanner, PitScreensaver } from './components/ui';
 import { useBarcodeScanner } from './hooks/useBarcodeScanner';
 import { formatCurrency } from './data/data';
 import { DashboardPage } from './pages/DashboardPage';
@@ -116,7 +116,30 @@ function App() {
     const [showWelcomeBanner, setShowWelcomeBanner] = useState(() => {
         return !isContractAccepted && localStorage.getItem('velocce_welcome_dismissed') !== 'true';
     });
-    
+
+    // --- SALVAPANTALLAS / MODO BOX DE CARRERA (Inactividad 3 min o botón manual) ---
+    const [isScreensaverOpen, setIsScreensaverOpen] = useState(false);
+
+    React.useEffect(() => {
+        let idleTimer;
+        const resetIdleTimer = () => {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                if (user) {
+                    setIsScreensaverOpen(true);
+                }
+            }, 180000); // 3 minutos de inactividad
+        };
+
+        const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+        activityEvents.forEach(evt => window.addEventListener(evt, resetIdleTimer, { passive: true }));
+        resetIdleTimer();
+
+        return () => {
+            clearTimeout(idleTimer);
+            activityEvents.forEach(evt => window.removeEventListener(evt, resetIdleTimer));
+        };
+    }, [user]);
 
     // --- ESTADO PARA ANUNCIO DE CONTRATO Y ABONO (SOLO ADMIN PENDIENTE) ---
     const [showContractNotification, setShowContractNotification] = useState(() => {
@@ -292,6 +315,7 @@ function App() {
                     showCameraScanner={() => setShowCameraScanner(true)}
                     onNewWorkOrder={() => handleNavigate('work_orders')}
                     showNewWOButton={isVisible('work_orders')}
+                    onOpenScreensaver={() => setIsScreensaverOpen(true)}
                 />
 
                 <PageComponent
@@ -510,6 +534,12 @@ function App() {
                     </div>
                 </Modal>
             )}
+
+            {/* Salvapantallas / Telemetría de Boxes en Inactividad */}
+            <PitScreensaver 
+                isOpen={isScreensaverOpen} 
+                onClose={() => setIsScreensaverOpen(false)} 
+            />
         </div>
     );
 }

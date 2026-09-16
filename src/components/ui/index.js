@@ -1,4 +1,4 @@
-﻿export { Icon } from './Icon';
+export { Icon } from './Icon';
 export { GlassCard } from './GlassCard';
 export { StatCard } from './StatCard';
 export { MiniBarChart } from './MiniBarChart';
@@ -18,3 +18,4 @@ export { PrintableTicket } from './PrintableTicket';
 export { CameraScanner } from './CameraScanner';
 export { PrintableClosing } from './PrintableClosing';
 export { PrintableSaleTicket } from './PrintableSaleTicket';
+export { PitScreensaver } from './PitScreensaver';
