@@ -1,6 +1,6 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, useMemo, Fragment } from 'react';
 import { useSubmitGuard } from '../hooks/useSubmitGuard';
-import { formatCurrency } from '../data/data';
+import { formatCurrency, getCurrentWeekRange, getCurrentMonthRange, getMonthRange, getWeekRange, extractItemDateStr } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -20,6 +20,12 @@ export const CashRegisterPage = () => {
     const { data: MOCK, addPayment, updatePayment, deletePayment, performCashClose, addWithdrawal, getCommissions, exportToExcel, updateAssignmentCommission } = useApp();
     const { user, employees } = useAuth();
     const [period, setPeriod] = useState('daily');
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    });
+    const [weekOffset, setWeekOffset] = useState(0);
     const [showNew, setShowNew] = useState(false);
     const [showWithdrawal, setShowWithdrawal] = useState(false);
     const [showClose, setShowClose] = useState(false);
@@ -180,36 +186,34 @@ export const CashRegisterPage = () => {
 
     const currentExpectedCash = cash + startingBalance;
 
-    const getLocalDateString = (daysAgo = 0) => {
-        const d = new Date();
-        d.setDate(d.getDate() - daysAgo);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
+    // Available months extracted from all recorded payments in the system
+    const availableMonths = useMemo(() => {
+        const set = new Set();
+        (MOCK.payments || []).forEach(p => {
+            const d = extractItemDateStr(p);
+            if (d && d.length >= 7) set.add(d.slice(0, 7));
+        });
+        const nowStr = new Date().toLocaleDateString('en-CA').slice(0, 7);
+        set.add(nowStr);
+        return Array.from(set).sort((a, b) => b.localeCompare(a));
+    }, [MOCK.payments]);
 
-    const getItemDate = (p) => {
-        if (p.date) return String(p.date).split('T')[0];
-        if (p.payment_date) return String(p.payment_date).split('T')[0];
-        if (p.created_at) return String(p.created_at).split('T')[0];
-        return '';
-    };
+    const weekRange = getWeekRange(new Date(), weekOffset);
+    const monthRange = getMonthRange(selectedMonth);
 
-    const weekAgo = getLocalDateString(7);
-    const monthAgo = getLocalDateString(30);
-
-    // Daily: unclosed payments for current shift. Weekly: last 7 days. Monthly: last 30 days.
+    // Daily: unclosed payments for current shift (from cash register opening to close)
+    // Weekly: Monday to Sunday of selected week
+    // Monthly: Day 1 to last day of selected month (e.g. Septiembre, Agosto, Julio...)
     const allPayments = period === 'daily' 
         ? todayPayments
         : period === 'weekly' 
-            ? MOCK.payments.filter(p => {
-                const d = getItemDate(p);
-                return d && d >= weekAgo;
+            ? (MOCK.payments || []).filter(p => {
+                const d = extractItemDateStr(p);
+                return d && d >= weekRange.start && d <= weekRange.end;
               })
-            : MOCK.payments.filter(p => {
-                const d = getItemDate(p);
-                return d && d >= monthAgo;
+            : (MOCK.payments || []).filter(p => {
+                const d = extractItemDateStr(p);
+                return d && d >= monthRange.start && d <= monthRange.end;
               });
 
     const totalPeriod = allPayments.reduce((s, p) => s + p.amount, 0);
@@ -217,13 +221,17 @@ export const CashRegisterPage = () => {
     const transferPeriod = allPayments.filter(p => (p.method || p.payment_method) === 'TRANSFERENCIA').reduce((s, p) => s + p.amount, 0);
     const cardPeriod = allPayments.filter(p => ['TARJETA', 'DEBITO', 'CREDITO'].includes(p.method || p.payment_method)).reduce((s, p) => s + p.amount, 0);
 
-    const periodLabel = period === 'daily' ? 'Turno' : period === 'weekly' ? 'Últimos 7 Días' : 'Últimos 30 Días';
+    const periodLabel = period === 'daily' 
+        ? 'Turno Actual' 
+        : period === 'weekly' 
+            ? `Semana del ${weekRange.label} (Lun - Dom)` 
+            : `Mes de ${monthRange.label} (01/${monthRange.start.slice(5, 7)} al ${monthRange.end.slice(8)}/${monthRange.end.slice(5, 7)})`;
 
     return (
         <div className="page-content">
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Tabs tabs={[{ key: 'daily', label: 'Diario' }, { key: 'weekly', label: 'Semanal' }, { key: 'monthly', label: 'Mensual' }]} active={period} onChange={setPeriod} />
+                    <Tabs tabs={[{ key: 'daily', label: 'Diario (Turno)' }, { key: 'weekly', label: 'Semanal (Lun - Dom)' }, { key: 'monthly', label: 'Mensual (Elegir Mes)' }]} active={period} onChange={setPeriod} />
                     <div style={{ flex: 1 }} />
                     <button className="btn btn-ghost" onClick={() => exportToExcel('payments')} title="Exportar reporte de movimientos en Excel">
                         <Icon name="download" size={18} /> Exportar Excel
@@ -233,8 +241,85 @@ export const CashRegisterPage = () => {
                     <button className="btn btn-primary" onClick={() => setShowNew(true)} title="Registrar un ingreso de dinero manual"><Icon name="add" size={18} /> Registrar Ingreso</button>
                 </div>
 
+                {/* Sub-toolbar para Navegación de Semanas */}
+                {period === 'weekly' && (
+                    <div className="glass-card" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'var(--bg-surface)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Icon name="date_range" size={20} style={{ color: 'var(--primary)' }} />
+                            <span style={{ fontSize: 13, fontWeight: 700 }}>Semana:</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)' }}>{weekRange.label} (Lunes a Domingo)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button 
+                                className="btn btn-sm btn-ghost" 
+                                onClick={() => setWeekOffset(prev => prev - 1)}
+                                title="Ver semana anterior"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                                <Icon name="chevron_left" size={16} /> Semana Ant.
+                            </button>
+                            {weekOffset !== 0 && (
+                                <button 
+                                    className="btn btn-sm btn-ghost" 
+                                    onClick={() => setWeekOffset(0)}
+                                    style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)' }}
+                                >
+                                    Semana Actual
+                                </button>
+                            )}
+                            <button 
+                                className="btn btn-sm btn-ghost" 
+                                onClick={() => setWeekOffset(prev => prev + 1)}
+                                disabled={weekOffset >= 0}
+                                title="Ver semana siguiente"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, opacity: weekOffset >= 0 ? 0.35 : 1 }}
+                            >
+                                Semana Sig. <Icon name="chevron_right" size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Sub-toolbar para Selección de Meses */}
+                {period === 'monthly' && (
+                    <div className="glass-card" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', background: 'var(--bg-surface)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Icon name="calendar_month" size={20} style={{ color: 'var(--primary)' }} />
+                                <span style={{ fontSize: 13, fontWeight: 700 }}>Mes de Balance:</span>
+                            </div>
+                            <select 
+                                value={selectedMonth} 
+                                onChange={e => setSelectedMonth(e.target.value)}
+                                style={{ 
+                                    padding: '7px 14px', 
+                                    borderRadius: 'var(--radius-sm)', 
+                                    border: '1px solid var(--border)', 
+                                    background: 'var(--bg-card)', 
+                                    color: 'var(--text-primary)', 
+                                    fontSize: 13, 
+                                    fontWeight: 700, 
+                                    cursor: 'pointer' 
+                                }}
+                            >
+                                {availableMonths.map(m => {
+                                    const r = getMonthRange(m);
+                                    return (
+                                        <option key={m} value={m}>
+                                            {r.label} (del 01 al {r.end.slice(8)})
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                            Periodo exacto: <strong>01/{monthRange.start.slice(5, 7)}/{monthRange.year}</strong> al <strong>{monthRange.end.slice(8)}/{monthRange.end.slice(5, 7)}/{monthRange.year}</strong> (mes completo)
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid-auto-cards">
-                    <StatCard icon="payments" label={`Total ${period === 'daily' ? 'Turno' : period === 'weekly' ? 'Semana (7 días)' : 'Mes (30 días)'}`} value={formatCurrency(totalPeriod)} sub={`${allPayments.length} operaciones`} barPercent={75} />
+                    <StatCard icon="payments" label={`Total ${period === 'daily' ? 'Turno Actual' : period === 'weekly' ? 'Semana (Lun - Dom)' : 'Mes (Día 1 al último)'}`} value={formatCurrency(totalPeriod)} sub={`${allPayments.length} operaciones (${periodLabel})`} barPercent={75} />
                     <StatCard icon="account_balance_wallet" label={period === 'daily' ? "Caja Esperada" : "Efectivo Total"} value={formatCurrency(period === 'daily' ? currentExpectedCash : cashPeriod)} sub={period === 'daily' ? `Saldo anterior: ${formatCurrency(startingBalance)}` : periodLabel} barPercent={period === 'daily' ? (currentExpectedCash > 0 ? 100 : 0) : (cashPeriod > 0 ? 100 : 0)} barAlert />
                     <StatCard icon="swap_horiz" label="Transferencias" value={formatCurrency(transferPeriod)} sub={periodLabel} barPercent={transferPeriod > 0 ? 100 : 0} />
                     <StatCard icon="credit_card" label="Tarjeta / Débito / Crédito" value={formatCurrency(cardPeriod)} sub={periodLabel} barPercent={cardPeriod > 0 ? 100 : 0} />

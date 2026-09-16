@@ -139,3 +139,61 @@ export const getStatusBadge = (status) => {
   const map = { 'Pendiente': 'badge-pending', 'En Box': 'badge-active', 'Finalizado': 'badge-done', 'Cancelado': 'badge-canceled', 'Programado': 'badge-pending', 'Confirmado': 'badge-active', 'En Curso': 'badge-active', 'Completado': 'badge-done' };
   return map[status] || 'badge-pending';
 };
+
+// Date range helpers for accurate revenue calculations
+export const getWeekRange = (refDate = new Date(), weekOffset = 0) => {
+  const d = new Date(refDate);
+  d.setDate(d.getDate() + (weekOffset * 7));
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+  // Monday: if Sunday (0) go back 6 days, else 1 - day
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  
+  const pad = (n) => String(n).padStart(2, '0');
+  const startStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
+  const endStr = `${sunday.getFullYear()}-${pad(sunday.getMonth() + 1)}-${pad(sunday.getDate())}`;
+  const label = `${pad(monday.getDate())}/${pad(monday.getMonth() + 1)} al ${pad(sunday.getDate())}/${pad(sunday.getMonth() + 1)}`;
+  
+  return { start: startStr, end: endStr, monday, sunday, label };
+};
+
+export const getCurrentWeekRange = (refDate = new Date()) => getWeekRange(refDate, 0);
+
+export const getMonthRange = (param = new Date()) => {
+  let year, month;
+  if (typeof param === 'string' && param.includes('-')) {
+    const parts = param.split('-');
+    year = parseInt(parts[0], 10);
+    month = parseInt(parts[1], 10) - 1; // 0-indexed
+  } else {
+    const d = new Date(param);
+    year = d.getFullYear();
+    month = d.getMonth();
+  }
+  const lastDay = new Date(year, month + 1, 0); // Last day of month
+  
+  const pad = (n) => String(n).padStart(2, '0');
+  const startStr = `${year}-${pad(month + 1)}-01`;
+  const endStr = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
+  const monthPrefix = `${year}-${pad(month + 1)}`;
+  
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const label = `${monthNames[month]} ${year}`;
+  
+  return { start: startStr, end: endStr, monthPrefix, label, year, month };
+};
+
+export const getCurrentMonthRange = (refDate = new Date()) => getMonthRange(refDate);
+
+export const extractItemDateStr = (p) => {
+  if (!p) return '';
+  if (p.date) return String(p.date).split('T')[0];
+  if (p.payment_date) return String(p.payment_date).split('T')[0];
+  if (p.created_at) return String(p.created_at).split('T')[0];
+  return '';
+};
+

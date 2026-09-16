@@ -309,6 +309,30 @@ export const AppProvider = ({ children }) => {
             }
         };
 
+        const fetchAllPaginated = async (table, orderCol = 'created_at', ascending = false) => {
+            try {
+                let allData = [];
+                let from = 0;
+                const pageSize = 1000;
+                while (true) {
+                    const { data, error } = await supabase
+                        .from(table)
+                        .select('*')
+                        .order(orderCol, { ascending })
+                        .range(from, from + pageSize - 1);
+                    if (error) throw error;
+                    if (!data || data.length === 0) break;
+                    allData.push(...data);
+                    if (data.length < pageSize) break;
+                    from += pageSize;
+                }
+                return allData;
+            } catch (e) {
+                console.warn(`⚠️ Error cargando tabla paginada [${table}]:`, e.message);
+                return null;
+            }
+        };
+
         try {
             const [
                 clients, vehicles, workOrders, inventory, suppliers, boxes,
@@ -323,7 +347,7 @@ export const AppProvider = ({ children }) => {
                 fetchTable('suppliers'),
                 fetchTable('boxes'),
                 supabase.from('vehicle_notes').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
-                supabase.from('payments').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
+                fetchAllPaginated('payments', 'created_at', false),
                 supabase.from('cash_closings').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),
                 supabase.from('appointments').select('*').order('date', { ascending: true }).then(r => r.error ? null : (r.data || [])),
                 supabase.from('promotions').select('*').order('created_at', { ascending: false }).then(r => r.error ? null : (r.data || [])),

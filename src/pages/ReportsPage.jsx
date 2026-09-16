@@ -1,5 +1,5 @@
 import React, { useState, useMemo, Fragment } from 'react';
-import { formatCurrency } from '../data/data';
+import { formatCurrency, getCurrentWeekRange, getMonthRange, extractItemDateStr } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -78,45 +78,134 @@ export const ReportsPage = () => {
     const { data: MOCK, getEmployeeProductivity, getClientVehicles, getDetailedEmployeeStats } = useApp();
     const { employees } = useAuth();
     const [tab, setTab] = useState('overview');
-    const [dateRange, setDateRange] = useState('LAST_30'); // LAST_7, LAST_30, MONTH, YEAR, ALL
+    const [dateRange, setDateRange] = useState('MONTH'); // 'WEEK', 'MONTH', 'YEAR', 'ALL'
+    const [selectedMonth, setSelectedMonth] = useState(() => new Date().toLocaleDateString('en-CA').slice(0, 7));
+
+    const availableMonths = useMemo(() => {
+        const set = new Set();
+        (MOCK.payments || []).forEach(p => {
+            const d = extractItemDateStr(p);
+            if (d && d.length >= 7) set.add(d.slice(0, 7));
+        });
+        const nowStr = new Date().toLocaleDateString('en-CA').slice(0, 7);
+        set.add(nowStr);
+        return Array.from(set).sort((a, b) => b.localeCompare(a));
+    }, [MOCK.payments]);
+
+    const weekRange = getCurrentWeekRange();
+    const monthRange = getMonthRange(selectedMonth);
 
     // --- Data Processing ---
     
     const filteredStats = useMemo(() => {
         const now = new Date();
-        let start = new Date(0);
-        
-        if (dateRange === 'LAST_7') start = new Date(now.setDate(now.getDate() - 7));
-        else if (dateRange === 'LAST_30') start = new Date(now.setDate(now.getDate() - 30));
-        else if (dateRange === 'MONTH') start = new Date(now.getFullYear(), now.getMonth(), 1);
-        else if (dateRange === 'YEAR') start = new Date(now.getFullYear(), 0, 1);
+        let payments = [];
+        let workOrders = [];
 
-        const payments = (MOCK.payments || []).filter(p => new Date(p.date) >= start);
-        const workOrders = (MOCK.workOrders || []).filter(wo => new Date(wo.created_at) >= start);
+        if (dateRange === 'WEEK') {
+            payments = (MOCK.payments || []).filter(p => {
+                const d = extractItemDateStr(p);
+                return d && d >= weekRange.start && d <= weekRange.end;
+            });
+            workOrders = (MOCK.workOrders || []).filter(wo => {
+                const d = (wo.created_at || '').split('T')[0];
+                return d && d >= weekRange.start && d <= weekRange.end;
+            });
+        } else if (dateRange === 'MONTH') {
+            payments = (MOCK.payments || []).filter(p => {
+                const d = extractItemDateStr(p);
+                return d && d >= monthRange.start && d <= monthRange.end;
+            });
+            workOrders = (MOCK.workOrders || []).filter(wo => {
+                const d = (wo.created_at || '').split('T')[0];
+                return d && d >= monthRange.start && d <= monthRange.end;
+            });
+        } else if (dateRange === 'YEAR') {
+            const yearStr = String(now.getFullYear());
+            payments = (MOCK.payments || []).filter(p => extractItemDateStr(p).startsWith(yearStr));
+            workOrders = (MOCK.workOrders || []).filter(wo => (wo.created_at || '').startsWith(yearStr));
+        } else {
+            payments = MOCK.payments || [];
+            workOrders = MOCK.workOrders || [];
+        }
         
-        const ingresos = payments.filter(p => p.type === 'INGRESO' || p.type === 'VENTA').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-        const gastos = payments.filter(p => p.type === 'EGRESO').reduce((sum, p) => sum + Math.abs(parseFloat(p.amount) || 0), 0);
+        const ingresos = payments.filter(p => p.type === 'INGRESO' || p.type === 'VENTA' || (!p.type && p.amount > 0)).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        const gastos = payments.filter(p => p.type === 'EGRESO' || (!p.type && p.amount < 0)).reduce((sum, p) => sum + Math.abs(parseFloat(p.amount) || 0), 0);
         
-        // Estimación de costo de mercadería vendida (COGS) - basado en un 45% del total si no hay dato exacto
+        // Estimación de costo de mercadería vendida (COGS)
         const cogs = workOrders.reduce((sum, wo) => sum + (parseFloat(wo.parts_cost) || 0), 0);
         
         return { ingresos, gastos, cogs, workOrders, payments };
-    }, [MOCK.payments, MOCK.workOrders, dateRange]);
+    }, [MOCK.payments, MOCK.workOrders, dateRange, selectedMonth, weekRange, monthRange]);
 
     const REVENUE_CHART = useMemo(() => {
-        const labels = dateRange === 'LAST_7' ? ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'] : 
-                      dateRange === 'YEAR' ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] :
-                      ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-        
-        // Simulación de distribución para el gráfico por ahora
-        return labels.map((l, i) => ({
-            label: l,
-            value: (filteredStats.ingresos / labels.length) * (0.8 + Math.random() * 0.4),
-            color: i % 2 === 0 ? 'var(--primary)' : 'var(--accent)'
-        }));
-    }, [filteredStats.ingresos, dateRange]);
+        if (dateRange === 'WEEK') {
+            const days = [
+                { label: 'Lun', dayIdx: 1 },
+                { label: 'Mar', dayIdx: 2 },
+                { label: 'Mié', dayIdx: 3 },
+                { label: 'Jue', dayIdx: 4 },
+                { label: 'Vie', dayIdx: 5 },
+                { label: 'Sáb', dayIdx: 6 },
+                { label: 'Dom', dayIdx: 7 },
+            ];
+            return days.map(({ label, dayIdx }) => {
+                const targetDate = new Date(weekRange.monday);
+                targetDate.setDate(weekRange.monday.getDate() + (dayIdx - 1));
+                const pad = (n) => String(n).padStart(2, '0');
+                const targetDateStr = `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}`;
 
-    const maxChartVal = Math.max(...REVENUE_CHART.map(d => d.value)) * 1.2;
+                const amount = filteredStats.payments
+                    .filter(p => extractItemDateStr(p) === targetDateStr && (p.amount > 0 || p.type === 'INGRESO' || p.type === 'VENTA'))
+                    .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+                return { label, value: amount, color: 'var(--primary)' };
+            });
+        }
+
+        if (dateRange === 'MONTH') {
+            const periods = [
+                { label: 'Días 1-7', from: 1, to: 7 },
+                { label: 'Días 8-14', from: 8, to: 14 },
+                { label: 'Días 15-21', from: 15, to: 21 },
+                { label: `Días 22-${monthRange.end.slice(8)}`, from: 22, to: parseInt(monthRange.end.slice(8), 10) },
+            ];
+            return periods.map((p, idx) => {
+                const amount = filteredStats.payments.filter(pay => {
+                    const d = extractItemDateStr(pay);
+                    if (!d || !d.startsWith(monthRange.monthPrefix)) return false;
+                    const dayNum = parseInt(d.slice(8, 10), 10);
+                    return dayNum >= p.from && dayNum <= p.to && (pay.amount > 0 || pay.type === 'INGRESO' || pay.type === 'VENTA');
+                }).reduce((sum, pay) => sum + (parseFloat(pay.amount) || 0), 0);
+
+                return { label: p.label, value: amount, color: idx % 2 === 0 ? 'var(--primary)' : 'var(--accent)' };
+            });
+        }
+
+        if (dateRange === 'YEAR') {
+            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const yearStr = String(new Date().getFullYear());
+            return months.map((l, idx) => {
+                const pad = (n) => String(n).padStart(2, '0');
+                const prefix = `${yearStr}-${pad(idx + 1)}`;
+                const amount = (MOCK.payments || [])
+                    .filter(p => extractItemDateStr(p).startsWith(prefix) && (p.amount > 0 || p.type === 'INGRESO' || p.type === 'VENTA'))
+                    .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                return { label: l, value: amount, color: 'var(--primary)' };
+            });
+        }
+
+        // ALL - Últimos meses registrados
+        return availableMonths.slice(0, 6).reverse().map((m, idx) => {
+            const r = getMonthRange(m);
+            const amount = (MOCK.payments || [])
+                .filter(p => extractItemDateStr(p).startsWith(m) && (p.amount > 0 || p.type === 'INGRESO' || p.type === 'VENTA'))
+                .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+            return { label: r.label.slice(0, 3) + ' ' + r.year.toString().slice(2), value: amount, color: idx % 2 === 0 ? 'var(--primary)' : 'var(--accent)' };
+        });
+    }, [filteredStats.payments, dateRange, selectedMonth, weekRange, monthRange, MOCK.payments, availableMonths]);
+
+    const maxChartVal = Math.max(...REVENUE_CHART.map(d => d.value), 100) * 1.2;
 
     return (
         <div className="page-content animate-fade-in">
@@ -124,30 +213,64 @@ export const ReportsPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
                 <div>
                     <SectionHeader icon="analytics" title="Inteligencia de Negocio" />
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 36, marginTop: -8 }}>Análisis detallado de rendimiento y rentabilidad</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 36, marginTop: -8 }}>
+                        {dateRange === 'WEEK' && `Semana del ${weekRange.label} (Lunes a Domingo)`}
+                        {dateRange === 'MONTH' && `Mes de ${monthRange.label} (del 01 al ${monthRange.end.slice(8)})`}
+                        {dateRange === 'YEAR' && `Año calendario ${new Date().getFullYear()}`}
+                        {dateRange === 'ALL' && 'Historial total acumulado'}
+                    </p>
                 </div>
 
-                <div className="glass-card" style={{ padding: '6px', display: 'flex', gap: 4, background: 'var(--bg-surface)' }}>
-                    {[
-                        { key: 'LAST_7', label: '7 Días' },
-                        { key: 'LAST_30', label: '30 Días' },
-                        { key: 'MONTH', label: 'Este Mes' },
-                        { key: 'YEAR', label: 'Año' },
-                        { key: 'ALL', label: 'Todo' }
-                    ].map(d => (
-                        <button 
-                            key={d.key} 
-                            onClick={() => setDateRange(d.key)}
-                            style={{ 
-                                padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: 'none', fontSize: 11, fontWeight: 700, 
-                                cursor: 'pointer', transition: 'all 0.2s',
-                                background: dateRange === d.key ? 'var(--primary)' : 'transparent',
-                                color: dateRange === d.key ? 'white' : 'var(--text-muted)'
-                            }}
-                        >
-                            {d.label}
-                        </button>
-                    ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    {dateRange === 'MONTH' && (
+                        <div className="glass-card" style={{ padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-surface)' }}>
+                            <Icon name="calendar_month" size={16} style={{ color: 'var(--primary)' }} />
+                            <select
+                                value={selectedMonth}
+                                onChange={e => setSelectedMonth(e.target.value)}
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: 'var(--text-primary)',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    outline: 'none'
+                                }}
+                            >
+                                {availableMonths.map(m => {
+                                    const r = getMonthRange(m);
+                                    return (
+                                        <option key={m} value={m}>
+                                            {r.label}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="glass-card" style={{ padding: '6px', display: 'flex', gap: 4, background: 'var(--bg-surface)' }}>
+                        {[
+                            { key: 'WEEK', label: 'Semana (Lun-Dom)' },
+                            { key: 'MONTH', label: 'Mes (1 al último)' },
+                            { key: 'YEAR', label: 'Año' },
+                            { key: 'ALL', label: 'Todo' }
+                        ].map(d => (
+                            <button 
+                                key={d.key} 
+                                onClick={() => setDateRange(d.key)}
+                                style={{ 
+                                    padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: 'none', fontSize: 11, fontWeight: 700, 
+                                    cursor: 'pointer', transition: 'all 0.2s',
+                                    background: dateRange === d.key ? 'var(--primary)' : 'transparent',
+                                    color: dateRange === d.key ? 'white' : 'var(--text-muted)'
+                                }}
+                            >
+                                {d.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 

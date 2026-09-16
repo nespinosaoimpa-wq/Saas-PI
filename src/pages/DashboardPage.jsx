@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { formatCurrency, formatML } from '../data/data';
+import { formatCurrency, formatML, getCurrentWeekRange, getCurrentMonthRange, extractItemDateStr } from '../data/data';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -30,36 +30,56 @@ export const DashboardPage = () => {
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toLocaleDateString('en-CA'))).length;
     const lowStock = getLowStockItems();
-    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
-    const todayPayments = (MOCK.payments || []).filter(p => (p.date || p.payment_date || p.created_at?.split('T')[0]) === todayStr && p.amount > 0);
+    // Daily cash: unclosed payments for current shift (from cash opening to close)
+    const todayPayments = (MOCK.payments || []).filter(p => !p.cash_closing_id && p.amount > 0);
     const todayTotal = todayPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
     const getRevenueStats = () => {
-        const todayStr = new Date().toLocaleDateString('en-CA');
-        const monthlyPayments = (MOCK.payments || []).filter(p => (p.date || p.payment_date || p.created_at)?.startsWith(todayStr.slice(0, 7)));
+        const weekRange = getCurrentWeekRange();
+        const monthRange = getCurrentMonthRange();
+
+        // Monthly: Day 1 to last day of current month
+        const monthlyPayments = (MOCK.payments || []).filter(p => {
+            const d = extractItemDateStr(p);
+            return d && d >= monthRange.start && d <= monthRange.end && p.amount > 0;
+        });
         const monthlyTotal = monthlyPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
-        const last7Days = (MOCK.payments || []).filter(p => {
-            const pDate = new Date(p.date || p.created_at);
-            const diff = (new Date() - pDate) / (1000 * 3600 * 24);
-            return diff <= 7;
+        // Weekly: Monday to Sunday of current week
+        const weeklyPayments = (MOCK.payments || []).filter(p => {
+            const d = extractItemDateStr(p);
+            return d && d >= weekRange.start && d <= weekRange.end && p.amount > 0;
         });
-        const weeklyTotal = last7Days.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+        const weeklyTotal = weeklyPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
-        // Agrupar por día para el gráfico (últimos 5 días hábiles aprox)
-        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        const dailyStats = [0, 1, 2, 3, 4, 5, 6].map(dIdx => {
-            const dayName = days[dIdx];
+        // Group working days of current week (Lun a Vie) for the mini-chart
+        const weekDays = [
+            { name: 'Lun', dayIdx: 1 },
+            { name: 'Mar', dayIdx: 2 },
+            { name: 'Mié', dayIdx: 3 },
+            { name: 'Jue', dayIdx: 4 },
+            { name: 'Vie', dayIdx: 5 },
+        ];
+
+        const dailyStats = weekDays.map(({ name, dayIdx }) => {
+            const targetDate = new Date(weekRange.monday);
+            targetDate.setDate(weekRange.monday.getDate() + (dayIdx - 1));
+            const pad = (n) => String(n).padStart(2, '0');
+            const targetDateStr = `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}`;
+
             const amount = (MOCK.payments || [])
-                .filter(p => new Date(p.date || p.created_at).getDay() === dIdx)
+                .filter(p => extractItemDateStr(p) === targetDateStr && p.amount > 0)
                 .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-            return { day: dayName, total: amount };
-        }).filter(d => d.day !== 'Dom' && d.day !== 'Sáb'); // Solo lunes a viernes para el mini-gráfico
+
+            return { day: name, total: amount, cash: amount, date: targetDateStr };
+        });
 
         return {
-            daily: dailyStats.map(d => ({ ...d, cash: d.total })),
+            daily: dailyStats,
             weekly_total: weeklyTotal,
-            monthly_total: monthlyTotal
+            monthly_total: monthlyTotal,
+            weekRange,
+            monthRange
         };
     };
     const revenue = getRevenueStats();
@@ -163,7 +183,7 @@ export const DashboardPage = () => {
             <div className="page-grid" style={{ gridTemplateColumns: '1fr' }}>
                 {/* KPI Row */}
                 <div className="grid-stats">
-                    <StatCard icon="payments" label="Caja del Día" value={formatCurrency(todayTotal)} sub="Cobros procesados hoy" tag="LIVE" barPercent={75} />
+                    <StatCard icon="payments" label="Caja del Turno" value={formatCurrency(todayTotal)} sub={todayPayments.length > 0 ? `${todayPayments.length} cobros en turno abierto` : 'Turno cerrado / Sin cobros'} tag="LIVE" barPercent={75} />
                     <StatCard icon="engineering" label="OTs Activas" value={activeOrders.length} sub={`${completedToday} finalizadas hoy`} tag="TALLER" barPercent={(activeOrders.length / 5) * 100} barAlert={activeOrders.length > 3} />
                     <StatCard icon="garage" label="Ocupación Boxes" value={`${boxOccupied}/${MOCK.boxes.length}`} sub="Capacidad de planta" barPercent={(boxOccupied / MOCK.boxes.length) * 100} />
                     <StatCard icon="inventory_2" label="Stock Crítico" value={lowStock.length} sub="Items bajo mínimo" tag="ALERTA" barPercent={lowStock.length > 0 ? 100 : 0} barAlert={lowStock.length > 0} />
@@ -231,15 +251,15 @@ export const DashboardPage = () => {
                         {/* Revenue Chart - Solo Admins */}
                         {user?.role === 'admin' && (
                             <GlassCard style={{ padding: 22 }}>
-                                <SectionHeader icon="trending_up" title="Ingresos Semanal" />
+                                <SectionHeader icon="trending_up" title="Ingresos Semanales (Lun - Dom)" />
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
                                     <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
                                         {formatCurrency(revenue.weekly_total)}
                                     </div>
-                                    <span>Semanal</span>
+                                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Esta semana</span>
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                                    Mes: {formatCurrency(revenue.monthly_total)}
+                                    Mes en Curso: {formatCurrency(revenue.monthly_total)}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
                                     {revenue.daily.map((d, i) => {
