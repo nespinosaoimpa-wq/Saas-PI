@@ -70,12 +70,15 @@ function App() {
     const isMasterAdmin = user && user.id === 'saas-master';
     const isDelinquent = currentCompanyId === 'piripi';
     
-    // Limpieza de versión previa de prueba
-    if (typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}`)) {
+    // Limpieza de versiones previas de prueba para forzar bloqueo inmediato
+    if (typeof window !== 'undefined') {
         localStorage.removeItem(`velocce_license_unlocked_${currentCompanyId}`);
+        localStorage.removeItem(`velocce_license_unlocked_${currentCompanyId}_v2`);
+        localStorage.removeItem('velocce_license_unlocked_piripi');
+        localStorage.removeItem('velocce_license_unlocked_piripi_v2');
     }
 
-    const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v2`) === 'true';
+    const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v3`) === 'true';
     const isSuspended = (companyStatus && companyStatus.is_active === false) || (isDelinquent && !isUnlocked);
 
     if (isSuspended && !isMasterAdmin) {

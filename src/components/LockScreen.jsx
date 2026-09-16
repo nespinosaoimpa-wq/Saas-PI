@@ -65,8 +65,8 @@ export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
         if (VALID_UNLOCK_CODES.includes(cleanCode)) {
             setUnlockSuccess(true);
             const targetCompany = companyId || 'piripi';
-            localStorage.setItem(`velocce_license_unlocked_${targetCompany}_v2`, 'true');
-            localStorage.setItem('velocce_license_unlocked_piripi_v2', 'true');
+            localStorage.setItem(`velocce_license_unlocked_${targetCompany}_v3`, 'true');
+            localStorage.setItem('velocce_license_unlocked_piripi_v3', 'true');
             localStorage.setItem('velocce_license_unlocked_at', new Date().toISOString());
             
             // Reactivar empresa y empleados en la base de datos en tiempo real
