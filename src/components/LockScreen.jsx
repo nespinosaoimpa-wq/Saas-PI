@@ -441,7 +441,7 @@ export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
                                     type="text"
                                     value={unlockCode}
                                     onChange={(e) => setUnlockCode(e.target.value)}
-                                    placeholder="Ej: Velocce-2026"
+                                    placeholder="Código de validación..."
                                     style={{
                                         flex: 1,
                                         padding: '10px 14px',
