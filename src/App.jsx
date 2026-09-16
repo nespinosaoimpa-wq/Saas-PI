@@ -81,6 +81,7 @@ function App() {
     if (isSuspended && !isMasterAdmin) {
         return (
             <LockScreen
+                companyId={currentCompanyId}
                 message="El acceso a la plataforma se encuentra temporalmente suspendido debido a saldo pendiente de facturación e incumplimiento de pago. Para regularizar la situación o solicitar el código de reactivación, comuníquese con el desarrollador."
                 onUnlock={() => window.location.reload()}
             />
