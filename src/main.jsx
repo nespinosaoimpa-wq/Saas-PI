@@ -28,18 +28,42 @@ if (typeof Node !== 'undefined' && Node.prototype) {
     };
 }
 
-// Configurar actualización automática del Service Worker (PWA)
+// Configurar actualización automática del Service Worker (PWA) sin bloqueos
 const updateSW = registerSW({
     onNeedRefresh() {
-        if (confirm("Nueva versión disponible. ¿Deseas actualizar la aplicación?")) {
-            updateSW(true);
-        }
+        console.log("[PWA] Nueva versión disponible en el servidor. Actualizando automáticamente...");
+        updateSW(true);
     },
     onOfflineReady() {
         console.log("Aplicación lista para uso sin conexión");
     },
     immediate: true
 });
+
+// Chequeo periódico automático de Service Worker cada 30 segundos y al cambiar de pestaña
+if (typeof window !== 'undefined') {
+    setInterval(async () => {
+        try {
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                    await reg.update();
+                }
+            }
+        } catch (e) {}
+    }, 30000);
+
+    window.addEventListener('focus', async () => {
+        try {
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                    await reg.update();
+                }
+            }
+        } catch (e) {}
+    });
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>

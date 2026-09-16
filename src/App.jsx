@@ -117,7 +117,7 @@ function App() {
         return !isContractAccepted && localStorage.getItem('velocce_welcome_dismissed') !== 'true';
     });
 
-    // --- SALVAPANTALLAS / MODO BOX DE CARRERA (Inactividad 3 min o botón manual) ---
+    // --- SALVAPANTALLAS / MODO BOX DE CARRERA (Inactividad 90 seg o botón manual) ---
     const [isScreensaverOpen, setIsScreensaverOpen] = useState(false);
 
     React.useEffect(() => {
@@ -125,10 +125,8 @@ function App() {
         const resetIdleTimer = () => {
             clearTimeout(idleTimer);
             idleTimer = setTimeout(() => {
-                if (user) {
-                    setIsScreensaverOpen(true);
-                }
-            }, 180000); // 3 minutos de inactividad
+                setIsScreensaverOpen(true);
+            }, 90000); // 90 segundos (1.5 minutos) de inactividad
         };
 
         const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -139,7 +137,38 @@ function App() {
             clearTimeout(idleTimer);
             activityEvents.forEach(evt => window.removeEventListener(evt, resetIdleTimer));
         };
-    }, [user]);
+    }, []);
+
+    // --- CANAL REALTIME PARA FORZAR ACTUALIZACIÓN REMOTA EN TODAS LAS COMPUTADORAS ---
+    React.useEffect(() => {
+        if (!rawSupabaseClient) return;
+        const channel = rawSupabaseClient.channel('velocce-system-updates')
+            .on('broadcast', { event: 'force-reload' }, async (payload) => {
+                console.log('⚡ Recibida orden de recarga remota del sistema:', payload);
+                try {
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (let reg of registrations) {
+                            await reg.update();
+                        }
+                    }
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        for (let key of keys) {
+                            await caches.delete(key);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error limpiando caché:', e);
+                }
+                window.location.reload(true);
+            })
+            .subscribe();
+
+        return () => {
+            rawSupabaseClient.removeChannel(channel);
+        };
+    }, []);
 
     // --- ESTADO PARA ANUNCIO DE CONTRATO Y ABONO (SOLO ADMIN PENDIENTE) ---
     const [showContractNotification, setShowContractNotification] = useState(() => {
@@ -213,7 +242,17 @@ function App() {
 
     useBarcodeScanner(handleBarcodeScan);
 
-    if (!user) return <LoginPage />;
+    if (!user) {
+        return (
+            <React.Fragment>
+                <LoginPage />
+                <PitScreensaver 
+                    isOpen={isScreensaverOpen} 
+                    onClose={() => setIsScreensaverOpen(false)} 
+                />
+            </React.Fragment>
+        );
+    }
 
     const PageComponent = PAGES[effectivePage] || DashboardPage;
 
