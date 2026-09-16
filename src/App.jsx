@@ -3,7 +3,7 @@ import { supabase } from './lib/supabase';
 import { useApp } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/LoginPage';
-import { Icon, Modal, FormField, CameraScanner, PitScreensaver } from './components/ui';
+import { Icon, Modal, FormField, CameraScanner, PitScreensaver, MembershipRegistrationModal } from './components/ui';
 import { useBarcodeScanner } from './hooks/useBarcodeScanner';
 import { formatCurrency } from './data/data';
 import { DashboardPage } from './pages/DashboardPage';
@@ -29,7 +29,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { LockScreen } from './components/LockScreen';
 import { InvalidLinkScreen } from './components/InvalidLinkScreen';
-import { currentCompanyId } from './lib/supabase';
+import { currentCompanyId, rawSupabaseClient } from './lib/supabase';
 
 const PAGES = {
     dashboard: DashboardPage,
@@ -162,6 +162,80 @@ function App() {
                     console.error('Error limpiando caché:', e);
                 }
                 window.location.reload(true);
+            })
+            .subscribe();
+
+        return () => {
+            rawSupabaseClient.removeChannel(channel);
+        };
+    }, []);
+
+    // --- CONTROL DE INSCRIPCIÓN A MEMBRESÍA OBLIGATORIA (ADMINISTRADORES DE PIRIPI) ---
+    const isPiripiAdmin = currentCompanyId === 'piripi' && user && (user.role === 'admin' || user.role === 'Administrador') && user.id !== 'saas-master';
+    const [isMembershipCompleted, setIsMembershipCompleted] = useState(() => {
+        return localStorage.getItem(`velocce_membership_completed_${currentCompanyId}`) === 'true';
+    });
+    const [showMembershipModal, setShowMembershipModal] = useState(false);
+
+    // Verificación inmediata contra base de datos Supabase
+    React.useEffect(() => {
+        if (!isPiripiAdmin) {
+            setShowMembershipModal(false);
+            return;
+        }
+
+        let isMounted = true;
+
+        const checkMembershipStatus = async () => {
+            try {
+                if (rawSupabaseClient) {
+                    const { data, error } = await rawSupabaseClient
+                        .from('audit_logs')
+                        .select('id, details, created_at')
+                        .eq('company_id', currentCompanyId)
+                        .eq('action', 'MEMBERSHIP_INSCRIPTION')
+                        .limit(1);
+
+                    if (!error && data && data.length > 0) {
+                        if (isMounted) {
+                            setIsMembershipCompleted(true);
+                            setShowMembershipModal(false);
+                            localStorage.setItem(`velocce_membership_completed_${currentCompanyId}`, 'true');
+                        }
+                    } else {
+                        // Si no está registrado en la base de datos, saltar el modal de inmediato sin esperar refresh
+                        if (isMounted) {
+                            setIsMembershipCompleted(false);
+                            setShowMembershipModal(true);
+                        }
+                    }
+                } else {
+                    const localDone = localStorage.getItem(`velocce_membership_completed_${currentCompanyId}`) === 'true';
+                    if (!localDone && isMounted) {
+                        setShowMembershipModal(true);
+                    }
+                }
+            } catch (err) {
+                console.warn('Error al verificar estado de membresía:', err);
+            }
+        };
+
+        checkMembershipStatus();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user, isPiripiAdmin]);
+
+    // Sincronización Realtime: Si un admin lo llena en otra PC, se cierra al instante sin refresh
+    React.useEffect(() => {
+        if (!rawSupabaseClient) return;
+        const channel = rawSupabaseClient.channel('membership-realtime-sync')
+            .on('broadcast', { event: 'membership-registered' }, (payload) => {
+                console.log('🔔 Membresía completada por otro administrador en tiempo real:', payload);
+                setIsMembershipCompleted(true);
+                setShowMembershipModal(false);
+                localStorage.setItem(`velocce_membership_completed_${currentCompanyId}`, 'true');
             })
             .subscribe();
 
@@ -572,6 +646,20 @@ function App() {
                         </p>
                     </div>
                 </Modal>
+            )}
+
+            {/* Modal Obligatorio de Inscripción a Membresía para Administradores de Piripi */}
+            {showMembershipModal && isPiripiAdmin && !isMembershipCompleted && (
+                <MembershipRegistrationModal 
+                    isOpen={true}
+                    user={user}
+                    onCompleted={(details) => {
+                        console.log('✅ Inscripción de membresía guardada exitosamente:', details);
+                        setIsMembershipCompleted(true);
+                        setShowMembershipModal(false);
+                        localStorage.setItem(`velocce_membership_completed_${currentCompanyId}`, 'true');
+                    }}
+                />
             )}
 
             {/* Salvapantallas / Telemetría de Boxes en Inactividad */}

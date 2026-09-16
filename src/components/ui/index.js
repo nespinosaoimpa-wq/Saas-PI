@@ -19,3 +19,4 @@ export { CameraScanner } from './CameraScanner';
 export { PrintableClosing } from './PrintableClosing';
 export { PrintableSaleTicket } from './PrintableSaleTicket';
 export { PitScreensaver } from './PitScreensaver';
+export { MembershipRegistrationModal } from './MembershipRegistrationModal';
