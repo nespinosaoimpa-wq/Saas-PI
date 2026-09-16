@@ -185,12 +185,37 @@ export function MembershipRegistrationModal({ isOpen, user, onCompleted }) {
                         <h3 style={{ fontFamily: 'var(--font-racing)', fontSize: '22px', fontWeight: 900, color: '#ffffff', marginBottom: '8px' }}>
                             ¡INSCRIPCIÓN REGISTRADA!
                         </h3>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', maxWidth: '380px', margin: '0 auto', lineHeight: 1.5 }}>
-                            Los datos de contacto administrativo han sido guardados con éxito en el servidor y notificados al departamento de licencias.
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', maxWidth: '420px', margin: '0 auto', lineHeight: 1.5 }}>
+                            Los datos de contacto administrativo han sido guardados con éxito en el servidor y notificados a la administración central. Por favor, recuerde proceder con la regularización del pago del plan.
                         </p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} style={{ padding: '24px 28px' }}>
+                        {/* ALERTA OBLIGATORIA: SUSCRIPCIÓN A PLAN DE PAGO */}
+                        <div style={{
+                            padding: '14px 16px',
+                            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(245, 158, 11, 0.1) 100%)',
+                            border: '1px solid rgba(239, 68, 68, 0.45)',
+                            borderLeft: '4px solid #ef4444',
+                            borderRadius: 'var(--radius-sm)',
+                            marginBottom: '20px'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                <Icon name="warning" size={20} style={{ color: '#ef4444' }} />
+                                <strong style={{ fontFamily: 'var(--font-racing)', fontSize: '13px', color: '#fbbf24', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                                    Estado de Cuenta: Suscripción a Plan de Pago Activa
+                                </strong>
+                            </div>
+                            <p style={{ color: '#f8fafc', fontSize: '12.5px', lineHeight: 1.5, margin: 0 }}>
+                                Se le notifica que este taller se encuentra formalmente <strong>suscrito al plan de pago de licenciamiento</strong> de VELOCCE PRO. 
+                                <strong style={{ color: '#f87171' }}> Es estrictamente necesario realizar el pago correspondiente</strong> para mantener la vigencia del servicio y evitar la interrupción de las funciones operativas de caja y boxes.
+                            </p>
+                            <div style={{ display: 'flex', gap: '16px', marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed rgba(255,255,255,0.1)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                                <span>📋 Estado: <strong style={{ color: '#fbbf24' }}>Suscrito a Plan Comercial</strong></span>
+                                <span>💳 Situación: <strong style={{ color: '#ef4444' }}>Pago Pendiente de Regularización</strong></span>
+                            </div>
+                        </div>
+
                         {error && (
                             <div style={{ 
                                 padding: '10px 14px', 
