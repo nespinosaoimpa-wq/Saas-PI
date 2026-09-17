@@ -49,14 +49,7 @@ export function Header({
                 )}
             </div>
             <div className="header-actions">
-                <button 
-                    className="header-btn pit-mode-btn" 
-                    onClick={onOpenScreensaver}
-                    title="Activar Salvapantallas / Telemetría de Boxes"
-                >
-                    <Icon name="speed" size={16} />
-                    <span>Modo Box</span>
-                </button>
+
                 <button className="notif-btn">
                     <Icon name="notifications" size={20} />
                     <span className="notif-dot" />
