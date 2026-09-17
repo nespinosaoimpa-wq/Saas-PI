@@ -447,40 +447,7 @@ export const DashboardPage = () => {
                             </GlassCard>
                         )}
 
-                        {/* Inventory Alerts */}
-                        <GlassCard style={{ padding: 22 }}>
-                            <SectionHeader icon="notifications_active" title="Alertas de Stock" right={
-                                lowStock.length > 0 ? <span className="nav-badge alert">{lowStock.length}</span> : null
-                            } />
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {lowStock.map(item => (
-                                    <div key={item.id} style={{
-                                        padding: '12px 14px', borderRadius: 'var(--radius-sm)',
-                                        background: 'rgba(var(--danger-rgb), 0.06)',
-                                        border: '1px solid rgba(var(--danger-rgb), 0.1)',
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                                    }}>
-                                        <div>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                                                Stock: <strong style={{ color: 'var(--danger)' }}>
-                                                    {item.stock_type === 'VOLUME' ? formatML(item.stock_ml) : `${item.stock_quantity} uds`}
-                                                </strong>
-                                            </div>
-                                        </div>
-                                        <Icon name="warning" size={18} style={{ color: 'var(--danger)', opacity: 0.7 }} />
-                                    </div>
-                                ))}
-                                {lowStock.length === 0 && (
-                                    <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>
-                                        <Icon name="check_circle" size={28} style={{ opacity: 0.3, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
-                                        Stock en niveles óptimos
-                                    </div>
-                                )}
-                            </div>
-                        </GlassCard>
-
-                        {/* Box Status */}
+                        {/* Box Status - Posicionado ARRIBA para visibilidad inmediata */}
                         <GlassCard style={{ padding: 22 }}>
                             <SectionHeader icon="garage" title="Estado Boxes" />
                             <div className="grid-2col-even">
@@ -514,6 +481,65 @@ export const DashboardPage = () => {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </GlassCard>
+
+                        {/* Inventory Alerts - Colapsable */}
+                        <GlassCard style={{ padding: 22 }}>
+                            <SectionHeader icon="notifications_active" title="Alertas de Stock" right={
+                                lowStock.length > 0 ? <span className="nav-badge alert">{lowStock.length}</span> : null
+                            } />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {(showAllLowStock ? lowStock : lowStock.slice(0, 3)).map(item => (
+                                    <div key={item.id} style={{
+                                        padding: '12px 14px', borderRadius: 'var(--radius-sm)',
+                                        background: 'rgba(var(--danger-rgb), 0.06)',
+                                        border: '1px solid rgba(var(--danger-rgb), 0.1)',
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                                Stock: <strong style={{ color: 'var(--danger)' }}>
+                                                    {item.stock_type === 'VOLUME' ? formatML(item.stock_ml) : `${item.stock_quantity} uds`}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                        <Icon name="warning" size={18} style={{ color: 'var(--danger)', opacity: 0.7 }} />
+                                    </div>
+                                ))}
+                                {lowStock.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>
+                                        <Icon name="check_circle" size={28} style={{ opacity: 0.3, marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
+                                        Stock en niveles óptimos
+                                    </div>
+                                )}
+                                {lowStock.length > 3 && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => setShowAllLowStock(!showAllLowStock)}
+                                        style={{
+                                            marginTop: 6,
+                                            width: '100%',
+                                            justify: 'center',
+                                            fontSize: 12,
+                                            fontWeight: 600,
+                                            color: 'var(--primary)',
+                                            background: 'rgba(var(--primary-rgb), 0.08)',
+                                            border: '1px solid rgba(var(--primary-rgb), 0.15)',
+                                            borderRadius: 6,
+                                            padding: '8px 12px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6
+                                        }}
+                                    >
+                                        <Icon name={showAllLowStock ? 'expand_less' : 'expand_more'} size={16} />
+                                        {showAllLowStock ? 'Mostrar menos' : `Ver lista completa (${lowStock.length} productos)`}
+                                    </button>
+                                )}
                             </div>
                         </GlassCard>
                     </div>
