@@ -89,6 +89,7 @@ export const AppProvider = ({ children }) => {
         is_active: true, 
         contract_accepted: false 
     });
+    const [loading, setLoading] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
 
     // ==========================================
