@@ -68,7 +68,7 @@ export function useNavigation() {
         { section: 'Configuración' },
         { key: 'users', label: 'Personal y Accesos', icon: 'admin_panel_settings' },
         { key: 'settings', label: 'Sistema / AFIP', icon: 'settings' },
-        { key: 'membership', label: 'Membresía / Precio', icon: 'card_membership', badgeAlert: !membershipVisited ? 'NUEVO' : null },
+        { key: 'membership', label: 'Membresía & Licencia', icon: 'card_membership', badgeAlert: !membershipVisited ? 'NUEVO' : null },
         { key: 'audit', label: 'Auditoría', icon: 'security' },
         { key: 'help', label: 'Centro de Ayuda', icon: 'help_center' },
     ];
