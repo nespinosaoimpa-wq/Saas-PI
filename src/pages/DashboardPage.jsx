@@ -27,6 +27,7 @@ export const DashboardPage = () => {
     const [posMode, setPosMode] = React.useState('DIRECT'); // 'DIRECT' or 'CART'
     const [combinedAmounts, setCombinedAmounts] = React.useState({ EFECTIVO: '', TRANSFERENCIA: '', TARJETA: '' });
     const [isProcessingSale, setIsProcessingSale] = React.useState(false);
+    const [showAllLowStock, setShowAllLowStock] = React.useState(false);
     const activeOrders = MOCK.workOrders.filter(wo => wo.status !== 'Finalizado' && wo.status !== 'Cancelado');
     const completedToday = MOCK.workOrders.filter(wo => wo.status === 'Finalizado' && wo.completed_at?.startsWith(new Date().toLocaleDateString('en-CA'))).length;
     const lowStock = getLowStockItems();
