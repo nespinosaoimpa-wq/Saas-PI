@@ -44,35 +44,100 @@ const ReportWidget = ({ icon, label, value, sub, trend, color = 'var(--primary)'
     </div>
 );
 
-const PremiumChart = ({ data, maxVal, height = 200 }) => (
-    <div style={{ height, display: 'flex', alignItems: 'flex-end', gap: 14, paddingBottom: 20, paddingTop: 30 }}>
-        {data.map((item, idx) => {
-            const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
-            return (
-                <div key={idx} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', group: 'true' }}>
-                    <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        {/* Tooltip on hover simulation */}
-                        <div className="chart-tooltip" style={{ 
-                            position: 'absolute', top: -35, background: 'var(--bg-card-elevated)', 
-                            padding: '4px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
-                            boxShadow: 'var(--shadow-md)', border: '1px solid var(--border)',
-                            opacity: 1, pointerEvents: 'none', whiteSpace: 'nowrap'
-                        }}>
-                            {formatCurrency(item.value)}
-                        </div>
-                        <div style={{ 
-                            width: '40%', minWidth: 20, height: `${pct}%`, 
-                            background: `linear-gradient(to top, ${item.color || 'var(--primary)'}, ${item.color || 'var(--primary)'}44)`,
-                            borderRadius: '6px 6px 2px 2px', transition: 'height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            boxShadow: `0 4px 12px ${item.color || 'var(--primary)'}33`
-                        }}></div>
+const PremiumChart = ({ data, maxVal, height = 240 }) => {
+    const validMax = maxVal > 0 ? maxVal : 1;
+    const gridLines = [1, 0.75, 0.5, 0.25, 0];
+
+    return (
+        <div style={{ position: 'relative', width: '100%', height, padding: '20px 10px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            {/* Background Grid Lines & Scale */}
+            <div style={{ position: 'absolute', inset: '20px 10px 40px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
+                {gridLines.map((ratio, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', width: 55, textAlign: 'right', fontFamily: 'var(--font-racing)' }}>
+                            {formatCurrency(validMax * ratio)}
+                        </span>
+                        <div style={{ flex: 1, height: 1, borderTop: ratio === 0 ? '1px solid rgba(255, 255, 255, 0.15)' : '1px dashed rgba(255, 255, 255, 0.05)' }} />
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginTop: 12 }}>{item.label}</span>
-                </div>
-            );
-        })}
-    </div>
-);
+                ))}
+            </div>
+
+            {/* Bars & Interactive Area */}
+            <div style={{ position: 'relative', zIndex: 2, flex: 1, display: 'flex', alignItems: 'flex-end', gap: 16, paddingLeft: 65, paddingBottom: 25, paddingTop: 10 }}>
+                {data.map((item, idx) => {
+                    const pct = Math.min(Math.max((item.value / validMax) * 100, 4), 100);
+                    const isZero = item.value === 0;
+
+                    return (
+                        <div key={idx} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', position: 'relative' }}>
+                            {/* Value Pill Badge */}
+                            <div style={{ 
+                                marginBottom: 8, 
+                                background: isZero ? 'rgba(255, 255, 255, 0.04)' : 'rgba(17, 24, 39, 0.92)',
+                                border: isZero ? '1px solid rgba(255, 255, 255, 0.08)' : `1px solid ${item.color || 'var(--primary)'}55`,
+                                padding: '4px 10px', 
+                                borderRadius: 6, 
+                                fontSize: 11, 
+                                fontWeight: 800,
+                                color: isZero ? 'var(--text-muted)' : 'var(--text-primary)',
+                                boxShadow: isZero ? 'none' : `0 4px 14px ${item.color || 'var(--primary)'}22`,
+                                backdropFilter: 'blur(8px)',
+                                zIndex: 3,
+                                whiteSpace: 'nowrap',
+                                transition: 'transform 0.2s',
+                            }}>
+                                {formatCurrency(item.value)}
+                            </div>
+
+                            {/* Bar Column Container */}
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                <div style={{ 
+                                    width: '36%', 
+                                    minWidth: 24,
+                                    maxWidth: 64,
+                                    height: `${pct}%`, 
+                                    background: isZero 
+                                        ? 'rgba(255, 255, 255, 0.04)' 
+                                        : `linear-gradient(180deg, ${item.color || 'var(--primary)'} 0%, rgba(245, 158, 11, 0.15) 100%)`,
+                                    borderRadius: '8px 8px 3px 3px', 
+                                    transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                                    boxShadow: isZero ? 'none' : `0 4px 20px ${item.color || 'var(--primary)'}40, inset 0 1px 0 rgba(255, 255, 255, 0.4)`,
+                                    borderTop: isZero ? 'none' : `2px solid ${item.color || 'var(--primary)'}`,
+                                    position: 'relative'
+                                }}>
+                                    {!isZero && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: 4,
+                                            background: '#fff',
+                                            borderRadius: '8px 8px 0 0',
+                                            boxShadow: `0 0 10px ${item.color || 'var(--primary)'}`
+                                        }} />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Bottom Label */}
+                            <span style={{ 
+                                fontSize: 11, 
+                                fontWeight: 700, 
+                                color: isZero ? 'var(--text-muted)' : 'var(--text-primary)', 
+                                marginTop: 12,
+                                letterSpacing: '0.3px',
+                                textTransform: 'uppercase'
+                            }}>
+                                {item.label}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
 
 export const ReportsPage = () => {
     const { data: MOCK, getEmployeeProductivity, getClientVehicles, getDetailedEmployeeStats } = useApp();
