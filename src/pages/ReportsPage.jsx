@@ -306,7 +306,7 @@ export const ReportsPage = () => {
                                 {availableMonths.map(m => {
                                     const r = getMonthRange(m);
                                     return (
-                                        <option key={m} value={m}>
+                                        <option key={m} value={m} style={{ background: '#181c28', color: '#f8fafc', padding: '8px' }}>
                                             {r.label}
                                         </option>
                                     );
