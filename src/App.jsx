@@ -163,8 +163,7 @@ function App() {
         };
     }, []);
 
-    // --- CONTROL DE INSCRIPCIÓN A MEMBRESÍA OBLIGATORIA (ADMINISTRADORES DE PIRIPI) ---
-    const isPiripiAdmin = currentCompanyId === 'piripi' && user && (user.role === 'admin' || user.role === 'Administrador') && user.id !== 'saas-master';
+    const isPiripiAdmin = false;
     const [isMembershipCompleted, setIsMembershipCompleted] = useState(() => {
         return localStorage.getItem(`velocce_membership_completed_${currentCompanyId}`) === 'true';
     });
