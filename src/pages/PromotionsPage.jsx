@@ -64,7 +64,7 @@ export const PromotionsPage = () => {
                     <button className="btn btn-primary btn-sm" onClick={openNew}><Icon name="add" size={16} /> Nueva Promo</button>
                 } />
                 <div className="grid-auto-cards">
-                    {MOCK.promotions?.map(p => (
+                    {MOCK.promotions?.filter(p => p.name !== '_QUICK_ACTIONS_SETTINGS_').map(p => (
                         <GlassCard key={p.id} style={{ padding: 20, position: 'relative', borderLeft: `3px solid ${p.is_active ? 'var(--success)' : 'var(--text-muted)'}` }}>
                             <button
                                 className="btn btn-ghost btn-sm"

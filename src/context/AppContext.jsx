@@ -6,6 +6,15 @@ import { useAuth } from './AuthContext';
 
 const AppContext = createContext();
 
+export const DEFAULT_QUICK_ACTIONS = [
+    { id: 'qa1', label: 'Parche Moto', icon: 'tire_repair', price: 2500, color: 'var(--primary)' },
+    { id: 'qa2', label: 'Parche Auto', icon: 'tire_repair', price: 3500, color: 'var(--primary)' },
+    { id: 'qa3', label: 'Inflado / Aire', icon: 'air', price: 0, color: 'var(--success)' },
+    { id: 'qa4', label: 'Ajuste Cadena', icon: 'settings_suggest', price: 1500, color: 'var(--warning)' },
+    { id: 'qa5', label: 'Lubric. Cadena', icon: 'oil_barrel', price: 1000, color: 'var(--accent)' },
+    { id: 'qa6', label: 'Repar. Cámara', icon: 'build', price: 2800, color: 'var(--danger)' },
+];
+
 
 export const AppProvider = ({ children }) => {
     const { user } = useAuth();
@@ -109,6 +118,54 @@ export const AppProvider = ({ children }) => {
         const saved = localStorage.getItem('velocce_gomeria_queue');
         return saved ? JSON.parse(saved) : [];
     });
+
+    // ==========================================
+    // Botones Rápidos de Gomería Express (Sincronizados)
+    // ==========================================
+    const [quickActions, setQuickActionsState] = useState(() => {
+        try {
+            const saved = localStorage.getItem('piripi_quick_actions');
+            return saved ? JSON.parse(saved) : DEFAULT_QUICK_ACTIONS;
+        } catch {
+            return DEFAULT_QUICK_ACTIONS;
+        }
+    });
+
+    const updateQuickActions = async (newActions) => {
+        setQuickActionsState(newActions);
+        try {
+            localStorage.setItem('piripi_quick_actions', JSON.stringify(newActions));
+        } catch (e) {
+            console.warn('Error guardando quickActions en localStorage:', e);
+        }
+
+        if (supabase) {
+            try {
+                const { data: existing } = await supabase
+                    .from('promotions')
+                    .select('id')
+                    .eq('name', '_QUICK_ACTIONS_SETTINGS_')
+                    .maybeSingle();
+
+                const payload = {
+                    name: '_QUICK_ACTIONS_SETTINGS_',
+                    description: JSON.stringify(newActions),
+                    discount_type: 'FIXED',
+                    discount_value: 0,
+                    is_active: false,
+                    company_id: currentCompanyId
+                };
+
+                if (existing?.id) {
+                    await supabase.from('promotions').update(payload).eq('id', existing.id);
+                } else {
+                    await supabase.from('promotions').insert([payload]);
+                }
+            } catch (err) {
+                console.warn("⚠️ No se pudieron sincronizar los precios de gomería en Supabase:", err.message);
+            }
+        }
+    };
 
     useEffect(() => {
         localStorage.setItem('velocce_pos_cart', JSON.stringify(posCart));
@@ -382,6 +439,20 @@ export const AppProvider = ({ children }) => {
                 dailyWorkLog: [], serviceHistory: [], 
                 activityLog: []
             });
+
+            // Cargar configuración sincronizada de botones de Gomería Express si existe en Supabase
+            const quickActionsConfig = (promotions || []).find(p => p.name === '_QUICK_ACTIONS_SETTINGS_');
+            if (quickActionsConfig?.description) {
+                try {
+                    const parsed = JSON.parse(quickActionsConfig.description);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setQuickActionsState(parsed);
+                        localStorage.setItem('piripi_quick_actions', JSON.stringify(parsed));
+                    }
+                } catch (err) {
+                    console.warn('⚠️ Error al parsear quick_actions de Supabase:', err);
+                }
+            }
             // Consultar metadata de la empresa (Sujeto a no aislamiento)
             const localAccepted = localStorage.getItem(`contract_accepted_${currentCompanyId}`) === 'true';
 
@@ -2061,6 +2132,8 @@ export const AppProvider = ({ children }) => {
             setGomeriaQueue,
             addToQueue,
             removeFromQueue,
+            quickActions,
+            updateQuickActions,
             isSyncing,
             setIsSyncing,
             logAudit,

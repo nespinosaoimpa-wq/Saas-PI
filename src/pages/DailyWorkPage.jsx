@@ -10,7 +10,8 @@ export const DailyWorkPage = () => {
         data: MOCK, getClient, getVehicle, updateWorkOrder, addQuickService, getCommissions,
         posCart: cart, setPosCart: setCart, 
         gomeriaQueue, setGomeriaQueue,
-        addToQueue: globalAddToQueue, removeFromQueue: globalRemoveFromQueue
+        addToQueue: globalAddToQueue, removeFromQueue: globalRemoveFromQueue,
+        quickActions, updateQuickActions
     } = useApp();
     const { user } = useAuth();
 
@@ -123,23 +124,6 @@ export const DailyWorkPage = () => {
             setFinalizeOT(null);
         });
     };
-
-    const DEFAULT_QUICK_ACTIONS = [
-        { id: 'qa1', label: 'Parche Moto', icon: 'tire_repair', price: 2500, color: 'var(--primary)' },
-        { id: 'qa2', label: 'Parche Auto', icon: 'tire_repair', price: 3500, color: 'var(--primary)' },
-        { id: 'qa3', label: 'Inflado / Aire', icon: 'air', price: 0, color: 'var(--success)' },
-        { id: 'qa4', label: 'Ajuste Cadena', icon: 'settings_suggest', price: 1500, color: 'var(--warning)' },
-        { id: 'qa5', label: 'Lubric. Cadena', icon: 'oil_barrel', price: 1000, color: 'var(--accent)' },
-        { id: 'qa6', label: 'Repar. Cámara', icon: 'build', price: 2800, color: 'var(--danger)' },
-    ];
-
-    // Load custom prices from localStorage
-    const [quickActions, setQuickActions] = useState(() => {
-        try {
-            const saved = localStorage.getItem('piripi_quick_actions');
-            return saved ? JSON.parse(saved) : DEFAULT_QUICK_ACTIONS;
-        } catch { return DEFAULT_QUICK_ACTIONS; }
-    });
 
     const [pendingAction, setPendingAction] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
@@ -281,34 +265,31 @@ export const DailyWorkPage = () => {
         setEditPrice(action.price.toString());
     };
 
-    const saveEditPrice = () => {
+    const saveEditPrice = async () => {
         if (!editingAction) return;
         const newPrice = parseFloat(editPrice) || 0;
         const updated = quickActions.map(a => a.id === editingAction.id ? { ...a, price: newPrice } : a);
-        setQuickActions(updated);
-        localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        await updateQuickActions(updated);
         setEditingAction(null);
     };
 
-    const saveConfigAction = (updatedAction) => {
+    const saveConfigAction = async (updatedAction) => {
         const updated = quickActions.map(a => a.id === updatedAction.id ? updatedAction : a);
-        setQuickActions(updated);
-        localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        await updateQuickActions(updated);
         setConfigAction(null);
     };
 
-    const addNewAction = (newAction) => {
+    const addNewAction = async (newAction) => {
         const updated = [...quickActions, { ...newAction, id: `qa-${Date.now()}` }];
-        setQuickActions(updated);
-        localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+        await updateQuickActions(updated);
         setShowNewActionModal(false);
     };
 
-    const removeAction = (id) => {
+    const removeAction = async (id) => {
         if (window.confirm('¿Eliminar este botón permanente?')) {
             const updated = quickActions.filter(a => a.id !== id);
-            setQuickActions(updated);
-            localStorage.setItem('piripi_quick_actions', JSON.stringify(updated));
+            await updateQuickActions(updated);
+            setConfigAction(null);
         }
     };
 
