@@ -66,26 +66,52 @@ function App() {
         return <InvalidLinkScreen currentHost={hostname} />;
     }
 
-    // 2. Control de Bloqueo por Falta de Pago (Piripi) y Reactivación por Código
+    // 2. Control de Bloqueo por Falta de Pago (Piripi)
     const isMasterAdmin = user && user.id === 'saas-master';
     const isDelinquent = currentCompanyId === 'piripi';
     
-    // Limpieza de versiones previas de prueba para forzar bloqueo inmediato
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem(`velocce_license_unlocked_${currentCompanyId}`);
-        localStorage.removeItem(`velocce_license_unlocked_${currentCompanyId}_v2`);
-        localStorage.removeItem('velocce_license_unlocked_piripi');
-        localStorage.removeItem('velocce_license_unlocked_piripi_v2');
+    // Limpieza radical de cualquier clave de desbloqueo o bypass previo en localStorage
+    if (typeof window !== 'undefined' && isDelinquent) {
+        try {
+            const allKeys = Object.keys(localStorage);
+            allKeys.forEach(k => {
+                if (k.startsWith('velocce_license_unlocked') || k.includes('piripi') || k.includes('membership')) {
+                    localStorage.removeItem(k);
+                }
+            });
+        } catch (e) {}
     }
 
-    const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v3`) === 'true';
-    const isSuspended = (companyStatus && companyStatus.is_active === false) || (isDelinquent && !isUnlocked);
+    // Purgar inmediatamente Service Worker y Caches para invalidar cualquier copia offline
+    React.useEffect(() => {
+        if (typeof window !== 'undefined' && isDelinquent && !isMasterAdmin) {
+            try {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(regs => {
+                        for (let reg of regs) {
+                            reg.unregister();
+                        }
+                    });
+                }
+                if ('caches' in window) {
+                    caches.keys().then(keys => {
+                        for (let key of keys) {
+                            caches.delete(key);
+                        }
+                    });
+                }
+            } catch (e) {}
+        }
+    }, [isDelinquent, isMasterAdmin]);
+
+    // Para piripi el bloqueo es TOTAL e IRREVOCABLE a menos que ingrese el Desarrollador (saas-master)
+    const isSuspended = (companyStatus && companyStatus.is_active === false) || isDelinquent;
 
     if (isSuspended && !isMasterAdmin) {
         return (
             <LockScreen
                 companyId={currentCompanyId}
-                message="El acceso a la plataforma se encuentra temporalmente suspendido debido a saldo pendiente de facturación e incumplimiento de pago. Para regularizar la situación o solicitar el código de reactivación, comuníquese con el desarrollador."
+                message="El acceso a la plataforma se encuentra definitivamente suspendido por falta de pago del servicio e incumplimiento contractual. Comuníquese directamente con el desarrollador para regularizar la situación."
                 onUnlock={() => window.location.reload()}
             />
         );

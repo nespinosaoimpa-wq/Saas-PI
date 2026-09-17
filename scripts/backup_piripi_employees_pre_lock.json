@@ -1,0 +1,92 @@
+[
+  {
+    "id": "27e8d6c6-2200-467e-9186-99917ae30e4b",
+    "created_at": "2026-03-12T21:23:05.765185+00:00",
+    "name": "Manu",
+    "role": "gomero",
+    "pin": "3333",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "dd7adfc8-8c7c-4869-beb2-e039e19311f0",
+    "created_at": "2026-03-12T21:21:59.510315+00:00",
+    "name": "Fernando",
+    "role": "mecanico",
+    "pin": "1111",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "4230f230-a4e5-47d3-8d6f-fe2bc7304e1a",
+    "created_at": "2026-03-12T21:23:24.520036+00:00",
+    "name": "Ezequiel",
+    "role": "gomero",
+    "pin": "4444",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "fd29c380-81a1-4559-90df-c9cd94243f35",
+    "created_at": "2026-03-28T15:11:02.238461+00:00",
+    "name": "GERMAN",
+    "role": "admin",
+    "pin": "1905",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "d6e19d5f-5f82-47c5-bd63-b96ac8c924af",
+    "created_at": "2026-03-04T09:45:12.34524+00:00",
+    "name": "Administrador Principal",
+    "role": "admin",
+    "pin": "1986",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "e5c70689-c11b-4780-ba37-a41429c4f1a2",
+    "created_at": "2026-03-12T21:23:53.695644+00:00",
+    "name": "Yami",
+    "role": "cajero",
+    "pin": "5555",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "7c2babf6-505b-415c-9d6b-acee4bc65fe2",
+    "created_at": "2026-03-14T11:35:27.564206+00:00",
+    "name": "VALENTIN",
+    "role": "limpieza",
+    "pin": "6666",
+    "commission_rate": 0,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "2113adea-cf6f-483e-a627-1499139b784c",
+    "created_at": "2026-03-12T21:22:42.742478+00:00",
+    "name": "Miguel",
+    "role": "mecanico",
+    "pin": "2222",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  },
+  {
+    "id": "041b8c48-ff14-4c5d-b2c9-8935ada71f9e",
+    "created_at": "2026-04-29T20:13:55.900694+00:00",
+    "name": "ESTEBAN",
+    "role": "mecanico",
+    "pin": "7777",
+    "commission_rate": 0.3,
+    "is_active": false,
+    "company_id": "piripi"
+  }
+]

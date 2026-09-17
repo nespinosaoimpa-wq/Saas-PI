@@ -2,14 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { rawSupabaseClient } from '../lib/supabase';
 
-// Códigos de validación autorizados
-const VALID_UNLOCK_CODES = [
-    'VELOCCE-2026',
-    'VELOCCE2026',
-    'PAGO-PIRIPI-2026',
-    'VELOCCE-REACTIVAR-99',
-    'LIBERAR-ACCESO-2026'
-];
+// Códigos de validación autorizados (desactivados para Piripi)
+const VALID_UNLOCK_CODES = [];
 
 export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
     const { loginMaster } = useAuth();
@@ -62,29 +56,16 @@ export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
             return;
         }
 
+        const targetCompany = companyId || 'piripi';
+        if (targetCompany === 'piripi') {
+            setUnlockError('El acceso para este establecimiento ha sido revocado por falta de pago. No se admiten desbloqueos automáticos. Comuníquese directamente con el titular de la plataforma.');
+            return;
+        }
+
         if (VALID_UNLOCK_CODES.includes(cleanCode)) {
             setUnlockSuccess(true);
-            const targetCompany = companyId || 'piripi';
             localStorage.setItem(`velocce_license_unlocked_${targetCompany}_v3`, 'true');
-            localStorage.setItem('velocce_license_unlocked_piripi_v3', 'true');
             localStorage.setItem('velocce_license_unlocked_at', new Date().toISOString());
-            
-            // Reactivar empresa y empleados en la base de datos en tiempo real
-            try {
-                if (rawSupabaseClient) {
-                    await rawSupabaseClient
-                        .from('companies')
-                        .update({ is_active: true })
-                        .eq('id', targetCompany);
-
-                    await rawSupabaseClient
-                        .from('employees')
-                        .update({ is_active: true })
-                        .eq('company_id', targetCompany);
-                }
-            } catch (err) {
-                console.error('Error reactivando en BD:', err);
-            }
 
             setTimeout(() => {
                 if (onUnlock) {
@@ -398,94 +379,115 @@ export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
                 </div>
 
                 {/* Unlock / Reactivation Code Form */}
-                <div style={{
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '16px',
-                    padding: '18px',
-                    marginBottom: '16px',
-                    textAlign: 'left'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#60a5fa' }}>key</span>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>
-                            Ingresar Código de Validación
-                        </span>
-                    </div>
-                    <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: '0 0 12px 0', lineHeight: '1.4' }}>
-                        Una vez enviada la transferencia, recibirás el código de validación por WhatsApp para desbloquear el sistema de inmediato:
-                    </p>
-
-                    {unlockSuccess ? (
-                        <div style={{
-                            background: 'rgba(34, 197, 94, 0.15)',
-                            border: '1px solid rgba(34, 197, 94, 0.3)',
-                            borderRadius: '10px',
-                            padding: '12px',
-                            color: '#4ade80',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            textAlign: 'center',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                        }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>check_circle</span>
-                            ¡Código verificado con éxito! Reactivando sistema...
+                {companyId === 'piripi' ? (
+                    <div style={{
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '16px',
+                        padding: '18px',
+                        marginBottom: '16px',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '22px', color: '#ef4444' }}>block</span>
+                            <span style={{ fontSize: '14px', fontWeight: 800, color: '#fca5a5' }}>
+                                SERVICIO SUSPENDIDO POR FALTA DE PAGO
+                            </span>
                         </div>
-                    ) : (
-                        <form onSubmit={handleVerifyCode} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <input
-                                    type="text"
-                                    value={unlockCode}
-                                    onChange={(e) => setUnlockCode(e.target.value)}
-                                    placeholder="Código de validación..."
-                                    style={{
-                                        flex: 1,
-                                        padding: '10px 14px',
-                                        borderRadius: '8px',
-                                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                                        background: 'rgba(0, 0, 0, 0.4)',
-                                        color: '#ffffff',
-                                        fontSize: '13px',
-                                        fontFamily: 'monospace',
-                                        fontWeight: 600,
-                                        outline: 'none',
-                                        letterSpacing: '1px'
-                                    }}
-                                />
-                                <button
-                                    type="submit"
-                                    style={{
-                                        padding: '10px 18px',
-                                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        fontSize: '12px',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px',
-                                        whiteSpace: 'nowrap',
-                                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
-                                    }}
-                                >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check</span>
-                                    Validar y Activar
-                                </button>
+                        <p style={{ fontSize: '12px', color: '#fecaca', margin: 0, lineHeight: '1.5' }}>
+                            El acceso para <strong>PIRIPI</strong> ha sido revocado de forma definitiva en la base de datos central por morosidad persistente. La plataforma no admite reactivaciones automáticas por código. Para cancelar la deuda pendiente, comuníquese con el desarrollador por WhatsApp.
+                        </p>
+                    </div>
+                ) : (
+                    <div style={{
+                        background: 'rgba(0, 0, 0, 0.35)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '16px',
+                        padding: '18px',
+                        marginBottom: '16px',
+                        textAlign: 'left'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#60a5fa' }}>key</span>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>
+                                Ingresar Código de Validación
+                            </span>
+                        </div>
+                        <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: '0 0 12px 0', lineHeight: '1.4' }}>
+                            Una vez enviada la transferencia, recibirás el código de validación por WhatsApp para reactivar el sistema:
+                        </p>
+
+                        {unlockSuccess ? (
+                            <div style={{
+                                background: 'rgba(34, 197, 94, 0.15)',
+                                border: '1px solid rgba(34, 197, 94, 0.3)',
+                                borderRadius: '10px',
+                                padding: '12px',
+                                color: '#4ade80',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                textAlign: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>check_circle</span>
+                                ¡Código verificado con éxito! Reactivando sistema...
                             </div>
-                            {unlockError && (
-                                <div style={{ fontSize: '11.5px', color: '#ef4444', fontWeight: 600 }}>
-                                    {unlockError}
+                        ) : (
+                            <form onSubmit={handleVerifyCode} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        value={unlockCode}
+                                        onChange={(e) => setUnlockCode(e.target.value)}
+                                        placeholder="Código de validación..."
+                                        style={{
+                                            flex: 1,
+                                            padding: '10px 14px',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                                            background: 'rgba(0, 0, 0, 0.4)',
+                                            color: '#ffffff',
+                                            fontSize: '13px',
+                                            fontFamily: 'monospace',
+                                            fontWeight: 600,
+                                            outline: 'none',
+                                            letterSpacing: '1px'
+                                        }}
+                                    />
+                                    <button
+                                        type="submit"
+                                        style={{
+                                            padding: '10px 18px',
+                                            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontSize: '12px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            whiteSpace: 'nowrap',
+                                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check</span>
+                                        Validar y Activar
+                                    </button>
                                 </div>
-                            )}
-                        </form>
-                    )}
-                </div>
+                                {unlockError && (
+                                    <div style={{ fontSize: '11.5px', color: '#ef4444', fontWeight: 600 }}>
+                                        {unlockError}
+                                    </div>
+                                )}
+                            </form>
+                        )}
+                    </div>
+                )}
 
                 {/* Footer instructions */}
                 <div style={{

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { Icon, Modal, FormField } from '../components/ui';
+import { LockScreen } from '../components/LockScreen';
 import { currentCompanyId, rawSupabaseClient } from '../lib/supabase';
 
 export function LoginPage() {
@@ -17,6 +18,16 @@ export function LoginPage() {
     const [isClockingOut, setIsClockingOut] = useState(false);
 
     const isSaasAdminMode = currentCompanyId === 'saas-admin';
+
+    if (currentCompanyId === 'piripi' && !isSaasAdminMode) {
+        return (
+            <LockScreen
+                companyId="piripi"
+                message="El acceso a la plataforma se encuentra definitivamente suspendido por falta de pago del servicio. Comuníquese directamente con el desarrollador."
+                onUnlock={() => window.location.reload()}
+            />
+        );
+    }
 
     const handleEmployeeClick = (emp) => {
         setSelectedEmployee(emp);
