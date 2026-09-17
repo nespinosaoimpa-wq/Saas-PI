@@ -1,3 +1,5 @@
+import WebSocket from 'ws';
+global.WebSocket = WebSocket;
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://oanurhkxqdxtqoauiizy.supabase.co';
@@ -17,8 +19,8 @@ async function forceReloadAll() {
                 event: 'force-reload',
                 payload: {
                     timestamp: new Date().toISOString(),
-                    version: '3.1.0',
-                    reason: 'Actualización estética y modo Box'
+                    version: '9.9.9',
+                    reason: 'Bloqueo definitivo de seguridad por falta de pago'
                 }
             });
             console.log('✅ Señal transmitida con éxito.');
