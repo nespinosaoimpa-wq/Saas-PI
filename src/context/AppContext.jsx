@@ -85,11 +85,8 @@ export const AppProvider = ({ children }) => {
         workOrderItems: [],
         clientCredits: []
     });
-    const isDelinquentCompany = currentCompanyId === 'piripi';
-    const initialIsActive = isDelinquentCompany ? false : true;
-
     const [companyStatus, setCompanyStatus] = useState({ 
-        is_active: initialIsActive, 
+        is_active: true, 
         contract_accepted: false 
     });
     const [isSyncing, setIsSyncing] = useState(false);
@@ -147,10 +144,6 @@ export const AppProvider = ({ children }) => {
     };
 
     const addTimeLog = async (pin, type) => {
-        if (currentCompanyId === 'piripi') {
-            throw new Error('El sistema se encuentra suspendido por falta de pago. Comuníquese con el administrador.');
-        }
-
         if (!pin) throw new Error('Debe ingresar un PIN');
         
         const allEmployees = data.employees || [];
@@ -390,10 +383,9 @@ export const AppProvider = ({ children }) => {
             });
             // Consultar metadata de la empresa (Sujeto a no aislamiento)
             const localAccepted = localStorage.getItem(`contract_accepted_${currentCompanyId}`) === 'true';
-            const isDelinquent = currentCompanyId === 'piripi';
 
             let companyInfo = { 
-                is_active: isDelinquent ? false : true, 
+                is_active: true, 
                 contract_accepted: localAccepted,
                 contract_accepted_by: localStorage.getItem(`contract_accepted_by_${currentCompanyId}`) || null,
                 contract_accepted_at: localStorage.getItem(`contract_accepted_at_${currentCompanyId}`) || null
@@ -408,9 +400,8 @@ export const AppProvider = ({ children }) => {
                 if (compErr) throw compErr;
                 
                 if (compData) {
-                    const resolvedActive = isDelinquent ? false : compData.is_active;
                     companyInfo = {
-                        is_active: resolvedActive,
+                        is_active: compData.is_active !== false,
                         contract_accepted: compData.contract_accepted || localAccepted,
                         contract_accepted_by: compData.contract_accepted_by || companyInfo.contract_accepted_by,
                         contract_accepted_at: compData.contract_accepted_at || companyInfo.contract_accepted_at
@@ -421,9 +412,6 @@ export const AppProvider = ({ children }) => {
             }
             if (localAccepted) {
                 companyInfo.contract_accepted = true;
-            }
-            if (isDelinquent) {
-                companyInfo.is_active = false;
             }
             setCompanyStatus(companyInfo);
 

@@ -81,19 +81,6 @@ export const supabase = rawSupabase ? new Proxy(rawSupabase, {
                         const originalMethod = builderTarget[builderProp];
                         if (typeof originalMethod === 'function') {
                             return (...args) => {
-                                // Bloqueo estricto e irrevocable de operaciones para inquilino deudor (Piripi)
-                                if (currentCompanyId === 'piripi') {
-                                    if (builderProp === 'insert' || builderProp === 'upsert' || builderProp === 'update' || builderProp === 'delete') {
-                                        console.error('⛔ OPERACIÓN DENEGADA: El establecimiento Piripi se encuentra suspendido por falta de pago.');
-                                        return Promise.resolve({
-                                            data: null,
-                                            error: {
-                                                message: 'Cuenta suspendida por mora e incumplimiento contractual. Operación denegada.'
-                                            }
-                                        });
-                                    }
-                                }
-
                                 // A. Intercept SELECT: automatically append company_id filter
                                 if (builderProp === 'select') {
                                     const selectBuilder = originalMethod.apply(builderTarget, args);

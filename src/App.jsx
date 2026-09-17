@@ -66,52 +66,15 @@ function App() {
         return <InvalidLinkScreen currentHost={hostname} />;
     }
 
-    // 2. Control de Bloqueo por Falta de Pago (Piripi)
+    // 2. Control de Bloqueo por Estado de Empresa
     const isMasterAdmin = user && user.id === 'saas-master';
-    const isDelinquent = currentCompanyId === 'piripi';
-    
-    // Limpieza radical de cualquier clave de desbloqueo o bypass previo en localStorage
-    if (typeof window !== 'undefined' && isDelinquent) {
-        try {
-            const allKeys = Object.keys(localStorage);
-            allKeys.forEach(k => {
-                if (k.startsWith('velocce_license_unlocked') || k.includes('piripi') || k.includes('membership')) {
-                    localStorage.removeItem(k);
-                }
-            });
-        } catch (e) {}
-    }
-
-    // Purgar inmediatamente Service Worker y Caches para invalidar cualquier copia offline
-    React.useEffect(() => {
-        if (typeof window !== 'undefined' && isDelinquent && !isMasterAdmin) {
-            try {
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(regs => {
-                        for (let reg of regs) {
-                            reg.unregister();
-                        }
-                    });
-                }
-                if ('caches' in window) {
-                    caches.keys().then(keys => {
-                        for (let key of keys) {
-                            caches.delete(key);
-                        }
-                    });
-                }
-            } catch (e) {}
-        }
-    }, [isDelinquent, isMasterAdmin]);
-
-    // Para piripi el bloqueo es TOTAL e IRREVOCABLE a menos que ingrese el Desarrollador (saas-master)
-    const isSuspended = (companyStatus && companyStatus.is_active === false) || isDelinquent;
+    const isSuspended = companyStatus && companyStatus.is_active === false;
 
     if (isSuspended && !isMasterAdmin) {
         return (
             <LockScreen
                 companyId={currentCompanyId}
-                message="El acceso a la plataforma se encuentra definitivamente suspendido por falta de pago del servicio e incumplimiento contractual. Comuníquese directamente con el desarrollador para regularizar la situación."
+                message="El acceso a la plataforma se encuentra suspendido. Comuníquese con la administración."
                 onUnlock={() => window.location.reload()}
             />
         );

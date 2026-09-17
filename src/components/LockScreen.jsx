@@ -57,10 +57,6 @@ export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
         }
 
         const targetCompany = companyId || 'piripi';
-        if (targetCompany === 'piripi') {
-            setUnlockError('El acceso para este establecimiento ha sido revocado por falta de pago. No se admiten desbloqueos automáticos. Comuníquese directamente con el titular de la plataforma.');
-            return;
-        }
 
         if (VALID_UNLOCK_CODES.includes(cleanCode)) {
             setUnlockSuccess(true);
@@ -379,27 +375,7 @@ export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
                 </div>
 
                 {/* Unlock / Reactivation Code Form */}
-                {companyId === 'piripi' ? (
-                    <div style={{
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        borderRadius: '16px',
-                        padding: '18px',
-                        marginBottom: '16px',
-                        textAlign: 'center'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '22px', color: '#ef4444' }}>block</span>
-                            <span style={{ fontSize: '14px', fontWeight: 800, color: '#fca5a5' }}>
-                                SERVICIO SUSPENDIDO POR FALTA DE PAGO
-                            </span>
-                        </div>
-                        <p style={{ fontSize: '12px', color: '#fecaca', margin: 0, lineHeight: '1.5' }}>
-                            El acceso para <strong>PIRIPI</strong> ha sido revocado de forma definitiva en la base de datos central por morosidad persistente. La plataforma no admite reactivaciones automáticas por código. Para cancelar la deuda pendiente, comuníquese con el desarrollador por WhatsApp.
-                        </p>
-                    </div>
-                ) : (
-                    <div style={{
+                <div style={{
                         background: 'rgba(0, 0, 0, 0.35)',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
                         borderRadius: '16px',
@@ -487,7 +463,6 @@ export const LockScreen = ({ message, onUnlock, companyId = 'piripi' }) => {
                             </form>
                         )}
                     </div>
-                )}
 
                 {/* Footer instructions */}
                 <div style={{

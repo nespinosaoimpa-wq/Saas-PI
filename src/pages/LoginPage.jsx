@@ -19,15 +19,6 @@ export function LoginPage() {
 
     const isSaasAdminMode = currentCompanyId === 'saas-admin';
 
-    if (currentCompanyId === 'piripi' && !isSaasAdminMode) {
-        return (
-            <LockScreen
-                companyId="piripi"
-                message="El acceso a la plataforma se encuentra definitivamente suspendido por falta de pago del servicio. Comuníquese directamente con el desarrollador."
-                onUnlock={() => window.location.reload()}
-            />
-        );
-    }
 
     const handleEmployeeClick = (emp) => {
         setSelectedEmployee(emp);
@@ -140,11 +131,6 @@ export function LoginPage() {
                 }}>
                     <button
                         onClick={() => {
-                            const isUnlocked = typeof window !== 'undefined' && localStorage.getItem(`velocce_license_unlocked_${currentCompanyId}_v3`) === 'true';
-                            if (currentCompanyId === 'piripi' && !isUnlocked) {
-                                alert('El sistema se encuentra suspendido por falta de pago. Comuníquese con el desarrollador para regularizar.');
-                                return;
-                            }
                             setShowTimeModal(true);
                         }}
                         style={{
