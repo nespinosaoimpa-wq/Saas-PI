@@ -422,7 +422,7 @@ export const WorkOrdersPage = () => {
                                             <button
                                                 className="btn btn-primary btn-sm"
                                                 onClick={(e) => { e.stopPropagation(); setAddingProductsToWO(wo); setExtraProducts([]); setExtraProductSearch(''); }}
-                                                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 700, background: 'var(--info)' }}
+                                                style={{ height: 32, padding: '0 12px', fontSize: 12, fontWeight: 800, background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.25)', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.4)' }}
                                                 title="Agregar más productos o insumos a esta orden"
                                             >
                                                 + PRODUCTO
