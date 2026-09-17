@@ -40,20 +40,17 @@ const updateSW = registerSW({
     immediate: true
 });
 
-// Chequeo periódico automático de Service Worker cada 30 segundos y al cambiar de pestaña
-if (typeof window !== 'undefined') {
-    setInterval(async () => {
-        try {
-            if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.getRegistration();
-                if (reg) {
-                    await reg.update();
-                }
-            }
-        } catch (e) {}
-    }, 30000);
+// Forzar recarga inmediata de la ventana tan pronto el nuevo Service Worker toma el control
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[PWA] Nuevo Service Worker activo. Recargando página...');
+        window.location.reload();
+    });
+}
 
-    window.addEventListener('focus', async () => {
+// Chequeo periódico automático de Service Worker cada 15 segundos y al interactuar o enfocar la pestaña
+if (typeof window !== 'undefined') {
+    const triggerSWUpdate = async () => {
         try {
             if ('serviceWorker' in navigator) {
                 const reg = await navigator.serviceWorker.getRegistration();
@@ -62,6 +59,14 @@ if (typeof window !== 'undefined') {
                 }
             }
         } catch (e) {}
+    };
+
+    setInterval(triggerSWUpdate, 15000);
+    window.addEventListener('focus', triggerSWUpdate);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            triggerSWUpdate();
+        }
     });
 }
 
