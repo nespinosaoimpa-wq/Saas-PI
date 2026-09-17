@@ -52,13 +52,15 @@ export const DashboardPage = () => {
         });
         const weeklyTotal = weeklyPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 
-        // Group working days of current week (Lun a Vie) for the mini-chart
+        // Group all 7 days of current week (Lun a Dom) for the telemetry chart
         const weekDays = [
             { name: 'Lun', dayIdx: 1 },
             { name: 'Mar', dayIdx: 2 },
             { name: 'Mié', dayIdx: 3 },
             { name: 'Jue', dayIdx: 4 },
             { name: 'Vie', dayIdx: 5 },
+            { name: 'Sáb', dayIdx: 6 },
+            { name: 'Dom', dayIdx: 7 },
         ];
 
         const dailyStats = weekDays.map(({ name, dayIdx }) => {
@@ -71,13 +73,19 @@ export const DashboardPage = () => {
                 .filter(p => extractItemDateStr(p) === targetDateStr && p.amount > 0)
                 .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
-            return { day: name, total: amount, cash: amount, date: targetDateStr };
+            return { day: name, dayNum: targetDate.getDate(), total: amount, cash: amount, date: targetDateStr };
         });
+
+        const activeDaysCount = dailyStats.filter(d => d.total > 0).length || 1;
+        const avgDaily = weeklyTotal / activeDaysCount;
+        const peakDay = dailyStats.reduce((max, d) => (d.total > (max?.total || 0) ? d : max), dailyStats[0]);
 
         return {
             daily: dailyStats,
             weekly_total: weeklyTotal,
             monthly_total: monthlyTotal,
+            avg_daily: avgDaily,
+            peak_day: peakDay,
             weekRange,
             monthRange
         };
@@ -248,39 +256,89 @@ export const DashboardPage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
 
-                        {/* Revenue Chart - Solo Admins */}
-                        {user?.role === 'admin' && (
-                            <GlassCard style={{ padding: 22 }}>
-                                <SectionHeader icon="trending_up" title="Ingresos Semanales (Lun - Dom)" />
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-                                    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, color: 'var(--text-primary)' }}>
-                                        {formatCurrency(revenue.weekly_total)}
-                                    </div>
-                                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Esta semana</span>
-                                </div>
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                                    Mes en Curso: {formatCurrency(revenue.monthly_total)}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70 }}>
-                                    {revenue.daily.map((d, i) => {
-                                        const max = Math.max(...revenue.daily.map(x => x.cash || 0));
-                                        const total = d.cash || 0;
-                                        const h = max > 0 ? (total / max) * 100 : (i === 4 ? 20 : 0);
-                                        return (
-                                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                                                <div style={{
-                                                    width: '100%', borderRadius: '4px 4px 0 0',
-                                                    background: `rgba(var(--primary-rgb), ${i === 4 ? '1' : '0.25'})`,
-                                                    height: h + '%', minHeight: 4,
-                                                    transition: 'height 0.6s ease'
-                                                }} />
-                                                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{d.day}</span>
+                        {/* Revenue Chart - Telemetría de Ventas Completa (Solo Admins) */}
+                        {user?.role === 'admin' && (() => {
+                            const maxVal = Math.max(...revenue.daily.map(x => x.cash || 0), 1);
+
+                            return (
+                                <GlassCard style={{ padding: 22 }}>
+                                    <SectionHeader icon="trending_up" title="Ingresos Semanales (Lun - Dom)" />
+                                    
+                                    {/* Main Figures */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16, padding: '12px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Caja Acumulada Semanal</div>
+                                            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.5px', marginTop: 2 }}>
+                                                {formatCurrency(revenue.weekly_total)}
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </GlassCard>
-                        )}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Promedio por Día Activo</div>
+                                            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
+                                                {formatCurrency(revenue.avg_daily)}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Sub-metrics */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 20 }}>
+                                        <span>Mes en Curso: <strong style={{ color: 'var(--text-primary)' }}>{formatCurrency(revenue.monthly_total)}</strong></span>
+                                        <span>Día Pico: <strong style={{ color: 'var(--primary)' }}>{revenue.peak_day.day} ({formatCurrency(revenue.peak_day.total)})</strong></span>
+                                    </div>
+
+                                    {/* 7-Day High-Precision Telemetry Columns */}
+                                    <div style={{ height: 130, display: 'flex', alignItems: 'flex-end', gap: 8, paddingTop: 20, paddingBottom: 10, borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                        {revenue.daily.map((d, i) => {
+                                            const val = d.cash || 0;
+                                            const pct = Math.min(Math.max((val / maxVal) * 100, val > 0 ? 8 : 4), 100);
+                                            const isPeak = d.day === revenue.peak_day.day && val > 0;
+                                            const isZero = val === 0;
+
+                                            return (
+                                                <div key={i} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', position: 'relative' }}>
+                                                    {/* Amount Pill */}
+                                                    <div style={{
+                                                        fontSize: 9,
+                                                        fontWeight: 800,
+                                                        padding: '2px 5px',
+                                                        borderRadius: 4,
+                                                        background: isPeak ? 'rgba(245, 158, 11, 0.2)' : (isZero ? 'transparent' : 'rgba(255, 255, 255, 0.06)'),
+                                                        color: isPeak ? 'var(--primary)' : (isZero ? 'var(--text-muted)' : 'var(--text-primary)'),
+                                                        border: isPeak ? '1px solid var(--primary)' : '1px solid transparent',
+                                                        marginBottom: 6,
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {isZero ? '$0' : (val >= 1000000 ? `$${(val/1000000).toFixed(1)}M` : `$${Math.round(val/1000)}k`)}
+                                                    </div>
+
+                                                    {/* Column */}
+                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                        <div style={{
+                                                            width: '60%',
+                                                            maxWidth: 24,
+                                                            height: `${pct}%`,
+                                                            borderRadius: '6px 6px 2px 2px',
+                                                            background: isPeak 
+                                                                ? 'linear-gradient(180deg, #f59e0b 0%, rgba(245, 158, 11, 0.3) 100%)'
+                                                                : (isZero 
+                                                                    ? 'rgba(255, 255, 255, 0.05)' 
+                                                                    : 'linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%)'),
+                                                            boxShadow: isPeak ? '0 0 12px rgba(245, 158, 11, 0.4)' : 'none',
+                                                            transition: 'all 0.4s ease'
+                                                        }} />
+                                                    </div>
+
+                                                    {/* Day label */}
+                                                    <span style={{ fontSize: 10, fontWeight: isPeak ? 800 : 600, color: isPeak ? 'var(--primary)' : 'var(--text-muted)', marginTop: 8 }}>
+                                                        {d.day}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </GlassCard>
+                            );
+                        })()}
 
                         {/* Integridad Operativa - Solo Admins */}
                         {user?.role === 'admin' && (
