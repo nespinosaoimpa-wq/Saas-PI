@@ -793,7 +793,7 @@ export const DailyWorkPage = () => {
                             </FormField>
                         </FormRow>
                         <FormField label="Color del Icono">
-                            <input type="color" className="form-input" style={{ height: 40 }} value={configAction.color.startsWith('var') ? '#3b82f6' : configAction.color} onChange={e => setConfigAction({...configAction, color: e.target.value})} />
+                            <input type="color" className="form-input" style={{ height: 40 }} value={(configAction?.color && typeof configAction.color === 'string' && configAction.color.startsWith('var')) ? '#3b82f6' : (configAction?.color || '#3b82f6')} onChange={e => setConfigAction({...configAction, color: e.target.value})} />
                         </FormField>
                     </div>
                 </Modal>

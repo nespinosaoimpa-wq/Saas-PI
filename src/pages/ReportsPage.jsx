@@ -187,7 +187,7 @@ export const ReportsPage = () => {
             });
         } else if (dateRange === 'YEAR') {
             const yearStr = String(now.getFullYear());
-            payments = (MOCK.payments || []).filter(p => extractItemDateStr(p).startsWith(yearStr));
+            payments = (MOCK.payments || []).filter(p => (extractItemDateStr(p) || '').startsWith(yearStr));
             workOrders = (MOCK.workOrders || []).filter(wo => (wo.created_at || '').startsWith(yearStr));
         } else {
             payments = MOCK.payments || [];
@@ -254,7 +254,7 @@ export const ReportsPage = () => {
                 const pad = (n) => String(n).padStart(2, '0');
                 const prefix = `${yearStr}-${pad(idx + 1)}`;
                 const amount = (MOCK.payments || [])
-                    .filter(p => extractItemDateStr(p).startsWith(prefix) && (p.amount > 0 || p.type === 'INGRESO' || p.type === 'VENTA'))
+                    .filter(p => (extractItemDateStr(p) || '').startsWith(prefix) && (p.amount > 0 || p.type === 'INGRESO' || p.type === 'VENTA'))
                     .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
                 return { label: l, value: amount, color: 'var(--primary)' };
             });
@@ -264,7 +264,7 @@ export const ReportsPage = () => {
         return availableMonths.slice(0, 6).reverse().map((m, idx) => {
             const r = getMonthRange(m);
             const amount = (MOCK.payments || [])
-                .filter(p => extractItemDateStr(p).startsWith(m) && (p.amount > 0 || p.type === 'INGRESO' || p.type === 'VENTA'))
+                .filter(p => (extractItemDateStr(p) || '').startsWith(m) && (p.amount > 0 || p.type === 'INGRESO' || p.type === 'VENTA'))
                 .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
             return { label: r.label.slice(0, 3) + ' ' + r.year.toString().slice(2), value: amount, color: idx % 2 === 0 ? 'var(--primary)' : 'var(--accent)' };
         });
@@ -468,7 +468,19 @@ export const ReportsPage = () => {
                     <SectionHeader icon="stars" title="Ranking de Clientes (Top 20)" />
                     <DataTable
                         columns={[
-                            { key: 'name', label: 'Cliente', render: r => <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>{r.first_name[0]}</div> <strong>{r.first_name} {r.last_name}</strong></div> },
+                            { key: 'name', label: 'Cliente', render: r => {
+                                 const firstName = r.first_name || r.name || 'C';
+                                 const initial = firstName ? firstName[0].toUpperCase() : 'C';
+                                 const fullName = r.first_name ? `${r.first_name} ${r.last_name || ''}` : (r.name || 'Cliente sin nombre');
+                                 return (
+                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+                                             {initial}
+                                         </div>
+                                         <strong>{fullName}</strong>
+                                     </div>
+                                 );
+                             } },
                             { key: 'vehicles', label: 'Vehículos', render: r => <span>{getClientVehicles(r.id)?.length || 0}</span> },
                             {
                                 key: 'total_spent', label: 'Inversión Total', render: r => {
