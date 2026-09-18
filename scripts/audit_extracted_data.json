@@ -1,0 +1,275 @@
+{
+  "today": {
+    "date": "2026-09-17",
+    "paymentsCount": 7,
+    "paymentsTotal": 329400,
+    "paymentsList": [
+      {
+        "id": "e415b0ba-e431-47d8-8609-8cec5f66e36f",
+        "time": "2026-09-17T14:46:38.472068+00:00",
+        "amount": 7000,
+        "method": "EFECTIVO",
+        "description": "Gomería Express: REVIVIDOR NEGRO LIQ. 500ML",
+        "employee_id": "d6e19d5f-5f82-47c5-bd63-b96ac8c924af"
+      },
+      {
+        "id": "b75efa01-b94b-4bf3-bd2f-3a9bcc41f78c",
+        "time": "2026-09-17T13:20:12.281553+00:00",
+        "amount": 14000,
+        "method": "TRANSFERENCIA",
+        "description": "Gomería Express: DESARME ARME MOTO, ESTIRA CADENA",
+        "employee_id": "4230f230-a4e5-47d3-8d6f-fe2bc7304e1a"
+      },
+      {
+        "id": "c3fa740c-b734-4cac-a32d-73387550b8fc",
+        "time": "2026-09-17T13:19:31.732966+00:00",
+        "amount": 8000,
+        "method": "EFECTIVO",
+        "description": "Gomería Express: PARCHE CAMIONETA ",
+        "employee_id": "fd29c380-81a1-4559-90df-c9cd94243f35"
+      },
+      {
+        "id": "e1116712-03af-4172-868c-80803d3ab9d4",
+        "time": "2026-09-17T12:46:25.641819+00:00",
+        "amount": 5000,
+        "method": "EFECTIVO",
+        "description": "Gomería Express: DESARME ARME MOTO",
+        "employee_id": "dd7adfc8-8c7c-4869-beb2-e039e19311f0"
+      },
+      {
+        "id": "7768ec4e-3647-4dfa-99ee-fc3beae57046",
+        "time": "2026-09-17T11:40:48.940799+00:00",
+        "amount": 7500,
+        "method": "EFECTIVO",
+        "description": "Gomería Express: PARCHE AUTO",
+        "employee_id": "4230f230-a4e5-47d3-8d6f-fe2bc7304e1a"
+      },
+      {
+        "id": "9a890808-292a-4a90-9644-b2c0a982d3df",
+        "time": "2026-09-17T11:28:40.852128+00:00",
+        "amount": 251800,
+        "method": "TRANSFERENCIA",
+        "description": "Pago OT #642",
+        "employee_id": "2113adea-cf6f-483e-a627-1499139b784c"
+      },
+      {
+        "id": "81175a5b-4abf-456b-8197-5fc95976024f",
+        "time": "2026-09-17T11:11:58.325425+00:00",
+        "amount": 36100,
+        "method": "EFECTIVO",
+        "description": "Gomería Express: CAJA INICIAL",
+        "employee_id": "d6e19d5f-5f82-47c5-bd63-b96ac8c924af"
+      }
+    ],
+    "quickServicesCount": 6,
+    "quickServicesTotal": 77600,
+    "quickServicesList": [
+      {
+        "id": "93e32ce2-ac25-4add-955f-45667263cc3a",
+        "time": "2026-09-17T14:46:37.639477+00:00",
+        "service": "REVIVIDOR NEGRO LIQ. 500ML",
+        "price": 7000,
+        "mechanic_id": "d6e19d5f-5f82-47c5-bd63-b96ac8c924af"
+      },
+      {
+        "id": "d445162e-a007-4efc-abae-25cd2700f60d",
+        "time": "2026-09-17T13:20:11.510192+00:00",
+        "service": "DESARME ARME MOTO, ESTIRA CADENA",
+        "price": 14000,
+        "mechanic_id": "4230f230-a4e5-47d3-8d6f-fe2bc7304e1a"
+      },
+      {
+        "id": "6b85cdbb-c0a1-424a-a3ff-0cac38419e0f",
+        "time": "2026-09-17T13:19:30.226683+00:00",
+        "service": "PARCHE CAMIONETA ",
+        "price": 8000,
+        "mechanic_id": "fd29c380-81a1-4559-90df-c9cd94243f35"
+      },
+      {
+        "id": "98ad1eac-eee9-4c19-ac93-35cc8f0c9c4e",
+        "time": "2026-09-17T12:46:24.720223+00:00",
+        "service": "DESARME ARME MOTO",
+        "price": 5000,
+        "mechanic_id": "dd7adfc8-8c7c-4869-beb2-e039e19311f0"
+      },
+      {
+        "id": "0f4598ef-5a80-48d4-ada7-4e219003574c",
+        "time": "2026-09-17T11:40:48.017843+00:00",
+        "service": "PARCHE AUTO",
+        "price": 7500,
+        "mechanic_id": "4230f230-a4e5-47d3-8d6f-fe2bc7304e1a"
+      },
+      {
+        "id": "8880d6a4-acef-45d8-8683-15ee128e940f",
+        "time": "2026-09-17T11:11:57.17802+00:00",
+        "service": "CAJA INICIAL",
+        "price": 36100,
+        "mechanic_id": "d6e19d5f-5f82-47c5-bd63-b96ac8c924af"
+      }
+    ],
+    "attendanceCount": 3,
+    "attendanceList": [
+      {
+        "time": "2026-09-17T11:12:39.808+00:00",
+        "type": "IN",
+        "name": "Ezequiel",
+        "time_display": "08:12"
+      },
+      {
+        "time": "2026-09-17T11:12:27.054+00:00",
+        "type": "IN",
+        "name": "Fernando",
+        "time_display": "08:12"
+      },
+      {
+        "time": "2026-09-17T11:06:28.437+00:00",
+        "type": "OUT",
+        "name": "Fernando",
+        "time_display": "08:06"
+      }
+    ]
+  },
+  "historical": {
+    "totalRevenue": 31828404,
+    "paymentsByMethod": {
+      "EFECTIVO": 12423305,
+      "TRANSFERENCIA": 15157400,
+      "CREDITO": 3735399,
+      "CREDITO_CASA": 110000,
+      "TARJETA": 118000,
+      "COMBINADO": 239500,
+      "DEBITO": 44800
+    },
+    "totalWorkOrders": 593,
+    "totalWorkOrdersVolume": 94340697,
+    "totalQuickServices": 1000,
+    "totalQuickServicesVolume": 20515657,
+    "totalClients": 0,
+    "totalVehicles": 0,
+    "totalEmployees": 10,
+    "totalAttendanceLogs": 1000,
+    "totalClicks": 45845,
+    "clicksByPage": {
+      "/": 1,
+      "Órdenes de Trabajo": 8419,
+      "Caja del Día": 5029,
+      "Proveedores": 66,
+      "Crédito de la Casa": 221,
+      "Clientes & Vehículos": 4680,
+      "Centro de Ayuda": 13,
+      "Trabajos del Día": 16653,
+      "Inventario & Stock": 7575,
+      "Auditoría del Sistema": 68,
+      "Reportes & Estadísticas": 119,
+      "Dashboard": 1370,
+      "Gestión de Personal": 301,
+      "Punto de Venta": 1197,
+      "Calendario de Turnos": 34,
+      "Configuración": 29,
+      "Promociones": 33,
+      "Membresía & Licencia": 37
+    }
+  },
+  "employees": [
+    {
+      "id": "27e8d6c6-2200-467e-9186-99917ae30e4b",
+      "created_at": "2026-03-12T21:23:05.765185+00:00",
+      "name": "Manu",
+      "role": "gomero",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "dd7adfc8-8c7c-4869-beb2-e039e19311f0",
+      "created_at": "2026-03-12T21:21:59.510315+00:00",
+      "name": "Fernando",
+      "role": "mecanico",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "4230f230-a4e5-47d3-8d6f-fe2bc7304e1a",
+      "created_at": "2026-03-12T21:23:24.520036+00:00",
+      "name": "Ezequiel",
+      "role": "gomero",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "fd29c380-81a1-4559-90df-c9cd94243f35",
+      "created_at": "2026-03-28T15:11:02.238461+00:00",
+      "name": "GERMAN",
+      "role": "admin",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "d6e19d5f-5f82-47c5-bd63-b96ac8c924af",
+      "created_at": "2026-03-04T09:45:12.34524+00:00",
+      "name": "Administrador Principal",
+      "role": "admin",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "e5c70689-c11b-4780-ba37-a41429c4f1a2",
+      "created_at": "2026-03-12T21:23:53.695644+00:00",
+      "name": "Yami",
+      "role": "cajero",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "7c2babf6-505b-415c-9d6b-acee4bc65fe2",
+      "created_at": "2026-03-14T11:35:27.564206+00:00",
+      "name": "VALENTIN",
+      "role": "limpieza",
+      "pin": "0000",
+      "commission_rate": 0,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "2113adea-cf6f-483e-a627-1499139b784c",
+      "created_at": "2026-03-12T21:22:42.742478+00:00",
+      "name": "Miguel",
+      "role": "mecanico",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    },
+    {
+      "id": "22844a14-7e96-45d5-8164-3d9e5ce40eb5",
+      "created_at": "2026-07-13T01:50:45.250623+00:00",
+      "name": "Juan Perez",
+      "role": "admin",
+      "pin": "1234",
+      "commission_rate": 0,
+      "is_active": false,
+      "company_id": "lagerlubricentro"
+    },
+    {
+      "id": "041b8c48-ff14-4c5d-b2c9-8935ada71f9e",
+      "created_at": "2026-04-29T20:13:55.900694+00:00",
+      "name": "ESTEBAN",
+      "role": "mecanico",
+      "pin": "0000",
+      "commission_rate": 0.3,
+      "is_active": false,
+      "company_id": "piripi"
+    }
+  ]
+}
